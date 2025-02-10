@@ -1,0 +1,12 @@
+{
+  "git.ignoreLimitWarning": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[prisma]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "svg.preview.background": "transparent",
+  "editor.formatOnSave": true
+}
