@@ -4,7 +4,7 @@ from activities import pyActivity  # Import the activity
 
 
 async def main():
-    task_queue = "ts-tasks-queue"
+    task_queue = "py-tasks-queue"
     
     # First create client
     client_obj = await client.Client.connect("localhost:7233")

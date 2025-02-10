@@ -4,9 +4,9 @@
   "main": "index.js",
   "scripts": {
     "build:ts": "tsc",
-    "start:ts-worker": "ts-node ts-wa/src/worker.ts",
+    "start:worker-ts": "ts-node ts-wa/src/worker.ts",
     "start:workflow": "ts-node ts-wa/start-workflow.ts",
-    "start:py-worker": "cd py-wa && source venv/bin/activate && python src/worker.py && cd .."
+    "start:worker-py": "cd py-wa && source venv/bin/activate && python src/worker.py && cd .."
   },
   "keywords": [],
   "author": "",

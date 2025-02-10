@@ -5,6 +5,12 @@ const { proxyActivities } = wf;
 
 const activities = proxyActivities({
   startToCloseTimeout: '60 second',
+  taskQueue: 'ts-tasks-queue',
+});
+
+const pythonActivities = proxyActivities({
+  startToCloseTimeout: '60 second',
+  taskQueue: 'py-tasks-queue',
 });
 
 export async function multiLanguageWorkflow(initialString: string): Promise<string> {
@@ -15,7 +21,7 @@ export async function multiLanguageWorkflow(initialString: string): Promise<stri
 
   // The Workflow doesnt know (or care) which language the Activity will be executed in.
   // So we tell it to call pyActivity.
-  const pyResult = await activities.pyActivity(tsResult);
+  const pyResult = await pythonActivities.pyActivity(tsResult);
 
   return pyResult;
 }
