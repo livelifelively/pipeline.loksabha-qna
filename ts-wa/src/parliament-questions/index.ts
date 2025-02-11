@@ -3,8 +3,8 @@ import fs from 'fs';
 import { groupBy } from 'lodash';
 
 import { StepStatus } from '../pipeline/pipeline';
-import { findProjectRoot, kebabCaseNames, filenameGenerator } from '../file-utils/project-root';
-import { downloadPDFs } from '../file-utils/fetch-pdf-from-url';
+import { findProjectRoot, kebabCaseNames, filenameGenerator } from '../utils/project-root';
+import { downloadPDFs } from '../utils/fetch-pdf-from-url';
 
 export interface ParliamentQuestion {
   quesNo: number;
