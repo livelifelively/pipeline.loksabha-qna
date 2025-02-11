@@ -4,6 +4,8 @@ import { keyBy, map, size } from 'lodash';
 
 import { findProjectRoot } from '../file-utils/project-root';
 
+export type StepStatus = 'SUCCESS' | 'FAILURE' | 'PARTIAL';
+
 export interface PipelineStep {
   name: string;
   function: any;
