@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { keyBy, map, size } from 'lodash';
 
-import { findProjectRoot } from '../file-utils/project-root';
+import { findProjectRoot } from '../utils/project-root';
 
 export type StepStatus = 'SUCCESS' | 'FAILURE' | 'PARTIAL';
 
@@ -24,7 +24,7 @@ interface PipelineConfig {
 }
 
 // Define the necessary interfaces
-interface ProgressIteration {
+export interface ProgressIteration {
   iteration: number;
   lastIteration?: number;
   timeStamp: Date;
