@@ -135,3 +135,11 @@ dist
 .DS_Storevenv/
 
 .swc
+
+*.pyc
+
+*.log.json
+*.log.json.gz
+*.log.json.gz.part
+*.log.json.gz.part.1
+*.log.json.gz.part.2
