@@ -6,7 +6,7 @@ async function run() {
   const worker = await Worker.create({
     workflowsPath: require.resolve('./workflow'),
     activities: {
-      tsActivity,  // Register TypeScript activity
+      tsActivity, // Register TypeScript activity
     },
     taskQueue: 'ts-tasks-queue',
   });
