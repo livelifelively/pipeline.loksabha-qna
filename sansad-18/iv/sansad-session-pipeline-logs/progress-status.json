@@ -9,5 +9,21 @@
         "status": "SUCCESS"
       }
     ]
+  },
+  {
+    "iteration": 2,
+    "timeStamp": "2025-02-12T11:55:33.301Z",
+    "steps": [
+      {
+        "step": 0,
+        "logFile": "sansad-18/iv/sansad-session-pipeline-logs/1.STEP_0_SUCCESS_Fetch Questions PDFs.log.json",
+        "status": "SUCCESS"
+      },
+      {
+        "step": 1,
+        "logFile": "sansad-18/iv/sansad-session-pipeline-logs/2.STEP_1_SUCCESS_Fetch Meta Analysis for Questions PDFs.log.json",
+        "status": "SUCCESS"
+      }
+    ]
   }
 ]

@@ -9,48 +9,52 @@ import { successfulStepDataFilePath } from '../utils/pipeline-utils';
 import { ParliamentQuestion } from '.';
 
 export async function fetchMetaAnalysisForQuestionsPdfs(outputs: Record<string, any>): Promise<any> {
-  const { sansad, session } = outputs;
+  const { downloadedSansadSessionQuestions } = outputs;
 
-  const sansadSessionDirectory = path.join(__dirname, `../../../sansad-${sansad}/${session}`);
-  const fetchedQnAPdfProgressStatusFilePath = path.join(
-    sansadSessionDirectory,
-    'sansad-session-pipeline-logs/progress-status.json'
-  );
-  const fetchedQnAPdfProgressStatus = require(fetchedQnAPdfProgressStatusFilePath);
+  // const sansadSessionDirectory = path.join(__dirname, `../../../sansad-${sansad}/${session}`);
+  // const fetchedQnAPdfProgressStatusFilePath = path.join(
+  //   sansadSessionDirectory,
+  //   'sansad-session-pipeline-logs/progress-status.json'
+  // );
+  // const fetchedQnAPdfProgressStatus = require(fetchedQnAPdfProgressStatusFilePath);
 
-  console.log(JSON.stringify(fetchedQnAPdfProgressStatus));
+  // console.log(JSON.stringify(fetchedQnAPdfProgressStatus));
 
-  const fetchedQnAPdfDataFilePath = successfulStepDataFilePath(fetchedQnAPdfProgressStatus, 1);
+  // const fetchedQnAPdfDataFilePath = successfulStepDataFilePath(fetchedQnAPdfProgressStatus, 1);
 
-  if (!fetchedQnAPdfDataFilePath) {
-    throw new Error("Step's Successfull status data file not found");
-  }
+  // if (!fetchedQnAPdfDataFilePath) {
+  //   throw new Error("Step's Successfull status data file not found");
+  // }
 
-  const absolutePath = path.join(findProjectRoot(), fetchedQnAPdfDataFilePath);
-  const fetchedQnAPdfData = require(absolutePath);
+  // const absolutePath = path.join(findProjectRoot(), fetchedQnAPdfDataFilePath);
+  // const fetchedQnAPdfData = require(absolutePath);
 
-  let baseData = fetchedQnAPdfData.data.downloadedSansadSessionQuestions.map(
-    (val: ParliamentQuestion): ParliamentQuestion => {
-      return {
-        quesNo: val.quesNo,
-        subjects: val.subjects.trim(),
-        lokNo: val.lokNo.trim(),
-        member: val.member.map((m) => m.trim()),
-        ministry: val.ministry.trim(),
-        type: val.type.trim(),
-        date: val.date.trim(),
-        questionsFilePathLocal: val.questionsFilePathLocal.trim(),
-        questionsFilePathWeb: val.questionsFilePathWeb.trim(),
-        questionsFilePathHindiLocal: val.questionsFilePathHindiLocal?.trim(),
-        questionsFilePathHindiWeb: val.questionsFilePathHindiWeb?.trim(),
-        questionText: val.questionText?.trim(),
-        answerText: val.answerText?.trim(),
-        sessionNo: val.sessionNo?.trim(),
-      };
-    }
-  );
+  // let baseData = fetchedQnAPdfData.data.downloadedSansadSessionQuestions.map(
+  const baseData = downloadedSansadSessionQuestions.map((val: ParliamentQuestion): ParliamentQuestion => {
+    return {
+      quesNo: val.quesNo,
+      subjects: val.subjects.trim(),
+      lokNo: val.lokNo.trim(),
+      member: val.member.map((m) => m.trim()),
+      ministry: val.ministry.trim(),
+      type: val.type.trim(),
+      date: val.date.trim(),
+      questionsFilePathLocal: val.questionsFilePathLocal.trim(),
+      questionsFilePathWeb: val.questionsFilePathWeb.trim(),
+      questionsFilePathHindiLocal: val.questionsFilePathHindiLocal?.trim(),
+      questionsFilePathHindiWeb: val.questionsFilePathHindiWeb?.trim(),
+      questionText: val.questionText?.trim(),
+      answerText: val.answerText?.trim(),
+      sessionNo: val.sessionNo?.trim(),
+    };
+  });
 
   console.log(JSON.stringify(baseData));
+
+  return {
+    status: 'SUCCESS',
+    cleanedQnAData: baseData,
+  };
 
   // #TODO
   // number of pages
@@ -124,5 +128,3 @@ export async function fetchMetaAnalysisForQuestionsPdfs(outputs: Record<string, 
   //     status: failedSansadSessionQuestionDownload.length > 0 ? 'PARTIAL' : 'SUCCESS',
   //   };
 }
-
-fetchMetaAnalysisForQuestionsPdfs({ sansad: '18', session: 'iv' });
