@@ -1,0 +1,40 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Worker",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/py-wa/app/worker.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/py-wa"
+      }
+    },
+    {
+      "name": "TS: Worker",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start:worker-ts"],
+      "skipFiles": ["<node_internals>/**"],
+      "outFiles": ["${workspaceFolder}/ts-wa/lib/**/*.js"]
+    },
+    {
+      "name": "TS: Start Workflow",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start:workflow-exec"],
+      "skipFiles": ["<node_internals>/**"],
+      "outFiles": ["${workspaceFolder}/ts-wa/lib/**/*.js"]
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug All",
+      "configurations": ["Python: Worker", "TS: Worker", "TS: Start Workflow"]
+    }
+  ]
+}
