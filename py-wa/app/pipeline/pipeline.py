@@ -6,10 +6,8 @@ from typing import List, Any, Dict, Optional
 from .types import PipelineStep, PipelineConfig, ProgressIteration, ProgressData
 from .progress import get_last_iteration, create_new_iteration, log_progress
 from .exceptions import PipelineError, PipelineStepError
-from ..utils.logging import setup_logger
 from .context import PipelineContext
 
-logger = setup_logger(__name__)
 
 def initialize_directories(progress_dir: str, progress_file: str) -> None:
     """

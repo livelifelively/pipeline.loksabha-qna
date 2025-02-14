@@ -1,8 +1,7 @@
 from pathlib import Path
 import json
-from typing import List, Any, Optional, Dict
+from typing import Any, Optional, Dict
 from datetime import datetime
-import asyncio
 
 from .types import ProgressIteration, ProgressData, StepStatus
 from .exceptions import ProgressError, FileOperationError
@@ -65,7 +64,7 @@ async def get_last_iteration(progress_file: Path) -> Optional[ProgressIteration]
         progress_status = json.loads(progress_file.read_text())
         if not progress_status:
             return None
-        return ProgressIteration.parse_obj(progress_status[-1])
+        return ProgressIteration.model_validate(progress_status[-1])
     except Exception as e:
         raise FileOperationError(
             str(e),

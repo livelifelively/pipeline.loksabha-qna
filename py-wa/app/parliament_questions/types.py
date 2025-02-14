@@ -39,9 +39,10 @@ class QuestionMetaAnalysis(BaseModel):
     answer_length: Optional[int] = Field(None, description="Number of characters in the answer")
     structure_conformance: Optional[bool] = Field(None, description="Whether document follows standard structure")
 
-class PipelineOutput(BaseModel):
+class ParliamentQuestionsPipelineState(BaseModel):
     """
-    Output structure for pipeline steps.
+    Shared state for parliament questions pipeline steps.
+    Contains the cumulative state that gets passed between steps.
     """
     failed_sansad_session_question_download: List[str] = Field(
         default_factory=list,

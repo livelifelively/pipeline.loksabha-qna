@@ -1,9 +1,12 @@
-from typing import Any, Callable, Dict, Optional, List
+from typing import Any, Callable, Dict, Optional, List, Literal
 from pydantic import BaseModel, Field
 from datetime import datetime
 from pathlib import Path
 
 from .context import PipelineContext
+
+# Type for pipeline step status
+StepStatus = Literal["SUCCESS", "FAILURE", "PARTIAL"]
 
 StepFunction = Callable[[Dict[str, Any], PipelineContext], Dict[str, Any]]
 

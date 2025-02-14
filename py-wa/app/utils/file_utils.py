@@ -1,13 +1,14 @@
 import os
-import re
 
 def kebab_case_names(text: str) -> str:
-    """Convert text to kebab-case."""
-    # Convert camelCase to snake_case
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1-\2', text)
-    s2 = re.sub('([a-z0-9])([A-Z])', r'\1-\2', s1)
-    # Convert to lowercase and replace spaces/underscores with hyphens
-    return re.sub(r'[_\s]+', '-', s2.lower().strip())
+    """
+    Convert text to kebab-case by removing commas, 'and', '&' 
+    and replacing spaces with hyphens.
+    """
+    # Remove commas, 'and', '&' and trim whitespace
+    smaller_text = text.strip().replace(',', '').replace('and', '').replace('&', '')
+    # Convert to lowercase and replace spaces with hyphens
+    return '-'.join(smaller_text.split()).lower()
 
 def filename_generator(url: str, index: int) -> str:
     """Generate filename from URL."""
@@ -16,4 +17,4 @@ def filename_generator(url: str, index: int) -> str:
     # If no extension, add .pdf
     if not os.path.splitext(base_name)[1]:
         base_name += '.pdf'
-    return base_name 
+    return base_name

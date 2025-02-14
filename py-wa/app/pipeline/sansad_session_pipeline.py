@@ -1,16 +1,14 @@
-from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from .pipeline import run_pipeline
 from .types import PipelineStep
 from ..parliament_questions import fetch_and_categorize_questions_pdfs
 from ..parliament_questions.questions_meta_analysis import fetch_meta_analysis_for_questions_pdfs
-from ..utils.logging import setup_logger
-from ..utils.run_context import RunContext
 from .context import PipelineContext
-from .types import PipelineOutput
+from ..utils.project_root import find_project_root
+from ..parliament_questions.types import ParliamentQuestionsPipelineState
 
-logger = setup_logger(__name__)
+
 
 async def sansad_session_pipeline(sansad: str, session: str) -> Any:
     """
@@ -47,7 +45,7 @@ async def sansad_session_pipeline(sansad: str, session: str) -> Any:
         )
     ]
     
-    outputs = PipelineOutput(
+    outputs = ParliamentQuestionsPipelineState(
         sansad=sansad,
         session=session,
         failed_sansad_session_question_download=[],
@@ -57,7 +55,7 @@ async def sansad_session_pipeline(sansad: str, session: str) -> Any:
     ).dict()
     
     # Setup pipeline directories
-    sansad_session_directory = Path(__file__).parent.parent.parent / f"sansad-{sansad}" / session
+    sansad_session_directory = find_project_root() / f"sansad-{sansad}" / session
     sansad_progress_dir = sansad_session_directory / "sansad-session-pipeline-logs"
     progress_status_file = sansad_progress_dir / "progress-status.json"
     
