@@ -1,9 +1,10 @@
-from typing import TypedDict, List, Optional
+from typing import List, Optional, TypedDict
+
 
 class ParliamentQuestion(TypedDict):
     """
     Represents a question asked in the Parliament.
-    
+
     Attributes:
         quesNo: Unique identifier for the question
         subjects: Topic or subject of the question
@@ -20,6 +21,7 @@ class ParliamentQuestion(TypedDict):
         answerText: Optional extracted answer text
         sessionNo: Optional parliament session number
     """
+
     quesNo: int
     subjects: str
     lokNo: str
