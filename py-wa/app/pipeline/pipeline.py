@@ -9,34 +9,30 @@ from .exceptions import PipelineError, PipelineStepError
 from .context import PipelineContext
 
 
-def initialize_directories(progress_dir: str, progress_file: str) -> None:
+def initialize_directories(progress_dir: Path, progress_file: Path, context: Optional[PipelineContext] = None) -> None:
     """
     Initializes the necessary directories and progress file.
 
-    Creates the progress directory if it doesn't exist (including parent directories).
-    If the progress file doesn't exist, it creates it and initializes it with an empty JSON array.
-
     Args:
-        progress_dir: The path to the directory where progress information will be stored.
-        progress_file: The path to the file that will store progress information (as a JSON array).
+        progress_dir: The path to the directory where progress information will be stored
+        progress_file: The path to the file that will store progress information
+        context: Optional pipeline context for logging
 
-    Returns:
-        None
+    Raises:
+        PipelineError: If directory initialization fails
     """
-    # Ensure the progress directory exists. Create it recursively if necessary.
-    os.makedirs(progress_dir, exist_ok=True)  # Using exist_ok=True is best practice to avoid errors if the directory already exists
+    try:
+        progress_dir.mkdir(parents=True, exist_ok=True)
+        if not progress_file.exists():
+            if context:
+                context.log_pipeline("create_progress_file")
+            progress_file.write_text(json.dumps([]))
+    except Exception as e:
+        if context:
+            context.log_pipeline("init_failed", error=str(e))
+        raise PipelineError("Directory initialization failed", {"error": str(e)})
 
-    # Check if the progress file exists
-    if not os.path.exists(progress_file):
-        # If it doesn't exist, create it and initialize with an empty JSON array.
-        try:
-            with open(progress_file, 'w') as f: # Use 'with open' for automatic file closing (best practice)
-                json.dump([], f) # Use json.dump to serialize a Python list to JSON and write to the file
-        except IOError as e:
-            # Handle potential file writing errors gracefully (best practice)
-            print(f"Error writing to progress file '{progress_file}': {e}")
-            # Consider raising the exception again or handling it in a way appropriate for your application
-            raise
+
 
 async def orchestrate_pipeline(
     context: PipelineContext,
@@ -137,14 +133,8 @@ async def orchestrate_pipeline(
     context.log_pipeline("pipeline_complete")
     return last_step_output
 
-async def run_pipeline(
-    context: PipelineContext,
-    steps: List[PipelineStep],
-    initial_outputs: Dict[str, Any],
-    progress_dir: Path,
-    progress_file: Path,
-    resume_from_last_successful: bool = True
-) -> Any:
+async def run_pipeline(steps: List[PipelineStep], outputs: Dict[str, Any], 
+                      progress_dir: Path, progress_file: Path) -> Any:
     """
     Run the pipeline with the given configuration.
     
@@ -161,24 +151,16 @@ async def run_pipeline(
     Raises:
         PipelineError: If pipeline execution fails
     """
-    context.log_pipeline("pipeline_init")
-    
-    try:
-        progress_dir.mkdir(parents=True, exist_ok=True)
-        if not progress_file.exists():
-            context.log_pipeline("create_progress_file")
-            progress_file.write_text(json.dumps([]))
-    except Exception as e:
-        context.log_pipeline("init_failed", error=str(e))
-        raise PipelineError("Directory initialization failed", {"error": str(e)})
+    context = PipelineContext.create(__name__)
+    initialize_directories(progress_dir, progress_file, context)
     
     try:
         outputs = {
-            **initial_outputs,
+            **outputs,
             "progress_dir": str(progress_dir),
             "progress_file": str(progress_file)
         }
-        return await orchestrate_pipeline(context, outputs, steps, resume_from_last_successful)
+        return await orchestrate_pipeline(context, outputs, steps, True)
     except Exception as e:
         context.log_pipeline("failed", error=str(e))
         raise
