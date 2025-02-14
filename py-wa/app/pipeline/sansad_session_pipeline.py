@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 from typing import Any, Dict
 
@@ -6,8 +5,12 @@ from .pipeline import run_pipeline
 from .types import PipelineStep
 from ..parliament_questions import fetch_and_categorize_questions_pdfs
 from ..parliament_questions.questions_meta_analysis import fetch_meta_analysis_for_questions_pdfs
+from ..utils.logging import setup_logger
+from ..utils.run_context import RunContext
+from .context import PipelineContext
+from .types import PipelineOutput
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 async def sansad_session_pipeline(sansad: str, session: str) -> Any:
     """
@@ -20,9 +23,9 @@ async def sansad_session_pipeline(sansad: str, session: str) -> Any:
     Returns:
         Any: Output from the last successful step
     """
-    logger.info(f"SANSAD SESSION PROCESSING INITIALIZED: {sansad} {session}")
+    context = PipelineContext.create(__name__, sansad, session)
     
-    steps: list[PipelineStep] = [
+    steps = [
         PipelineStep(
             name="Fetch Questions PDFs",
             function=fetch_and_categorize_questions_pdfs,
@@ -33,9 +36,9 @@ async def sansad_session_pipeline(sansad: str, session: str) -> Any:
             }
         ),
         PipelineStep(
-            name="Fetch Meta Analysis for Questions PDFs",
+            name="Fetch Meta Analysis",
             function=fetch_meta_analysis_for_questions_pdfs,
-            key="FETCH_META_ANALYSIS_FOR_QUESTIONS_PDFS",
+            key="FETCH_META_ANALYSIS",
             input={
                 "sansad": sansad,
                 "session": session,
@@ -44,27 +47,40 @@ async def sansad_session_pipeline(sansad: str, session: str) -> Any:
         )
     ]
     
-    outputs: Dict[str, Any] = {
-        "sansad": sansad,
-        "session": session,
-        "failedSansadSessionQuestionDownload": [],
-        "downloadedSansadSessionQuestions": [],
-        "cleanedQnAData": []
-    }
+    outputs = PipelineOutput(
+        sansad=sansad,
+        session=session,
+        failed_sansad_session_question_download=[],
+        downloaded_sansad_session_questions=[],
+        cleaned_qna_data=[],
+        status="PENDING"
+    ).dict()
     
-    # Using Path for better path handling
+    # Setup pipeline directories
     sansad_session_directory = Path(__file__).parent.parent.parent / f"sansad-{sansad}" / session
     sansad_progress_dir = sansad_session_directory / "sansad-session-pipeline-logs"
     progress_status_file = sansad_progress_dir / "progress-status.json"
     
+    context.log_pipeline("init", 
+        config={
+            "sansad": sansad,
+            "session": session,
+            "progress_dir": str(sansad_progress_dir),
+            "steps": len(steps)
+        }
+    )
+    
     try:
         last_step_output = await run_pipeline(
+            context=context,
             steps=steps,
             initial_outputs=outputs,
             progress_dir=sansad_progress_dir,
             progress_file=progress_status_file
         )
+        context.log_pipeline("complete")
         return last_step_output
+        
     except Exception as e:
-        logger.error(f"Error in processing: {e}")
+        context.log_pipeline("failed", error=str(e))
         raise 

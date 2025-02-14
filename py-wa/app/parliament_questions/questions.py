@@ -9,22 +9,28 @@ from .types import ParliamentQuestion, PipelineOutput
 from ..utils.project_root import find_project_root
 from ..utils.file_utils import kebab_case_names, filename_generator
 from ..utils.pdf import download_pdfs, DownloadConfig
+from ..utils.pipeline_context import PipelineContext
 
 logger = logging.getLogger(__name__)
 
 
-async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any]) -> Dict[str, Any]:
+async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: PipelineContext) -> Dict[str, Any]:
     """
     Fetch and categorize parliament questions PDFs.
     
     Args:
         outputs: Pipeline outputs containing sansad and session info
+        context: Pipeline context for logging
         
     Returns:
         Dict containing download status and processed questions
     """
     sansad = outputs["sansad"]
     session = outputs["session"]
+    
+    context.log_step("init", 0, "Fetch Questions PDFs", 
+        params={"sansad": sansad, "session": session}
+    )
     
     # Setup directories
     project_root = find_project_root()
@@ -35,7 +41,9 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any]) -> Dict[s
     
     # Check if file exists
     if not qna_file.exists():
-        logger.error(f"QnA file not found: {qna_file}")
+        context.log_step("qna_file_missing", 0, "Fetch Questions PDFs", 
+            error=f"QnA file not found: {qna_file}"
+        )
         return {
             "failedSansadSessionQuestionDownload": [],
             "downloadedSansadSessionQuestions": [],
@@ -50,6 +58,11 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any]) -> Dict[s
     # Group questions by ministry
     questions = sorted(qna_data["listOfQuestions"], key=itemgetter("ministry"))
     grouped_questions = {k: list(g) for k, g in groupby(questions, key=itemgetter("ministry"))}
+    
+    context.log_step("processing_start", 0, "Fetch Questions PDFs",
+        total_ministries=len(grouped_questions),
+        total_questions=len(questions)
+    )
     
     failed_downloads = []
     downloaded_questions = []
@@ -78,26 +91,43 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any]) -> Dict[s
                 await download_pdfs([pdf_url], config)
                 
                 # Create ParliamentQuestion instance
-                downloaded_questions.append(
-                    ParliamentQuestion(
-                        ques_no=question["quesNo"],
-                        subjects=question["subjects"],
-                        lok_no=question["lokNo"],
-                        member=question["member"],
-                        ministry=question["ministry"],
-                        type=question["type"],
-                        date=question["date"],
-                        questions_file_path_web=question["questionsFilePath"],
-                        questions_file_path_local=str(relative_question_dir / filename_generator(pdf_url, 0)),
-                        questions_file_path_hindi_web=question.get("questionsFilePathHindi")
-                    )
+                downloaded_question = ParliamentQuestion(
+                    ques_no=question["quesNo"],
+                    subjects=question["subjects"],
+                    lok_no=question["lokNo"],
+                    member=question["member"],
+                    ministry=question["ministry"],
+                    type=question["type"],
+                    date=question["date"],
+                    questions_file_path_web=question["questionsFilePath"],
+                    questions_file_path_local=str(relative_question_dir / filename_generator(pdf_url, 0)),
+                    questions_file_path_hindi_web=question.get("questionsFilePathHindi")
                 )
+                downloaded_questions.append(downloaded_question)
+                
+                context.log_step("question_downloaded", 0, "Fetch Questions PDFs",
+                    question_id=question["quesNo"],
+                    ministry=ministry,
+                    progress=f"{len(downloaded_questions)}/{len(questions)}"
+                )
+                
             except Exception as e:
-                logger.error(f"Error downloading PDF: {e}")
                 failed_downloads.append(pdf_url)
+                context.log_step("download_failed", 0, "Fetch Questions PDFs",
+                    question_id=question["quesNo"],
+                    ministry=ministry,
+                    error=str(e)
+                )
+    
+    status = "PARTIAL" if failed_downloads else "SUCCESS"
+    context.log_step("complete", 0, "Fetch Questions PDFs",
+        status=status,
+        total_downloaded=len(downloaded_questions),
+        total_failed=len(failed_downloads)
+    )
     
     return {
         "failedSansadSessionQuestionDownload": failed_downloads,
         "downloadedSansadSessionQuestions": [q.dict() for q in downloaded_questions],
-        "status": "PARTIAL" if failed_downloads else "SUCCESS"
+        "status": status
     }

@@ -2,17 +2,19 @@ import aiohttp
 import asyncio
 from pathlib import Path
 from typing import List, Optional, Callable
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
 
-@dataclass
-class DownloadConfig:
+class DownloadConfig(BaseModel):
     """Configuration for PDF download."""
-    output_directory: Path
-    filename_generator: Callable[[str, int], str]
-    timeout_ms: int = 30000
-    retries: int = 5
-    retry_delay_ms: int = 2000
-    overwrite_existing: bool = False
+    output_directory: Path = Field(..., description="Directory to save downloaded files")
+    filename_generator: Callable[[str, int], str] = Field(..., description="Function to generate filenames")
+    timeout_ms: int = Field(default=30000, description="Timeout in milliseconds")
+    retries: int = Field(default=5, description="Number of retry attempts")
+    retry_delay_ms: int = Field(default=2000, description="Delay between retries in milliseconds")
+    overwrite_existing: bool = Field(default=False, description="Whether to overwrite existing files")
+
+    class Config:
+        arbitrary_types_allowed = True  # To allow Path and Callable types
 
 async def download_pdfs(urls: List[str], config: DownloadConfig) -> List[str]:
     """

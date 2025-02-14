@@ -4,46 +4,67 @@ from pathlib import Path
 
 from .types import ParliamentQuestion, PipelineOutput
 from .utils.text import clean_text
+from .context import PipelineContext
 
 logger = logging.getLogger(__name__)
 
-async def fetch_meta_analysis_for_questions_pdfs(outputs: Dict[str, Any]) -> Dict[str, Any]:
+async def fetch_meta_analysis_for_questions_pdfs(outputs: Dict[str, Any], context: PipelineContext) -> Dict[str, Any]:
     """
-    Analyze metadata for downloaded parliament question PDFs.
+    Fetch meta analysis for downloaded question PDFs.
     
     Args:
         outputs: Pipeline outputs containing downloaded questions
+        context: Pipeline context for logging
         
     Returns:
-        Dict containing cleaned QnA data and analysis status
+        Dict containing analysis status and results
     """
     downloaded_questions = outputs.get("downloadedSansadSessionQuestions", [])
     
-    # Clean and normalize the data
-    cleaned_data = []
-    for question in downloaded_questions:
-        cleaned = {
-            "ques_no": question["quesNo"],
-            "subjects": clean_text(question["subjects"]),
-            "lok_no": clean_text(question["lokNo"]),
-            "member": [clean_text(m) for m in question["member"]],
-            "ministry": clean_text(question["ministry"]),
-            "type": clean_text(question["type"]),
-            "date": clean_text(question["date"]),
-            "questions_file_path_local": clean_text(question["questionsFilePathLocal"]),
-            "questions_file_path_web": clean_text(question["questionsFilePathWeb"]),
-            "questions_file_path_hindi_local": clean_text(question.get("questionsFilePathHindiLocal", "")),
-            "questions_file_path_hindi_web": clean_text(question.get("questionsFilePathHindiWeb", "")),
-            "question_text": clean_text(question.get("questionText", "")),
-            "answer_text": clean_text(question.get("answerText", "")),
-            "session_no": clean_text(question.get("sessionNo", ""))
-        }
-        cleaned_data.append(ParliamentQuestion(**cleaned))
+    context.log_step("analysis_start", 1, "Meta Analysis", 
+        total_questions=len(downloaded_questions)
+    )
     
-    return {
-        "status": "SUCCESS",
-        "cleanedQnAData": [q.dict() for q in cleaned_data]
-    }
+    try:
+        analyzed_data = []
+        failed_analysis = []
+        
+        for i, question in enumerate(downloaded_questions):
+            try:
+                analysis = await analyze_question_pdf(question)
+                analyzed_data.append(analysis)
+                
+                context.log_step("question_analyzed", 1, "Meta Analysis",
+                    question_id=question.id,
+                    progress=f"{i+1}/{len(downloaded_questions)}"
+                )
+                
+            except Exception as e:
+                failed_analysis.append({
+                    "question": question.dict(),
+                    "error": str(e)
+                })
+                context.log_step("question_analysis_failed", 1, "Meta Analysis",
+                    question_id=question.id,
+                    error=str(e)
+                )
+        
+        status = "SUCCESS" if not failed_analysis else "PARTIAL"
+        
+        return {
+            "status": status,
+            "cleanedQnAData": analyzed_data,
+            "failedAnalysis": failed_analysis
+        }
+        
+    except Exception as e:
+        context.log_step("analysis_failed", 1, "Meta Analysis",
+            error=str(e)
+        )
+        return {
+            "status": "FAILURE",
+            "error": str(e)
+        }
 
     # TODO: Implement additional meta-analysis features:
     # - Number of pages
