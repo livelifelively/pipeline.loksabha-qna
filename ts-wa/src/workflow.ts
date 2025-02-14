@@ -28,6 +28,6 @@ export async function multiLanguageWorkflow(initialString: string): Promise<stri
   // console.log('Calling Python activity with input:', tsResult);
   const pyResult = await pythonActivities.process_questions('Hello World');
 
-  // return pyResult;
-  return 'Hello World';
+  return pyResult;
+  // return 'Hello World';
 }

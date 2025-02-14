@@ -7,6 +7,12 @@
   "[prisma]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "svg.preview.background": "transparent",
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit"
+    }
+  },
   "editor.formatOnSave": true
 }
