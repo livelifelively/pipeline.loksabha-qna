@@ -1,6 +1,6 @@
 from pathlib import Path
 import json
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Dict
 from datetime import datetime
 import asyncio
 
@@ -77,7 +77,7 @@ async def get_last_iteration(progress_file: Path) -> Optional[ProgressIteration]
 async def log_progress(
     progress_dir: Path,
     progress_file: Path,
-    progress_data: ProgressData,
+    progress_data: Dict[str, Any],
     status: StepStatus,
     iteration: ProgressIteration
 ) -> None:
@@ -94,6 +94,10 @@ async def log_progress(
         ProgressError: If progress logging fails
     """
     try:
+        # Convert dict to ProgressData object
+        if not isinstance(progress_data, ProgressData):
+            progress_data = ProgressData(**progress_data)
+        
         # Read current progress status
         progress_status = json.loads(progress_file.read_text())
         
@@ -109,8 +113,8 @@ async def log_progress(
             "status": status
         })
         
-        # Write progress data to log file
-        log_file.write_text(progress_data.json(indent=2))
+        # Write progress data to log file using model_dump_json instead of json()
+        log_file.write_text(progress_data.model_dump_json(indent=2))
         
         # Update progress status file
         existing_index = next(

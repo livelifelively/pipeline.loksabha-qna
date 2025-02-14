@@ -14,6 +14,11 @@ class ProgressData(BaseModel):
     key: str = Field(..., description="Unique identifier for the progress entry")
     timestamp: Optional[datetime] = Field(default_factory=datetime.now)
 
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
 class ProgressStep(BaseModel):
     """Single step in a pipeline iteration"""
     step: int = Field(..., ge=0)
