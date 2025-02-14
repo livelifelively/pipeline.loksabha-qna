@@ -6,7 +6,7 @@ import asyncio
 
 from .types import ProgressIteration, ProgressData, StepStatus
 from .exceptions import ProgressError, FileOperationError
-from ..utils.file_utils import find_project_root
+from ..utils.project_root import find_project_root
 
 class ProgressError(Exception):
     """Base exception for progress-related errors."""

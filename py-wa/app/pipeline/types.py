@@ -35,7 +35,10 @@ class PipelineStep(BaseModel):
     key: str = Field(..., min_length=1)
     output: Optional[Dict[str, Any]] = None
     status: Optional[StepStatus] = None
-    error: Optional[Exception] = None
+    error: Optional[Dict[str, Any]] = None
+
+    class Config:
+        arbitrary_types_allowed = True  # To allow Callable type
 
 class PipelineConfig(BaseModel):
     """Complete pipeline configuration"""

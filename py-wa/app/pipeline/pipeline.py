@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import List, Any, Dict, Optional
 
-from .types import PipelineStep, PipelineConfig, ProgressIteration
+from .types import PipelineStep, PipelineConfig, ProgressIteration, ProgressData
 from .progress import get_last_iteration, create_new_iteration, log_progress
 from .exceptions import PipelineError, PipelineStepError
 
@@ -134,15 +134,18 @@ async def orchestrate_pipeline(
             
         except Exception as e:
             step.status = step.status or "FAILURE"
+            # Create a proper ProgressData object
+            progress_data = ProgressData(
+                message=f"Step {i} ({step.name}) failed.",
+                data=step.output or {},
+                error={"error": [str(e), step.error]} if step.status != "PARTIAL" else {},
+                key=f"STEP_{i}_{step.status}_{step.name}",
+            )
+            
             await log_progress(
                 Path(outputs["progress_dir"]),
                 progress_file,
-                {
-                    "message": f"Step {i} ({step.name}) failed.",
-                    "data": step.output or {},
-                    "error": {"error": [str(e), step.error]} if step.status != "PARTIAL" else {},
-                    "key": f"STEP_{i}_{step.status}_{step.name}"
-                },
+                progress_data,
                 step.status,
                 current_iteration
             )

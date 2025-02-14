@@ -6,14 +6,15 @@ from itertools import groupby
 from operator import itemgetter
 
 from .types import ParliamentQuestion, PipelineOutput
-from ..utils.project_root import find_project_root, kebab_case_names, filename_generator
+from ..utils.project_root import find_project_root
+from ..utils.file_utils import kebab_case_names, filename_generator
 from ..utils.pdf import download_pdfs, DownloadConfig
 
 logger = logging.getLogger(__name__)
 
 async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Fetch and categorize parliament question PDFs.
+    Fetch and categorize parliament questions PDFs.
     
     Args:
         outputs: Pipeline outputs containing sansad and session info
@@ -25,9 +26,22 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any]) -> Dict[s
     session = outputs["session"]
     
     # Setup directories
-    sansad_session_directory = Path(__file__).parent.parent.parent / f"sansad-{sansad}" / session
+    project_root = find_project_root()
+    sansad_session_directory = Path(project_root) / f"sansad-{sansad}" / session
+    sansad_session_directory.mkdir(parents=True, exist_ok=True)
+    
     qna_file = sansad_session_directory / f"{sansad}_{session}.qna.json"
     
+    # Check if file exists
+    if not qna_file.exists():
+        logger.error(f"QnA file not found: {qna_file}")
+        return {
+            "failedSansadSessionQuestionDownload": [],
+            "downloadedSansadSessionQuestions": [],
+            "status": "FAILURE",
+            "error": f"QnA file not found: {qna_file}"
+        }
+
     # Load QnA data
     with qna_file.open() as f:
         qna_data = json.load(f)

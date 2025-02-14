@@ -3,7 +3,7 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 from .activities.parliament import process_questions
 import logging
-from typing import NoReturn
+from .utils.debug import setup_debugger
 
 class WorkerError(Exception):
     """Base exception for worker-related errors."""
@@ -20,6 +20,9 @@ async def create_worker(task_queue: str = "py-tasks-queue") -> Worker:
 
 async def main() -> None:
     """Entry point for the worker service."""
+    # Optional: Enable debugging based on environment variable or command line argument
+    setup_debugger()
+
     try:
         worker = await create_worker()
         logging.info(f"Worker listening on task queue: {worker.task_queue}")
