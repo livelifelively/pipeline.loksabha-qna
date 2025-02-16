@@ -1,27 +1,21 @@
 [
   {
     "iteration": 1,
-    "timeStamp": "2025-02-11T11:37:09.851Z",
+    "time_stamp": {},
     "steps": [
       {
         "step": 0,
-        "logFile": "sansad-18/iv/sansad-session-pipeline-logs/1.STEP_0_SUCCESS_Fetch Questions PDFs.log.json",
-        "status": "SUCCESS"
-      }
-    ]
-  },
-  {
-    "iteration": 2,
-    "timeStamp": "2025-02-12T11:55:33.301Z",
-    "steps": [
-      {
-        "step": 0,
-        "logFile": "sansad-18/iv/sansad-session-pipeline-logs/1.STEP_0_SUCCESS_Fetch Questions PDFs.log.json",
+        "log_file": "sansad-18/iv/sansad-session-pipeline-logs/1.STEP_0_SUCCESS_Adapt Input Data.log.json",
         "status": "SUCCESS"
       },
       {
         "step": 1,
-        "logFile": "sansad-18/iv/sansad-session-pipeline-logs/2.STEP_1_SUCCESS_Fetch Meta Analysis for Questions PDFs.log.json",
+        "log_file": "sansad-18/iv/sansad-session-pipeline-logs/1.STEP_1_SUCCESS_Fetch Questions PDFs.log.json",
+        "status": "SUCCESS"
+      },
+      {
+        "step": 2,
+        "log_file": "sansad-18/iv/sansad-session-pipeline-logs/1.STEP_2_SUCCESS_Fetch Meta Analysis for Questions PDFs.log.json",
         "status": "SUCCESS"
       }
     ]
