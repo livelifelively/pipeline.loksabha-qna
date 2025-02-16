@@ -32,12 +32,12 @@ export async function fetchMetaAnalysisForQuestionsPdfs(outputs: Record<string, 
   // let baseData = fetchedQnAPdfData.data.downloadedSansadSessionQuestions.map(
   const baseData = downloadedSansadSessionQuestions.map((val: ParliamentQuestion): ParliamentQuestion => {
     return {
-      quesNo: val.quesNo,
+      questionNumber: val.questionNumber,
       subjects: val.subjects.trim(),
-      lokNo: val.lokNo.trim(),
+      loksabhaNumber: val.loksabhaNumber.trim(),
       member: val.member.map((m) => m.trim()),
       ministry: val.ministry.trim(),
-      type: val.type.trim(),
+      type: val.type,
       date: val.date.trim(),
       questionsFilePathLocal: val.questionsFilePathLocal.trim(),
       questionsFilePathWeb: val.questionsFilePathWeb.trim(),
@@ -53,7 +53,7 @@ export async function fetchMetaAnalysisForQuestionsPdfs(outputs: Record<string, 
 
   return {
     status: 'SUCCESS',
-    cleanedQnAData: baseData,
+    cleanedQuestionAnswerData: baseData,
   };
 
   // #TODO
@@ -70,61 +70,4 @@ export async function fetchMetaAnalysisForQuestionsPdfs(outputs: Record<string, 
   // used to filter questions -
   // 1. those with tables = high priority
   // 2. fewer answer characters or fewer pages = low priority
-
-  //   console.log(successfulStepFilePath(fetchedQnAPdfProgressStatus, 1));
-
-  //   const groupByMinistries = groupBy(qnaData.listOfQuestions, 'ministry');
-
-  //   const failedSansadSessionQuestionDownload: string[] = [];
-  //   const downloadedSansadSessionQuestions: ParliamentQuestion[] = [];
-
-  //   for (const ministry in groupByMinistries) {
-  //     for (const question of groupByMinistries[ministry]) {
-  //       const { quesNo, subjects, lokNo, member, ministry, type, date, questionsFilePath, questionsFilePathHindi } =
-  //         question;
-
-  //       const ministryDirectory = path.join(sansadSessionDirectory, 'ministries', `./${kebabCaseNames(ministry)}`);
-  //       const questionDirectory = path.join(ministryDirectory, kebabCaseNames(question.quesNo.toString().trim()));
-  //       const projectRoot = await findProjectRoot();
-
-  //       if (!fs.existsSync(questionDirectory)) {
-  //         fs.mkdirSync(questionDirectory, { recursive: true });
-  //       }
-
-  //       const pdfUrl = questionsFilePath;
-  //       const relativequestionDirectory = path.relative(projectRoot, questionDirectory);
-
-  //       try {
-  //         await downloadPDFs([pdfUrl], {
-  //           outputDirectory: questionDirectory,
-  //           filenameGenerator,
-  //           timeoutMs: 30000,
-  //           retries: 5,
-  //           retryDelayMs: 2000,
-  //           overwriteExisting: false,
-  //         });
-  //         downloadedSansadSessionQuestions.push({
-  //           quesNo,
-  //           subjects,
-  //           lokNo,
-  //           member,
-  //           ministry,
-  //           type,
-  //           date,
-  //           questionsFilePathWeb: questionsFilePath,
-  //           questionsFilePathLocal: `${relativequestionDirectory}/${filenameGenerator(pdfUrl, 0)}`,
-  //           questionsFilePathHindiWeb: questionsFilePathHindi,
-  //         });
-  //       } catch (error) {
-  //         console.error('Error in downloading PDF: ', error);
-  //         failedSansadSessionQuestionDownload.push(pdfUrl);
-  //       }
-  //     }
-  //   }
-
-  //   return {
-  //     failedSansadSessionQuestionDownload,
-  //     downloadedSansadSessionQuestions,
-  //     status: failedSansadSessionQuestionDownload.length > 0 ? 'PARTIAL' : 'SUCCESS',
-  //   };
 }

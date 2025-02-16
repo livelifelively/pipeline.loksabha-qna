@@ -3,13 +3,14 @@ import fs from 'fs';
 import { keyBy, map, size } from 'lodash';
 
 import { findProjectRoot } from '../utils/project-root';
+import { fromPythonFormat, toPythonFormat } from '../utils/adapters';
 
 export type StepStatus = 'SUCCESS' | 'FAILURE' | 'PARTIAL';
 
 export interface PipelineStep {
   name: string;
   function: any;
-  input: any;
+  input?: any;
   output?: any;
   status?: 'SUCCESS' | 'FAILURE' | 'PARTIAL';
   error?: any;
@@ -48,7 +49,7 @@ interface ProgressData {
 function initializeDirectories(progressDir: string, progressFile: string): void {
   fs.mkdirSync(progressDir, { recursive: true });
   if (!fs.existsSync(progressFile)) {
-    fs.writeFileSync(progressFile, JSON.stringify([]));
+    writePythonicFileData(progressFile, []);
   }
 }
 
@@ -56,7 +57,7 @@ function createNewIteration(progressFile: string): ProgressIteration {
   const projectRoot = findProjectRoot();
   const filePath = path.join(projectRoot, progressFile);
 
-  const progressStatus: ProgressIteration[] = JSON.parse(fs.readFileSync(progressFile, 'utf8'));
+  const progressStatus: ProgressIteration[] = readPythonicFileData(progressFile);
   return {
     iteration: progressStatus.length + 1,
     timeStamp: new Date(),
@@ -65,7 +66,7 @@ function createNewIteration(progressFile: string): ProgressIteration {
 }
 
 function getLastIteration(progressFile: string): ProgressIteration {
-  const progressStatus: ProgressIteration[] = JSON.parse(fs.readFileSync(progressFile, 'utf8'));
+  const progressStatus: ProgressIteration[] = readPythonicFileData(progressFile);
   return progressStatus[progressStatus.length - 1];
 }
 
@@ -76,7 +77,7 @@ async function logProgress(
   status: 'SUCCESS' | 'FAILURE' | 'PARTIAL',
   iteration: ProgressIteration
 ): Promise<void> {
-  const progressStatus: ProgressIteration[] = JSON.parse(fs.readFileSync(progressFile, 'utf8'));
+  const progressStatus = readPythonicFileData(progressFile);
   const progressDataLogFile = path.join(progressDir, `${iteration.iteration}.${progressData.key}.log.json`);
   const projectRoot = await findProjectRoot();
 
@@ -90,20 +91,31 @@ async function logProgress(
 
   let existingLogs: ProgressData;
   if (fs.existsSync(progressDataLogFile)) {
-    existingLogs = JSON.parse(fs.readFileSync(progressDataLogFile, 'utf8'));
+    existingLogs = readPythonicFileData(progressDataLogFile);
   }
 
   existingLogs = { ...progressData, timeStamp: new Date() };
-  fs.writeFileSync(progressDataLogFile, JSON.stringify(existingLogs, null, 2));
+  writePythonicFileData(progressDataLogFile, existingLogs);
 
-  const existingIterationIndex = progressStatus.findIndex((iter) => iter.iteration === iteration.iteration);
+  const existingIterationIndex = progressStatus.findIndex(
+    (iter: ProgressIteration) => iter.iteration === iteration.iteration
+  );
   if (existingIterationIndex !== -1) {
     progressStatus[existingIterationIndex] = iteration;
   } else {
     progressStatus.push(iteration);
   }
 
-  fs.writeFileSync(progressFile, JSON.stringify(progressStatus, null, 2));
+  writePythonicFileData(progressFile, progressStatus);
+}
+
+function readPythonicFileData(filePath: string): any {
+  const fileData = fromPythonFormat(JSON.parse(fs.readFileSync(filePath, 'utf8')));
+  return fileData;
+}
+
+function writePythonicFileData(filePath: string, data: any): void {
+  fs.writeFileSync(filePath, JSON.stringify(toPythonFormat(data), null, 2));
 }
 
 // Modified orchestration function to return the last executed step output or previously saved result if all steps were successful
@@ -123,7 +135,7 @@ async function orchestrationFunction(
   ) {
     console.log('All steps were previously completed successfully. Returning the last step output.');
     const lastStep = previousIteration.steps[previousIteration.steps.length - 1];
-    const lastStepOutput = JSON.parse(fs.readFileSync(lastStep.logFile, 'utf8'));
+    const lastStepOutput = readPythonicFileData(lastStep.logFile);
     return lastStepOutput.data;
   }
 
@@ -136,8 +148,7 @@ async function orchestrationFunction(
     for (let s in previousIteration.steps) {
       if (previousIteration.steps[s].status === 'SUCCESS') {
         currentIteration.steps[s] = { ...previousIteration.steps[s] };
-        let stepOutput: any = await fs.readFileSync(previousIteration.steps[s].logFile, 'utf8');
-        stepOutput = JSON.parse(stepOutput);
+        let stepOutput: any = readPythonicFileData(previousIteration.steps[s].logFile);
         outputs = { ...outputs, ...stepOutput.data };
       } else {
         break;
@@ -201,14 +212,14 @@ async function orchestrationFunction(
       throw new Error(`Step ${i} (${step.name}) failed. Manual intervention required.`);
     }
 
-    const progressStatus: ProgressIteration[] = JSON.parse(fs.readFileSync(outputs.progressFile, 'utf8'));
+    const progressStatus: ProgressIteration[] = readPythonicFileData(outputs.progressFile);
     const existingIterationIndex = progressStatus.findIndex((iter) => iter.iteration === currentIteration.iteration);
     if (existingIterationIndex !== -1) {
       progressStatus[existingIterationIndex] = currentIteration;
     } else {
       progressStatus.push(currentIteration);
     }
-    fs.writeFileSync(outputs.progressFile, JSON.stringify(progressStatus, null, 2));
+    writePythonicFileData(outputs.progressFile, progressStatus);
   }
 
   return lastStepOutput;

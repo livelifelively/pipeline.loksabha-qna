@@ -4,38 +4,36 @@ import { PipelineStep } from './pipeline';
 import { runPipeline } from './pipeline';
 import { fetchAndCategorizeQuestionsPdfs } from '../parliament-questions';
 import { fetchMetaAnalysisForQuestionsPdfs } from '../parliament-questions/questions-meta-analysis';
+import { adaptSourceQuestionsListToParliamentQuestions } from '../parliament-questions/adapt-input-data';
 
 export async function sansadSessionPipeline(sansad: string, session: string): Promise<any> {
   console.log('SANSAD SESSION PROCESSING INITIALIZED: ', sansad, session);
 
   const steps: PipelineStep[] = [
     {
+      name: 'Adapt Input Data',
+      function: adaptSourceQuestionsListToParliamentQuestions,
+      key: 'ADAPT_INPUT_DATA',
+    },
+    {
       name: 'Fetch Questions PDFs',
       function: fetchAndCategorizeQuestionsPdfs,
       key: 'FETCH_QUESTIONS_PDFS',
-      input: {
-        sansad: sansad,
-        session: session,
-      },
     },
     {
       name: 'Fetch Meta Analysis for Questions PDFs',
       function: fetchMetaAnalysisForQuestionsPdfs,
       key: 'FETCH_META_ANALYSIS_FOR_QUESTIONS_PDFS',
-      input: {
-        sansad: sansad,
-        session: session,
-        downloadedSansadSessionQuestions: [],
-      },
     },
   ];
 
   let outputs: Record<string, any> = {
     sansad: sansad,
     session: session,
+    parliamentSessionQuestions: [],
     failedSansadSessionQuestionDownload: [],
     downloadedSansadSessionQuestions: [],
-    cleanedQnAData: [],
+    cleanedQuestionAnswerData: [],
   };
 
   const sansadSessionDirectory = path.join(__dirname, `../../../sansad-${sansad}/${session}`);

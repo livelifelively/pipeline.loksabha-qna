@@ -7,12 +7,12 @@ import { findProjectRoot, kebabCaseNames, filenameGenerator } from '../utils/pro
 import { downloadPDFs } from '../utils/fetch-pdf-from-url';
 
 export interface ParliamentQuestion {
-  quesNo: number;
+  questionNumber: number;
   subjects: string;
-  lokNo: string;
+  loksabhaNumber: string;
   member: string[];
   ministry: string;
-  type: string;
+  type: 'STARRED' | 'UNSTARRED';
   date: string;
   questionsFilePathLocal: string;
   questionsFilePathWeb: string;
@@ -28,31 +28,39 @@ export async function fetchAndCategorizeQuestionsPdfs(outputs: Record<string, an
   downloadedSansadSessionQuestions: ParliamentQuestion[];
   status: StepStatus;
 }> {
-  const { sansad, session } = outputs;
+  const { parliamentSessionQuestions, sansad, session } = outputs;
 
   const sansadSessionDirectory = path.join(__dirname, `../../../sansad-${sansad}/${session}`);
-  const qnaFile = path.join(sansadSessionDirectory, `${sansad}_${session}.qna.json`);
-  const qnaData = require(qnaFile);
 
-  const groupByMinistries = groupBy(qnaData.listOfQuestions, 'ministry');
+  const groupByMinistries = groupBy(parliamentSessionQuestions, 'ministry');
 
   const failedSansadSessionQuestionDownload: string[] = [];
   const downloadedSansadSessionQuestions: ParliamentQuestion[] = [];
 
   for (const ministry in groupByMinistries) {
     for (const question of groupByMinistries[ministry]) {
-      const { quesNo, subjects, lokNo, member, ministry, type, date, questionsFilePath, questionsFilePathHindi } =
-        question;
+      const {
+        questionNumber,
+        subjects,
+        loksabhaNumber,
+        member,
+        ministry,
+        type,
+        date,
+        questionsFilePathWeb,
+        questionsFilePathHindiWeb,
+        questionsFilePathHindiLocal,
+      } = question;
 
       const ministryDirectory = path.join(sansadSessionDirectory, 'ministries', `./${kebabCaseNames(ministry)}`);
-      const questionDirectory = path.join(ministryDirectory, kebabCaseNames(question.quesNo.toString().trim()));
+      const questionDirectory = path.join(ministryDirectory, kebabCaseNames(question.questionNumber.toString().trim()));
       const projectRoot = await findProjectRoot();
 
       if (!fs.existsSync(questionDirectory)) {
         fs.mkdirSync(questionDirectory, { recursive: true });
       }
 
-      const pdfUrl = questionsFilePath;
+      const pdfUrl = questionsFilePathWeb;
       const relativequestionDirectory = path.relative(projectRoot, questionDirectory);
 
       try {
@@ -65,16 +73,17 @@ export async function fetchAndCategorizeQuestionsPdfs(outputs: Record<string, an
           overwriteExisting: false,
         });
         downloadedSansadSessionQuestions.push({
-          quesNo,
+          questionNumber,
           subjects,
-          lokNo,
+          loksabhaNumber,
           member,
           ministry,
           type,
           date,
-          questionsFilePathWeb: questionsFilePath,
+          questionsFilePathWeb: questionsFilePathWeb,
           questionsFilePathLocal: `${relativequestionDirectory}/${filenameGenerator(pdfUrl, 0)}`,
-          questionsFilePathHindiWeb: questionsFilePathHindi,
+          questionsFilePathHindiWeb: questionsFilePathHindiWeb,
+          questionsFilePathHindiLocal: questionsFilePathHindiLocal,
         });
       } catch (error) {
         console.error('Error in downloading PDF: ', error);
