@@ -2,7 +2,23 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: Attach to Temporal Worker",
+      "name": "TypeScript: Attach to Worker",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "sourceMaps": true
+    },
+    {
+      "name": "TypeScript: Attach to Workflow Executor",
+      "type": "node",
+      "request": "attach",
+      "port": 9230,
+      "restart": true,
+      "sourceMaps": true
+    },
+    {
+      "name": "Python: Attach to Worker",
       "type": "debugpy",
       "request": "attach",
       "connect": {
@@ -15,6 +31,16 @@
           "localRoot": "${workspaceFolder}/py-wa",
           "remoteRoot": "${workspaceFolder}/py-wa"
         }
+      ]
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug All Workers",
+      "configurations": [
+        "TypeScript: Attach to Worker",
+        "TypeScript: Attach to Workflow Executor",
+        "Python: Attach to Worker"
       ]
     }
   ]
