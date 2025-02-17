@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 
 from ..utils.project_root import find_project_root
 from .exceptions import FileOperationError, ProgressError
-from .types import ProgressData, ProgressIteration, StepStatus
+from .types import ProgressData, ProgressIteration, ProgressStep, StepStatus
 
 
 def initialize_progress(progress_dir: Path, progress_file: Path) -> None:
@@ -92,20 +92,21 @@ async def log_progress(
         relative_log_file = log_file.relative_to(project_root)
 
         # Update iteration steps
-        iteration.steps.append({"step": len(iteration.steps), "log_file": relative_log_file, "status": status})
+        # iteration.steps.append({"step": len(iteration.steps), "log_file": relative_log_file, "status": status})
+        iteration.steps.append(ProgressStep(step=len(iteration.steps), log_file=relative_log_file, status=status))
 
         # Write progress data to log file using model_dump_json instead of json()
         log_file.write_text(progress_data.model_dump_json(indent=2))
 
-        # Update progress status file
+        # Update progress status file using model_dump_json
         existing_index = next(
             (i for i, iter in enumerate(progress_status) if iter["iteration"] == iteration.iteration), -1
         )
 
         if existing_index != -1:
-            progress_status[existing_index] = iteration.dict()
+            progress_status[existing_index] = json.loads(iteration.model_dump_json())
         else:
-            progress_status.append(iteration.dict())
+            progress_status.append(json.loads(iteration.model_dump_json()))
 
         progress_file.write_text(json.dumps(progress_status, indent=2))
 

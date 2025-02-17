@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from ..utils.project_root import find_project_root
 from .context import PipelineContext
 from .exceptions import PipelineError, PipelineStepError
 from .progress import create_new_iteration, get_last_iteration, log_progress
@@ -39,18 +40,22 @@ async def orchestrate_pipeline(
     resume_from_last_successful: bool = True,
 ) -> Any:
     """
-    Orchestrate the execution of pipeline steps.
+    Orchestrate execution of pipeline steps.
 
     Args:
-        context: Pipeline execution context with logger and run_id
-        outputs: Initial outputs and configuration
+        context: Pipeline execution context
+        outputs: Initial pipeline outputs
         steps: List of pipeline steps to execute
-        resume_from_last_successful: Whether to resume from last successful state
+        resume_from_last_successful: Whether to resume from last successful step
+
+    Returns:
+        Any: Output from last successful step
     """
     context.log_pipeline("pipeline_start", total_steps=len(steps))
 
     progress_file = Path(outputs["progress_file"])
     previous_iteration = await get_last_iteration(progress_file)
+    project_root = Path(find_project_root())
 
     if previous_iteration:
         context.log_pipeline("previous_iteration_found", step_count=len(previous_iteration.steps))
@@ -62,7 +67,9 @@ async def orchestrate_pipeline(
         ):
             context.log_pipeline("using_previous_successful_run", iteration=previous_iteration.iteration)
             last_step = previous_iteration.steps[-1]
-            last_step_data = json.loads(last_step.log_file.read_text())
+
+            absolute_log_file = project_root / last_step.log_file
+            last_step_data = json.loads(absolute_log_file.read_text())
             return last_step_data["data"]
 
     current_iteration = await create_new_iteration(progress_file)
@@ -71,18 +78,33 @@ async def orchestrate_pipeline(
     last_step_output = None
 
     for i, step in enumerate(steps):
-        context.log_step("step_start", i, step.name)
+        # Set step metadata using context method
+        context.set_active_step(
+            step_number=i,
+            step_name=step.name,
+            step_key=step.key,
+            is_recovered=bool(
+                previous_iteration and any(s.step == i and s.status == "SUCCESS" for s in previous_iteration.steps)
+            ),
+        )
+
+        context.log_step("step_start")
 
         try:
+            # Convert progress_dir to absolute path before passing to step function
+            if "progress_dir" in outputs:
+                outputs["progress_dir"] = str(Path(outputs["progress_dir"]).resolve())
+
             result = await step.function(outputs, context)
             status = result.pop("status", "SUCCESS")
             step.status = status
+            context.update_step_status(status)  # Update status using context method
             step.output = result
             outputs.update(result)
             last_step_output = result
 
             if step.status != "SUCCESS":
-                context.log_step("step_failed", i, step.name, status=status)
+                context.log_step("step_failed", status=status)
                 raise PipelineStepError(
                     message="Step execution failed", step_name=step.name, step_number=i, step_context={"status": status}
                 )
@@ -93,14 +115,16 @@ async def orchestrate_pipeline(
                 key=f"STEP_{i}_{step.status}_{step.name}",
             )
 
-            context.log_step("complete", i, step.name, status="SUCCESS")
+            context.log_step("complete", status="SUCCESS")
+            # Convert progress_dir to absolute path before logging progress
             await log_progress(
-                Path(outputs["progress_dir"]), progress_file, progress_data, "SUCCESS", current_iteration
+                Path(outputs["progress_dir"]).resolve(), progress_file, progress_data, "SUCCESS", current_iteration
             )
 
         except Exception as e:
             step.status = step.status or "FAILURE"
-            context.log_step("failed", i, step.name, status=step.status, error=str(e))
+            context.update_step_status(step.status)  # Update status using context method
+            context.log_step("failed", status=step.status, error=str(e))
 
             error_data = ProgressData(
                 message=f"Step {i} ({step.name}) failed.",
@@ -116,12 +140,17 @@ async def orchestrate_pipeline(
                 context={"step": i, "name": step.name},
             ) from e
 
+    context.clear_step()  # Clear step using context method
     context.log_pipeline("pipeline_complete")
     return last_step_output
 
 
 async def run_pipeline(
-    steps: List[PipelineStep], outputs: Dict[str, Any], progress_dir: Path, progress_file: Path
+    context: PipelineContext,
+    steps: List[PipelineStep],
+    outputs: Dict[str, Any],
+    progress_dir: Path,
+    progress_file: Path,
 ) -> Any:
     """
     Run the pipeline with the given configuration.
@@ -139,7 +168,7 @@ async def run_pipeline(
     Raises:
         PipelineError: If pipeline execution fails
     """
-    context = PipelineContext.create(__name__)
+
     initialize_directories(progress_dir, progress_file, context)
 
     try:

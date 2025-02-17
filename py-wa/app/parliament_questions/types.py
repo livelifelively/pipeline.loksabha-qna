@@ -1,7 +1,15 @@
 from datetime import datetime
+from enum import Enum
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
+
+
+class QuestionType(Enum):
+    """Enum for parliament question types"""
+
+    STARRED = "STARRED"
+    UNSTARRED = "UNSTARRED"
 
 
 class ParliamentQuestion(BaseModel):
@@ -9,20 +17,20 @@ class ParliamentQuestion(BaseModel):
     Represents a question asked in the Parliament.
     """
 
-    ques_no: int = Field(..., description="Unique identifier for the question")
+    question_number: int = Field(..., description="Unique identifier for the question")
     subjects: str = Field(..., description="Topic or subject of the question")
-    lok_no: str = Field(..., description="Lok Sabha session number")
+    loksabha_number: str = Field(..., description="Lok Sabha session number")
     member: List[str] = Field(..., description="List of members who asked the question")
     ministry: str = Field(..., description="Ministry to which question is directed")
-    type: str = Field(..., description="Type of question (STARRED/UNSTARRED)")
+    type: QuestionType = Field(..., description="Type of question (STARRED/UNSTARRED)")
     date: str = Field(..., description="Date of the question")
-    questions_file_path_local: str = Field(..., description="Local path to question PDF")
+    questions_file_path_local: Optional[str] = Field(None, description="Local path to question PDF")
     questions_file_path_web: str = Field(..., description="Web URL of question PDF")
     questions_file_path_hindi_local: Optional[str] = Field(None, description="Local path to Hindi version")
-    questions_file_path_hindi_web: Optional[str] = Field(None, description="Web URL of Hindi version")
+    questions_file_path_hindi_web: str = Field(..., description="Web URL of Hindi version")
     question_text: Optional[str] = Field(None, description="Extracted question text")
     answer_text: Optional[str] = Field(None, description="Extracted answer text")
-    session_no: Optional[str] = Field(None, description="Parliament session number")
+    session_number: Optional[str] = Field(None, description="Parliament session number")
 
     class Config:
         """Pydantic model configuration"""
@@ -50,13 +58,18 @@ class ParliamentQuestionsPipelineState(BaseModel):
     Contains the cumulative state that gets passed between steps.
     """
 
+    sansad: str = Field(..., description="Parliament session number")
+    session: str = Field(..., description="Parliament session number")
     failed_sansad_session_question_download: List[str] = Field(
         default_factory=list, description="List of URLs that failed to download"
     )
     downloaded_sansad_session_questions: List[ParliamentQuestion] = Field(
         default_factory=list, description="List of successfully downloaded and processed questions"
     )
-    cleaned_qna_data: Optional[List[ParliamentQuestion]] = Field(
+    cleaned_question_answer_data: Optional[List[ParliamentQuestion]] = Field(
         default_factory=list, description="List of cleaned question and answer data"
+    )
+    failed_analysis: Optional[List[QuestionMetaAnalysis]] = Field(
+        default_factory=list, description="List of failed analysis"
     )
     status: str = Field(..., description="Status of the pipeline step")

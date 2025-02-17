@@ -19,10 +19,11 @@ class PipelineConfigError(PipelineError):
 class PipelineStepError(PipelineError):
     """Raised when a pipeline step fails."""
 
-    def __init__(self, message: str, step_name: str, step_number: int, details: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, step_name: str, step_number: int, step_context: Optional[Dict[str, Any]] = None):
         self.step_name = step_name
         self.step_number = step_number
-        super().__init__(f"Step {step_number} ({step_name}) failed: {message}", details)
+        self.step_context = step_context or {}
+        super().__init__(message=f"Step {step_number} ({step_name}) failed: {message}", details=self.step_context)
 
 
 class ProgressError(PipelineError):

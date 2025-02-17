@@ -1,6 +1,8 @@
+from pathlib import Path
 from typing import Any
 
 from ..parliament_questions import fetch_and_categorize_questions_pdfs
+from ..parliament_questions.adapt_input_data import adapt_source_questions_list_to_parliament_questions
 from ..parliament_questions.questions_meta_analysis import fetch_meta_analysis_for_questions_pdfs
 from ..parliament_questions.types import ParliamentQuestionsPipelineState
 from ..utils.project_root import find_project_root
@@ -24,19 +26,17 @@ async def sansad_session_pipeline(sansad: str, session: str) -> Any:
 
     steps = [
         PipelineStep(
-            name="Fetch Questions PDFs",
-            function=fetch_and_categorize_questions_pdfs,
-            key="FETCH_QUESTIONS_PDFS",
-            input={
-                "sansad": sansad,
-                "session": session,
-            },
+            name="Adapt Input Data",
+            function=adapt_source_questions_list_to_parliament_questions,
+            key="ADAPT_INPUT_DATA",
+        ),
+        PipelineStep(
+            name="Fetch Questions PDFs", function=fetch_and_categorize_questions_pdfs, key="FETCH_QUESTIONS_PDFS"
         ),
         PipelineStep(
             name="Fetch Meta Analysis",
             function=fetch_meta_analysis_for_questions_pdfs,
             key="FETCH_META_ANALYSIS",
-            input={"sansad": sansad, "session": session, "downloadedSansadSessionQuestions": []},
         ),
     ]
 
@@ -45,12 +45,13 @@ async def sansad_session_pipeline(sansad: str, session: str) -> Any:
         session=session,
         failed_sansad_session_question_download=[],
         downloaded_sansad_session_questions=[],
-        cleaned_qna_data=[],
+        cleaned_question_answer_data=[],
+        failed_analysis=[],
         status="PENDING",
-    ).dict()
+    ).model_dump()
 
     # Setup pipeline directories
-    sansad_session_directory = find_project_root() / f"sansad-{sansad}" / session
+    sansad_session_directory = Path(find_project_root()) / f"sansad-{sansad}" / session
     sansad_progress_dir = sansad_session_directory / "sansad-session-pipeline-logs"
     progress_status_file = sansad_progress_dir / "progress-status.json"
 
@@ -63,7 +64,7 @@ async def sansad_session_pipeline(sansad: str, session: str) -> Any:
         last_step_output = await run_pipeline(
             context=context,
             steps=steps,
-            initial_outputs=outputs,
+            outputs=outputs,
             progress_dir=sansad_progress_dir,
             progress_file=progress_status_file,
         )

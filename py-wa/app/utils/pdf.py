@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 
 import aiohttp
 from pydantic import BaseModel, Field
@@ -20,7 +20,7 @@ class DownloadConfig(BaseModel):
         arbitrary_types_allowed = True  # To allow Path and Callable types
 
 
-async def download_pdfs(urls: List[str], config: DownloadConfig) -> List[str]:
+async def download_pdfs(urls: List[str], config: DownloadConfig) -> List[Tuple[str, bool]]:
     """
     Download PDFs from given URLs.
 
@@ -29,18 +29,15 @@ async def download_pdfs(urls: List[str], config: DownloadConfig) -> List[str]:
         config: Download configuration
 
     Returns:
-        List[str]: List of downloaded file paths
-
-    Raises:
-        aiohttp.ClientError: If download fails
+        List[Tuple[str, bool]]: List of tuples containing (file_path, was_downloaded)
     """
 
-    async def download_single(url: str, index: int) -> Optional[str]:
+    async def download_single(url: str, index: int) -> Optional[Tuple[str, bool]]:
         filename = config.filename_generator(url, index)
         output_path = config.output_directory / filename
 
         if output_path.exists() and not config.overwrite_existing:
-            return str(output_path)
+            return str(output_path), False
 
         for attempt in range(config.retries):
             try:
@@ -48,7 +45,7 @@ async def download_pdfs(urls: List[str], config: DownloadConfig) -> List[str]:
                     async with session.get(url, timeout=config.timeout_ms / 1000) as response:
                         if response.status == 200:
                             output_path.write_bytes(await response.read())
-                            return str(output_path)
+                            return str(output_path), True
             except Exception:
                 if attempt == config.retries - 1:
                     raise
@@ -59,11 +56,11 @@ async def download_pdfs(urls: List[str], config: DownloadConfig) -> List[str]:
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     # Filter out None values and raise any exceptions
-    downloaded_paths = []
+    downloaded_results = []
     for result in results:
         if isinstance(result, Exception):
             raise result
         if result:
-            downloaded_paths.append(result)
+            downloaded_results.append(result)
 
-    return downloaded_paths
+    return downloaded_results

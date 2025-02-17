@@ -2,6 +2,7 @@ import logging
 from typing import Any, Dict
 
 from ..pipeline.context import PipelineContext
+from .types import ParliamentQuestion
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +18,9 @@ async def fetch_meta_analysis_for_questions_pdfs(outputs: Dict[str, Any], contex
     Returns:
         Dict containing analysis status and results
     """
-    downloaded_questions = outputs.get("downloadedSansadSessionQuestions", [])
+    downloaded_questions = outputs.get("downloaded_sansad_session_questions", [])
 
-    context.log_step("analysis_start", 1, "Meta Analysis", total_questions=len(downloaded_questions))
+    context.log_step("analysis_start", total_questions=len(downloaded_questions))
 
     try:
         analyzed_data = []
@@ -32,22 +33,24 @@ async def fetch_meta_analysis_for_questions_pdfs(outputs: Dict[str, Any], contex
 
                 context.log_step(
                     "question_analyzed",
-                    1,
-                    "Meta Analysis",
-                    question_id=question.id,
+                    question_id=question["question_number"],
                     progress=f"{i+1}/{len(downloaded_questions)}",
                 )
 
             except Exception as e:
-                failed_analysis.append({"question": question.dict(), "error": str(e)})
-                context.log_step("question_analysis_failed", 1, "Meta Analysis", question_id=question.id, error=str(e))
+                failed_analysis.append({"question": question, "error": str(e)})
+                context.log_step("question_analysis_failed", question_id=question["question_number"], error=str(e))
 
         status = "SUCCESS" if not failed_analysis else "PARTIAL"
 
-        return {"status": status, "cleanedQnAData": analyzed_data, "failedAnalysis": failed_analysis}
+        return {
+            "status": status,
+            "cleaned_question_answer_data": analyzed_data,
+            "failed_analysis": failed_analysis,
+        }
 
     except Exception as e:
-        context.log_step("analysis_failed", 1, "Meta Analysis", error=str(e))
+        context.log_step("analysis_failed", error=str(e))
         return {"status": "FAILURE", "error": str(e)}
 
     # TODO: Implement additional meta-analysis features:
@@ -57,7 +60,7 @@ async def fetch_meta_analysis_for_questions_pdfs(outputs: Dict[str, Any], contex
     # - Structure conformance check
 
 
-async def analyze_question_pdf(question) -> Dict[str, Any]:
+async def analyze_question_pdf(question: ParliamentQuestion) -> Dict[str, Any]:
     """
     Analyze a question PDF for metadata.
 
@@ -75,7 +78,7 @@ async def analyze_question_pdf(question) -> Dict[str, Any]:
         # TODO: Implement actual PDF analysis
         # For now, return mock data
         return {
-            "question_id": question.id,
+            "question_id": question["question_number"],
             "num_pages": 1,
             "has_tables": False,
             "answer_length": 0,
@@ -83,4 +86,4 @@ async def analyze_question_pdf(question) -> Dict[str, Any]:
             "analysis_status": "PENDING_IMPLEMENTATION",
         }
     except Exception as e:
-        raise ValueError(f"Failed to analyze PDF for question {question.id}: {e}") from e
+        raise ValueError(f"Failed to analyze PDF for question {question['question_number']}: {e}") from e

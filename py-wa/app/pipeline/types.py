@@ -1,13 +1,11 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Literal, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
 from .context import PipelineContext
-
-# Type for pipeline step status
-StepStatus = Literal["SUCCESS", "FAILURE", "PARTIAL"]
+from .step_types import StepStatus
 
 StepFunction = Callable[[Dict[str, Any], PipelineContext], Dict[str, Any]]
 
@@ -18,8 +16,8 @@ class PipelineStep(BaseModel):
     name: str = Field(..., description="Name of the pipeline step")
     function: StepFunction = Field(..., description="Function to execute for this step")
     key: str = Field(..., description="Unique identifier for the step")
-    input: Dict[str, Any] = Field(default_factory=dict, description="Input parameters for the step")
-    status: Optional[str] = Field(None, description="Execution status of the step")
+    input: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Input parameters for the step")
+    status: Optional[StepStatus] = Field(None, description="Execution status of the step")
     error: Optional[str] = Field(None, description="Error message if step failed")
     output: Optional[Dict[str, Any]] = Field(None, description="Output data from the step")
 
@@ -60,7 +58,10 @@ class ProgressData(BaseModel):
     data: Dict[str, Any] = Field(default_factory=dict, description="Step output data")
     error: Dict[str, Any] = Field(default_factory=dict, description="Error information if any")
     key: str = Field(..., description="Unique key for the progress entry")
-    timestamp: Optional[str] = Field(None, description="Timestamp of the progress entry")
+    timestamp: Optional[datetime] = Field(default_factory=datetime.now, description="Timestamp of the progress entry")
+
+    class Config:
+        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
 
 
 class ProgressStep(BaseModel):
@@ -77,6 +78,9 @@ class ProgressIteration(BaseModel):
     iteration: int = Field(..., description="Iteration number")
     timestamp: datetime = Field(default_factory=datetime.now, description="Iteration timestamp")
     steps: List[ProgressStep] = Field(default_factory=list, description="Completed steps")
+
+    class Config:
+        json_encoders = {datetime: lambda v: v.isoformat()}
 
 
 class PipelineConfig(BaseModel):

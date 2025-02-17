@@ -18,7 +18,7 @@ const pythonActivities = proxyActivities({
 });
 
 export async function multiLanguageWorkflow(initialString: string): Promise<string> {
-  const tsResult = await activities.tsActivity(initialString);
+  // const tsResult = await activities.tsActivity(initialString);
   // IMPORTANT:  Data is passed as a JSON serializable object
   //  Here we are passing a string directly.
   //  For more complex objects, ensure proper serialization/deserialization.
@@ -26,7 +26,7 @@ export async function multiLanguageWorkflow(initialString: string): Promise<stri
   // The Workflow doesnt know (or care) which language the Activity will be executed in.
   // So we tell it to call pyActivity.
   // console.log('Calling Python activity with input:', tsResult);
-  // const pyResult = await pythonActivities.process_questions('Hello World');
+  const pyResult = await pythonActivities.process_questions('Hello World');
 
   // return pyResult;
   return 'Hello World';

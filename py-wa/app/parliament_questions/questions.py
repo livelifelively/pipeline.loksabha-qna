@@ -1,4 +1,3 @@
-import json
 import logging
 from itertools import groupby
 from operator import itemgetter
@@ -27,41 +26,20 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
     """
     sansad = outputs["sansad"]
     session = outputs["session"]
+    parliament_session_questions = outputs["parliament_session_questions"]
 
-    context.log_step("init", 0, "Fetch Questions PDFs", params={"sansad": sansad, "session": session})
+    context.log_step("init", params={"sansad": sansad, "session": session})
 
     # Setup directories
     project_root = find_project_root()
     sansad_session_directory = Path(project_root) / f"sansad-{sansad}" / session
     sansad_session_directory.mkdir(parents=True, exist_ok=True)
 
-    qna_file = sansad_session_directory / f"{sansad}_{session}.qna.json"
-
-    # Check if file exists
-    if not qna_file.exists():
-        context.log_step("qna_file_missing", 0, "Fetch Questions PDFs", error=f"QnA file not found: {qna_file}")
-        return {
-            "failedSansadSessionQuestionDownload": [],
-            "downloadedSansadSessionQuestions": [],
-            "status": "FAILURE",
-            "error": f"QnA file not found: {qna_file}",
-        }
-
-    # Load QnA data
-    with qna_file.open() as f:
-        qna_data = json.load(f)
-
     # Group questions by ministry
-    questions = sorted(qna_data["listOfQuestions"], key=itemgetter("ministry"))
+    questions = sorted(parliament_session_questions, key=itemgetter("ministry"))
     grouped_questions = {k: list(g) for k, g in groupby(questions, key=itemgetter("ministry"))}
 
-    context.log_step(
-        "processing_start",
-        0,
-        "Fetch Questions PDFs",
-        total_ministries=len(grouped_questions),
-        total_questions=len(questions),
-    )
+    context.log_step("processing_start", total_ministries=len(grouped_questions), total_questions=len(questions))
 
     failed_downloads = []
     downloaded_questions = []
@@ -70,10 +48,10 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
     for ministry, ministry_questions in grouped_questions.items():
         for question in ministry_questions:
             ministry_dir = sansad_session_directory / "ministries" / kebab_case_names(ministry)
-            question_dir = ministry_dir / kebab_case_names(str(question["quesNo"]).strip())
+            question_dir = ministry_dir / kebab_case_names(str(question["question_number"]).strip())
             question_dir.mkdir(parents=True, exist_ok=True)
 
-            pdf_url = question["questionsFilePath"]
+            pdf_url = question["questions_file_path_web"]
             project_root = find_project_root()
             relative_question_dir = question_dir.relative_to(project_root)
 
@@ -87,55 +65,45 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
                     retry_delay_ms=2000,
                     overwrite_existing=False,
                 )
-                await download_pdfs([pdf_url], config)
+                download_results = await download_pdfs([pdf_url], config)
+                file_path, was_downloaded = download_results[0]
 
                 # Create ParliamentQuestion instance
                 downloaded_question = ParliamentQuestion(
-                    ques_no=question["quesNo"],
+                    question_number=question["question_number"],
                     subjects=question["subjects"],
-                    lok_no=question["lokNo"],
+                    loksabha_number=question["loksabha_number"],
                     member=question["member"],
                     ministry=question["ministry"],
                     type=question["type"],
                     date=question["date"],
-                    questions_file_path_web=question["questionsFilePath"],
+                    questions_file_path_web=question["questions_file_path_web"],
                     questions_file_path_local=str(relative_question_dir / filename_generator(pdf_url, 0)),
-                    questions_file_path_hindi_web=question.get("questionsFilePathHindi"),
+                    questions_file_path_hindi_web=question.get("questions_file_path_hindi_web"),
                 )
                 downloaded_questions.append(downloaded_question)
 
                 context.log_step(
-                    "question_downloaded",
-                    0,
-                    "Fetch Questions PDFs",
-                    question_id=question["quesNo"],
+                    "question_processed",
+                    question_number=question["question_number"],
                     ministry=ministry,
                     progress=f"{len(downloaded_questions)}/{len(questions)}",
+                    action="downloaded" if was_downloaded else "found_existing",
                 )
 
             except Exception as e:
                 failed_downloads.append(pdf_url)
                 context.log_step(
-                    "download_failed",
-                    0,
-                    "Fetch Questions PDFs",
-                    question_id=question["quesNo"],
-                    ministry=ministry,
-                    error=str(e),
+                    "download_failed", question_number=question["question_number"], ministry=ministry, error=str(e)
                 )
 
     status = "PARTIAL" if failed_downloads else "SUCCESS"
     context.log_step(
-        "complete",
-        0,
-        "Fetch Questions PDFs",
-        status=status,
-        total_downloaded=len(downloaded_questions),
-        total_failed=len(failed_downloads),
+        "complete", status=status, total_downloaded=len(downloaded_questions), total_failed=len(failed_downloads)
     )
 
     return {
-        "failedSansadSessionQuestionDownload": failed_downloads,
-        "downloadedSansadSessionQuestions": [q.dict() for q in downloaded_questions],
+        "failed_sansad_session_question_download": failed_downloads,
+        "downloaded_sansad_session_questions": [q.dict() for q in downloaded_questions],
         "status": status,
     }

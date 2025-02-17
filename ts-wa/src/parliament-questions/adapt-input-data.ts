@@ -16,8 +16,8 @@ interface SourceParliamentQuestion {
   questionsFilePath: string;
   questionsFilePathHindi: string;
   sessionNo: string;
-  supplementaryQuestionResDtoList: any[];
-  supplementaryType: boolean;
+  supplementaryQuestionResDtoList?: any[];
+  supplementaryType?: boolean;
 }
 
 export async function adaptSourceQuestionsListToParliamentQuestions(
