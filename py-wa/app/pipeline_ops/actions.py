@@ -23,12 +23,7 @@ def delete_pipeline_logs(decisions: Dict[str, Union[str, List[str]]]) -> None:
     # List all log directories to be deleted
     log_dirs = []
 
-    # Add sansad session level pipeline logs
-    sansad_logs = base_path / "sansad-session-pipeline-logs"
-    if sansad_logs.exists():
-        log_dirs.append(sansad_logs)
-
-    # Add ministry level pipeline logs
+    # Add ministry level pipeline logs only
     for ministry in ministries:
         ministry_path = base_path / "ministries" / ministry
         if ministry_path.exists():
