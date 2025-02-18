@@ -1,17 +1,19 @@
 [
   {
     "iteration": 1,
-    "timestamp": "2025-02-18T22:42:27.783931",
+    "timestamp": "2025-02-19T00:48:40.175939",
     "steps": [
       {
         "step": 0,
         "log_file": "sansad/18/iv/sansad-session-pipeline-logs/1.STEP_0_SUCCESS_Adapt Input Data.log.json",
-        "status": "SUCCESS"
+        "status": "SUCCESS",
+        "key": "STEP_0_SUCCESS_Adapt Input Data"
       },
       {
         "step": 1,
         "log_file": "sansad/18/iv/sansad-session-pipeline-logs/1.STEP_1_SUCCESS_Fetch Questions PDFs.log.json",
-        "status": "SUCCESS"
+        "status": "SUCCESS",
+        "key": "STEP_1_SUCCESS_Fetch Questions PDFs"
       }
     ]
   }
