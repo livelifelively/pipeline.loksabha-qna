@@ -73,6 +73,7 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
                     question_number=question["question_number"],
                     subjects=question["subjects"],
                     loksabha_number=question["loksabha_number"],
+                    session_number=question["session_number"],
                     member=question["member"],
                     ministry=question["ministry"],
                     type=question["type"],

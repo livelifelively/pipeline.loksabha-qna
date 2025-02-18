@@ -3,7 +3,7 @@ from typing import Any
 
 from ..parliament_questions import fetch_and_categorize_questions_pdfs
 from ..parliament_questions.adapt_input_data import adapt_source_questions_list_to_parliament_questions
-from ..parliament_questions.questions_meta_analysis import fetch_meta_analysis_for_questions_pdfs
+from ..parliament_questions.question_pipeline import process_questions
 from ..parliament_questions.types import ParliamentQuestionsPipelineState
 from ..utils.project_root import find_project_root
 from .context import PipelineContext
@@ -33,11 +33,7 @@ async def sansad_session_pipeline(sansad: str, session: str) -> Any:
         PipelineStep(
             name="Fetch Questions PDFs", function=fetch_and_categorize_questions_pdfs, key="FETCH_QUESTIONS_PDFS"
         ),
-        PipelineStep(
-            name="Fetch Meta Analysis",
-            function=fetch_meta_analysis_for_questions_pdfs,
-            key="FETCH_META_ANALYSIS",
-        ),
+        PipelineStep(name="Process Individual Questions", function=process_questions, key="PROCESS_QUESTIONS"),
     ]
 
     outputs = ParliamentQuestionsPipelineState(

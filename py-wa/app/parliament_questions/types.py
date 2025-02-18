@@ -30,7 +30,7 @@ class ParliamentQuestion(BaseModel):
     questions_file_path_hindi_web: str = Field(..., description="Web URL of Hindi version")
     question_text: Optional[str] = Field(None, description="Extracted question text")
     answer_text: Optional[str] = Field(None, description="Extracted answer text")
-    session_number: Optional[str] = Field(None, description="Parliament session number")
+    session_number: str = Field(..., description="Parliament session number")
 
     class Config:
         """Pydantic model configuration"""
@@ -73,3 +73,13 @@ class ParliamentQuestionsPipelineState(BaseModel):
         default_factory=list, description="List of failed analysis"
     )
     status: str = Field(..., description="Status of the pipeline step")
+
+
+class QuestionPipelineState(BaseModel):
+    """State for individual question pipeline processing"""
+
+    sansad: str = Field(..., description="Parliament session number")
+    session: str = Field(..., description="Session number")
+    question_number: int = Field(..., description="Question number")
+    ministry: str = Field(..., description="Ministry name")
+    status: str = Field(default="PENDING", description="Pipeline status")
