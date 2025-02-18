@@ -8,7 +8,7 @@ from ..utils.project_root import find_project_root
 from .types import QuestionPipelineState
 
 
-async def simulate_question_analysis(outputs: Dict[str, Any], context: PipelineContext) -> Dict[str, Any]:
+async def analyze_single_question(outputs: Dict[str, Any], context: PipelineContext) -> Dict[str, Any]:
     """
     Simulates analysis of a question PDF with intentional failures for testing.
     """
@@ -30,7 +30,7 @@ async def simulate_question_analysis(outputs: Dict[str, Any], context: PipelineC
         return {"status": "FAILURE", "error": str(e)}
 
 
-async def question_pipeline(question: Dict[str, Any], parent_context: PipelineContext) -> Any:
+async def single_question_analysis_pipeline(question: Dict[str, Any], parent_context: PipelineContext) -> Any:
     """
     Pipeline for processing individual question data.
 
@@ -46,7 +46,7 @@ async def question_pipeline(question: Dict[str, Any], parent_context: PipelineCo
         f"question-{question['question_number']}", question["loksabha_number"], question["session_number"]
     )
 
-    steps = [PipelineStep(name="Analyze Question", function=simulate_question_analysis, key="ANALYZE_QUESTION")]
+    steps = [PipelineStep(name="Analyze Single Question", function=analyze_single_question, key="ANALYZE_QUESTION")]
 
     outputs = QuestionPipelineState(
         sansad=question["loksabha_number"],
@@ -85,9 +85,9 @@ async def question_pipeline(question: Dict[str, Any], parent_context: PipelineCo
         raise
 
 
-async def process_questions(outputs: Dict[str, Any], context: PipelineContext) -> Dict[str, Any]:
+async def batch_question_analysis(outputs: Dict[str, Any], context: PipelineContext) -> Dict[str, Any]:
     """
-    Process each downloaded question through its own pipeline.
+    Process each downloaded question through its own analysis pipeline.
     """
     downloaded_questions = outputs.get("downloaded_sansad_session_questions", [])
 
@@ -98,7 +98,7 @@ async def process_questions(outputs: Dict[str, Any], context: PipelineContext) -
 
     for i, question in enumerate(downloaded_questions):
         try:
-            result = await question_pipeline(question, context)
+            result = await single_question_analysis_pipeline(question, context)
             processed_questions.append(result)
 
             context.log_step(

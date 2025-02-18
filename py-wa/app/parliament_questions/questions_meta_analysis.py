@@ -7,7 +7,7 @@ from .types import ParliamentQuestion
 logger = logging.getLogger(__name__)
 
 
-async def fetch_meta_analysis_for_questions_pdfs(outputs: Dict[str, Any], context: PipelineContext) -> Dict[str, Any]:
+async def analyze_questions_batch_metadata(outputs: Dict[str, Any], context: PipelineContext) -> Dict[str, Any]:
     """
     Fetch meta analysis for downloaded question PDFs.
 
@@ -28,7 +28,7 @@ async def fetch_meta_analysis_for_questions_pdfs(outputs: Dict[str, Any], contex
 
         for i, question in enumerate(downloaded_questions):
             try:
-                analysis = await analyze_question_pdf(question)
+                analysis = await analyze_question_metadata(question)
                 analyzed_data.append(analysis)
 
                 context.log_step(
@@ -60,7 +60,7 @@ async def fetch_meta_analysis_for_questions_pdfs(outputs: Dict[str, Any], contex
     # - Structure conformance check
 
 
-async def analyze_question_pdf(question: ParliamentQuestion) -> Dict[str, Any]:
+async def analyze_question_metadata(question: ParliamentQuestion) -> Dict[str, Any]:
     """
     Analyze a question PDF for metadata.
 
