@@ -30,7 +30,7 @@ export async function fetchAndCategorizeQuestionsPdfs(outputs: Record<string, an
 }> {
   const { parliamentSessionQuestions, sansad, session } = outputs;
 
-  const sansadSessionDirectory = path.join(__dirname, `../../../sansad-${sansad}/${session}`);
+  const sansadSessionDirectory = path.join(__dirname, `../../../sansad/${sansad}/${session}`);
 
   const groupByMinistries = groupBy(parliamentSessionQuestions, 'ministry');
 

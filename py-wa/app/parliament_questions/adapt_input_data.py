@@ -51,7 +51,7 @@ async def adapt_source_questions_list_to_parliament_questions(
 
     # Setup file paths
     project_root = Path(find_project_root())
-    sansad_session_directory = project_root / f"sansad-{sansad}" / session
+    sansad_session_directory = project_root / "sansad" / sansad / session
     qna_file = sansad_session_directory / f"{sansad}_{session}.qna.source.json"
 
     if not qna_file.exists():

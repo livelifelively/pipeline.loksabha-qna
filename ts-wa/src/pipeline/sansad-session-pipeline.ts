@@ -36,7 +36,7 @@ export async function sansadSessionPipeline(sansad: string, session: string): Pr
     cleanedQuestionAnswerData: [],
   };
 
-  const sansadSessionDirectory = path.join(__dirname, `../../../sansad-${sansad}/${session}`);
+  const sansadSessionDirectory = path.join(__dirname, `../../../sansad/${sansad}/${session}`);
   const sansadProgressDir = path.join(sansadSessionDirectory, 'sansad-session-pipeline-logs');
   const progressStatusFile = path.join(sansadProgressDir, 'progress-status.json');
 

@@ -47,7 +47,7 @@ async def sansad_session_pipeline(sansad: str, session: str) -> Any:
     ).model_dump()
 
     # Setup pipeline directories
-    sansad_session_directory = Path(find_project_root()) / f"sansad-{sansad}" / session
+    sansad_session_directory = Path(find_project_root()) / "sansad" / sansad / session
     sansad_progress_dir = sansad_session_directory / "sansad-session-pipeline-logs"
     progress_status_file = sansad_progress_dir / "progress-status.json"
 

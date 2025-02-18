@@ -32,7 +32,7 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
 
     # Setup directories
     project_root = find_project_root()
-    sansad_session_directory = Path(project_root) / f"sansad-{sansad}" / session
+    sansad_session_directory = Path(project_root) / "sansad" / sansad / session
     sansad_session_directory.mkdir(parents=True, exist_ok=True)
 
     # Group questions by ministry

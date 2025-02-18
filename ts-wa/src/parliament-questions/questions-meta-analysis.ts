@@ -11,7 +11,7 @@ import { ParliamentQuestion } from '.';
 export async function fetchMetaAnalysisForQuestionsPdfs(outputs: Record<string, any>): Promise<any> {
   const { downloadedSansadSessionQuestions } = outputs;
 
-  // const sansadSessionDirectory = path.join(__dirname, `../../../sansad-${sansad}/${session}`);
+  // const sansadSessionDirectory = path.join(__dirname, `../../../sansad/${sansad}/${session}`);
   // const fetchedQnAPdfProgressStatusFilePath = path.join(
   //   sansadSessionDirectory,
   //   'sansad-session-pipeline-logs/progress-status.json'

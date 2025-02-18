@@ -25,7 +25,7 @@ export async function adaptSourceQuestionsListToParliamentQuestions(
 ): Promise<{ parliamentSessionQuestions: ParliamentQuestion[]; status: StepStatus }> {
   const { sansad, session } = outputs;
 
-  const sansadSessionDirectory = path.join(__dirname, `../../../sansad-${sansad}/${session}`);
+  const sansadSessionDirectory = path.join(__dirname, `../../../sansad/${sansad}/${session}`);
   const qnaFile = path.join(sansadSessionDirectory, `${sansad}_${session}.qna.source.json`);
   let qnaData = require(qnaFile);
 
