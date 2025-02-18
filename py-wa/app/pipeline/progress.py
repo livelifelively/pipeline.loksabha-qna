@@ -92,8 +92,9 @@ async def log_progress(
         relative_log_file = log_file.relative_to(project_root)
 
         # Update iteration steps
-        # iteration.steps.append({"step": len(iteration.steps), "log_file": relative_log_file, "status": status})
-        iteration.steps.append(ProgressStep(step=len(iteration.steps), log_file=relative_log_file, status=status))
+        iteration.steps.append(
+            ProgressStep(step=len(iteration.steps), log_file=relative_log_file, status=status, key=progress_data.key)
+        )
 
         # Write progress data to log file using model_dump_json instead of json()
         log_file.write_text(progress_data.model_dump_json(indent=2))

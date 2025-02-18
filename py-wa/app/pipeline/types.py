@@ -70,6 +70,7 @@ class ProgressStep(BaseModel):
     step: int = Field(..., description="Step number")
     log_file: Path = Field(..., description="Path to the log file")
     status: str = Field(..., description="Step status")
+    key: str = Field(..., description="Step Function key")
 
 
 class ProgressIteration(BaseModel):
