@@ -1,0 +1,312 @@
+[
+  {
+    "text": "As per the Special Bulletin on Maternal Mortality Ratio (MMR) released by the Sample Registration System (SRS) 2018-20, the MMR of Maharashtra has been reduced from 61 per lakh live births in 2014-16 to 33 per lakh live births in 2018-20and MMR of Bihar has been reduced from 165 per lakh live births in 2014-16 to 118 per lakh live births in 2018-20.",
+    "entities": {
+      "metrics": {
+        "description": "Measurements of any kind.",
+        "data": [
+          {
+            "id": "metric-healthcare-mmr-maharashtra-2014-16",
+            "names": ["MMR", "Maternal Mortality Ratio"],
+            "description": "",
+            "value": 61,
+            "unit": "per lakh live births",
+            "time_period": "2014-16"
+          },
+          {
+            "id": "metric-healthcare-mmr-bihar-2014-16",
+            "names": ["MMR", "Maternal Mortality Ratio"],
+            "description": "",
+            "value": 165,
+            "unit": "per lakh live births",
+            "time_period": "2014-16"
+          },
+          {
+            "id": "metric-healthcare-mmr-maharashtra-2018-20",
+            "names": ["MMR", "Maternal Mortality Ratio"],
+            "description": "",
+            "value": 33,
+            "unit": "per lakh live births",
+            "time_period": "2018-20"
+          },
+          {
+            "id": "metric-healthcare-mmr-bihar-2018-20",
+            "names": ["MMR", "Maternal Mortality Ratio"],
+            "description": "",
+            "value": 118,
+            "unit": "per lakh live births",
+            "time_period": "2018-20"
+          }
+        ]
+      },
+      "regions": {
+        "description": "Regions of any kind.",
+        "data": [
+          {
+            "id": "region-india-state-maharashtra",
+            "names": ["Maharashtra"],
+            "description": "",
+            "type": "state",
+            "country": "India"
+          },
+          {
+            "id": "region-india-state-bihar",
+            "names": ["Bihar"],
+            "description": "",
+            "type": "state",
+            "country": "India"
+          }
+        ]
+      },
+      "source_documents": {
+        "description": "Source Documents of any kind.",
+        "data": [
+          {
+            "id": "source-document-srs-special-bulletin-mmr-2018-20",
+            "names": [
+              "Special Bulletin on Maternal Mortality Ratio (MMR) released by the Sample Registration System (SRS) 2018-20"
+            ],
+            "description": "",
+            "type": "report",
+            "url": "https://censusindia.gov.in/nada/index.php/catalog/44379"
+          }
+        ]
+      },
+      "service_nodes": {
+        "description": "Physican or digital points of contact and delivery of services.",
+        "data": [
+          {
+            "id": "service-node-sample-registration-system",
+            "names": ["Sample Registration System"],
+            "description": "Sample Registration System is a large scale demographic sample survey which is being conducted in a random sample of villages and urban blocks and is based on the idea that with an adequate machinery for recording of births and deaths as they occur and with proper supervision at all levels, it is possible to obtain reliable estimates of vital rates at the State and National level. The system combines the advantages of both continuous (longitudinal) enumeration and survey procedures. All vital events occurring to usual residents of the sample area are recorded. Events to visitors within the sample area are also recorded but are not used for working out vital rates.",
+            "type": "service_node"
+          }
+        ]
+      }
+    },
+    "relationships": {
+      "description": "Relationships between entities.   ",
+      "data": [
+        {
+          "description": "maternal mortality rate in maharashtra in 2014-16",
+          "entities": {
+            "metrics": {
+              "id": "metric-healthcare-mmr-maharashtra-2014-16"
+            },
+            "regions": {
+              "id": "region-india-state-maharashtra"
+            }
+          }
+        },
+        {
+          "description": "maternal mortality rate in bihar in 2014-16",
+          "entities": {
+            "metrics": {
+              "id": "metric-healthcare-mmr-bihar-2014-16"
+            },
+            "regions": {
+              "id": "region-india-state-bihar"
+            }
+          }
+        },
+        {
+          "description": "maternal mortality rate in maharashtra in 2018-20",
+          "entities": {
+            "metrics": {
+              "id": "metric-healthcare-mmr-maharashtra-2018-20"
+            },
+            "regions": {
+              "id": "region-india-state-maharashtra"
+            }
+          }
+        },
+        {
+          "description": "maternal mortality rate in bihar in 2018-20",
+          "entities": {
+            "metrics": {
+              "id": "metric-healthcare-mmr-bihar-2018-20"
+            },
+            "regions": {
+              "id": "region-india-state-bihar"
+            }
+          }
+        },
+        {
+          "description": "source document for maternal mortality rate in maharashtra in 2014-16",
+          "entities": {
+            "metrics": {
+              "id": "metric-healthcare-mmr-maharashtra-2014-16"
+            },
+            "source_documents": {
+              "id": "source-document-srs-special-bulletin-mmr-2018-20"
+            }
+          }
+        },
+        {
+          "description": "source document for maternal mortality rate in bihar in 2014-16",
+          "entities": {
+            "metrics": {
+              "id": "metric-healthcare-mmr-bihar-2014-16"
+            },
+            "source_documents": {
+              "id": "source-document-srs-special-bulletin-mmr-2018-20"
+            }
+          }
+        },
+        {
+          "description": "source document for maternal mortality rate in maharashtra in 2018-20",
+          "entities": {
+            "metrics": {
+              "id": "metric-healthcare-mmr-maharashtra-2018-20"
+            },
+            "source_documents": {
+              "id": "source-document-srs-special-bulletin-mmr-2018-20"
+            }
+          }
+        },
+        {
+          "description": "source document for maternal mortality rate in bihar in 2018-20",
+          "entities": {
+            "metrics": {
+              "id": "metric-healthcare-mmr-bihar-2018-20"
+            },
+            "source_documents": {
+              "id": "source-document-srs-special-bulletin-mmr-2018-20"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "text": "Over the past 30 years, the Maternal Mortality Ratio (MMR) in India has declined by an impressive 83%, compared to the global reduction of 42%.",
+    "entities": {
+      "metrics": {
+        "description": "Measurements of any kind.",
+        "data": [
+          {
+            "id": "metric-healthcare-mmr-percentage-change-india-1995-2025",
+            "names": ["MMR", "Percentage Change in Maternal Mortality Ratio"],
+            "description": "",
+            "value": 83,
+            "unit": "%",
+            "time_period": "1995-2025"
+          },
+          {
+            "id": "metric-healthcare-mmr-percentage-change-global-1995-2025",
+            "names": ["MMR", "Percentage Change in Maternal Mortality Ratio"],
+            "description": "",
+            "value": 42,
+            "unit": "%",
+            "time_period": "1995-2025"
+          }
+        ]
+      },
+      "regions": {
+        "description": "Regions of any kind.",
+        "data": [
+          {
+            "id": "region-india",
+            "names": ["India"],
+            "description": "",
+            "type": "country",
+            "country": "India"
+          },
+          {
+            "id": "region-global",
+            "names": ["World"],
+            "description": "",
+            "type": "world",
+            "country": "World"
+          }
+        ]
+      }
+    },
+    "relationships": {
+      "description": "Relationships between entities.",
+      "data": [
+        {
+          "description": "percentage change in maternal mortality rate in india in period of 1995-2025",
+          "entities": {
+            "metrics": {
+              "id": "metric-healthcare-mmr-percentage-change-india-1995-2025"
+            },
+            "regions": {
+              "id": "region-india"
+            }
+          }
+        },
+        {
+          "description": "percentage change in maternal mortality rate in the world in period of 1995-2025",
+          "entities": {
+            "metrics": {
+              "id": "metric-healthcare-mmr-percentage-change-global-1995-2025"
+            },
+            "regions": {
+              "id": "region-global"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "text": "Similarly, as per the Sample Registration System (SRS) 2020, the Infant Mortality Rate (IMR) of Maharashtra has been reduced from 22 per 1000 live births in 2014 to 16 per 1000 live births in 2020 and the IMR of Bihar has been reduced from 42 per 1000 live births in 2014 to 27 per 1000 live births in 2020.",
+    "entities": {
+      "metrics": {
+        "description": "Measurements of any kind.",
+        "data": [
+          {
+            "id": "metric-healthcare-imr-maharashtra-2014-2020",
+            "names": ["IMR", "Infant Mortality Rate"],
+            "description": "",
+            "value": 22,
+            "unit": "per 1000 live births",
+            "time_period": "2014-2020"
+          },
+          {
+            "id": "metric-healthcare-imr-bihar-2014-2020",
+            "names": ["IMR", "Infant Mortality Rate"],
+            "description": "",
+            "value": 42,
+            "unit": "per 1000 live births",
+            "time_period": "2014-2020"
+          }
+        ]
+      },
+      "regions": {
+        "description": "Regions of any kind.",
+        "data": [
+          {
+            "id": "region-india-state-maharashtra",
+            "names": ["Maharashtra"],
+            "description": "",
+            "type": "state",
+            "country": "India"
+          },
+          {
+            "id": "region-india-state-bihar",
+            "names": ["Bihar"],
+            "description": "",
+            "type": "state",
+            "country": "India"
+          }
+        ]
+      },
+      "source_documents": {
+        "description": "Source Documents of any kind.",
+        "data": [
+          {
+            "id": "source-document-srs-special-bulletin-imr-2020",
+            "names": [
+              "Special Bulletin on Infant Mortality Rate (IMR) released by the Sample Registration System (SRS) 2020"
+            ],
+            "description": "",
+            "type": "report",
+            "url": "https://censusindia.gov.in/nada/index.php/catalog/44379"
+          }
+        ]
+      }
+    }
+  }
+]
