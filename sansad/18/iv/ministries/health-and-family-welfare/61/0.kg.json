@@ -1,6 +1,8 @@
 [
   {
-    "text": "As per the Special Bulletin on Maternal Mortality Ratio (MMR) released by the Sample Registration System (SRS) 2018-20, the MMR of Maharashtra has been reduced from 61 per lakh live births in 2014-16 to 33 per lakh live births in 2018-20and MMR of Bihar has been reduced from 165 per lakh live births in 2014-16 to 118 per lakh live births in 2018-20.",
+    "text": [
+      "As per the Special Bulletin on Maternal Mortality Ratio (MMR) released by the Sample Registration System (SRS) 2018-20, the MMR of Maharashtra has been reduced from 61 per lakh live births in 2014-16 to 33 per lakh live births in 2018-20 and MMR of Bihar has been reduced from 165 per lakh live births in 2014-16 to 118 per lakh live births in 2018-20."
+    ],
     "entities": {
       "metrics": {
         "description": "Measurements of any kind.",
@@ -179,7 +181,9 @@
     }
   },
   {
-    "text": "Over the past 30 years, the Maternal Mortality Ratio (MMR) in India has declined by an impressive 83%, compared to the global reduction of 42%.",
+    "text": [
+      "Over the past 30 years, the Maternal Mortality Ratio (MMR) in India has declined by an impressive 83%, compared to the global reduction of 42%."
+    ],
     "entities": {
       "metrics": {
         "description": "Measurements of any kind.",
@@ -251,7 +255,9 @@
     }
   },
   {
-    "text": "Similarly, as per the Sample Registration System (SRS) 2020, the Infant Mortality Rate (IMR) of Maharashtra has been reduced from 22 per 1000 live births in 2014 to 16 per 1000 live births in 2020 and the IMR of Bihar has been reduced from 42 per 1000 live births in 2014 to 27 per 1000 live births in 2020.",
+    "text": [
+      "Similarly, as per the Sample Registration System (SRS) 2020, the Infant Mortality Rate (IMR) of Maharashtra has been reduced from 22 per 1000 live births in 2014 to 16 per 1000 live births in 2020 and the IMR of Bihar has been reduced from 42 per 1000 live births in 2014 to 27 per 1000 live births in 2020."
+    ],
     "entities": {
       "metrics": {
         "description": "Measurements of any kind.",
@@ -306,6 +312,405 @@
             "url": "https://censusindia.gov.in/nada/index.php/catalog/44379"
           }
         ]
+      }
+    }
+  },
+  {
+    "text": [
+      "Over the past 30 years, the Infant Mortality Rate (IMR) in India has dropped by 69%, against a global decline of 55%."
+    ],
+    "entities": {
+      "metrics": {
+        "description": "Measurements of any kind.",
+        "data": [
+          {
+            "id": "metric-healthcare-imr-percentage-change-india-1995-2025",
+            "names": ["IMR", "Percentage Change in Infant Mortality Rate"],
+            "description": "",
+            "value": 69,
+            "unit": "%",
+            "time_period": "1995-2025"
+          },
+          {
+            "id": "metric-healthcare-imr-percentage-change-global-1995-2025",
+            "names": ["IMR", "Percentage Change in Infant Mortality Rate"],
+            "description": "",
+            "value": 55,
+            "unit": "%",
+            "time_period": "1995-2025"
+          }
+        ]
+      },
+      "regions": {
+        "description": "Regions of any kind.",
+        "data": [
+          {
+            "id": "region-india",
+            "names": ["India"],
+            "description": "",
+            "type": "country",
+            "country": "India"
+          },
+          {
+            "id": "region-global",
+            "names": ["World"],
+            "description": "",
+            "type": "world",
+            "country": "World"
+          }
+        ]
+      }
+    },
+    "relationships": {
+      "description": "Relationships between entities.",
+      "data": [
+        {
+          "description": "percentage change in infant mortality rate in india in period of 1995-2025",
+          "entities": {
+            "metrics": {
+              "id": "metric-healthcare-imr-percentage-change-india-1995-2025"
+            },
+            "regions": {
+              "id": "region-india"
+            }
+          }
+        },
+        {
+          "description": "percentage change in infant mortality rate in the world in period of 1995-2025",
+          "entities": {
+            "metrics": {
+              "id": "metric-healthcare-imr-percentage-change-global-1995-2025"
+            },
+            "regions": {
+              "id": "region-global"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "text": [
+      "The Government of India has undertaken various initiatives/measures under the National Health Mission (NHM) to improve maternal and infant health outcomes across the country including the States of Maharashtra and Bihar which are as follows:"
+    ],
+    "entities": {
+      "programs_schemes_missions": {
+        "description": "Initiatives of any kind.",
+        "data": [
+          {
+            "id": "program_scheme-monthly-village-health-sanitation-and-nutrition-day",
+            "names": ["Monthly Village Health, Sanitation and Nutrition Day"],
+            "description": "",
+            "type": "program_scheme",
+            "methods": [
+              {
+                "name": "Provision of maternal and child care including nutrition",
+                "description": "Provision of maternal and child care including nutrition at Anganwadi centers."
+              }
+            ],
+            "objectives": [
+              {
+                "name": "Promote maternal and child health",
+                "description": "Promote maternal and child health to improve maternal and infant health outcomes."
+              }
+            ]
+          },
+          {
+            "id": "program_scheme-outreach-camps",
+            "names": ["Outreach Camps"],
+            "description": "",
+            "type": "program_scheme",
+            "methods": [
+              {
+                "name": "Improve the reach of health care services",
+                "description": "Improve the reach of health care services to improve maternal and infant health outcomes."
+              }
+            ],
+            "objectives": [
+              {
+                "name": "Promote maternal and child health",
+                "description": "Promote maternal and child health to improve maternal and infant health outcomes."
+              }
+            ]
+          },
+          {
+            "id": "program_scheme-special-newborn-care-units",
+            "names": ["Special Newborn Care Units", "SNCUs"],
+            "description": "",
+            "type": "program_scheme",
+            "methods": [
+              {
+                "name": "Specialized care to sick and small newborns",
+                "description": "Specialized care to sick and small newborns at district and sub-district levels."
+              }
+            ],
+            "objectives": [
+              {
+                "name": "Promote maternal and child health",
+                "description": "Promote maternal and child health to improve maternal and infant health outcomes."
+              }
+            ]
+          },
+          {
+            "id": "program_scheme-mother-absolute-affection-program",
+            "names": ["Mother Absolute Affection Program", "MAA"],
+            "description": "",
+            "type": "program_scheme",
+            "methods": [
+              {
+                "name": "Promote breastfeeding practices",
+                "description": "Promote breastfeeding practices to improve maternal and infant health outcomes."
+              }
+            ],
+            "objectives": [
+              {
+                "name": "Promote maternal and child health",
+                "description": "Promote maternal and child health to improve maternal and infant health outcomes."
+              }
+            ]
+          },
+          {
+            "id": "program_scheme-accredited-social-health-activists",
+            "names": ["Accredited Social Health Activists", "ASHAs"],
+            "description": "",
+            "type": "program_scheme",
+            "methods": [
+              {
+                "name": "Home-Based Newborn Care",
+                "description": "Home-Based Newborn Care for newborns."
+              },
+              {
+                "name": "Home-Based Care of Young Children",
+                "description": "Home-Based Care of Young Children for young children."
+              }
+            ],
+            "objectives": [
+              {
+                "name": "Promote maternal and child health",
+                "description": "Promote maternal and child health to improve maternal and infant health outcomes."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "text": [
+      "Janani Suraksha Yojana (JSY) is a demand promotion and conditional cash transfer scheme for promoting institutional delivery."
+    ],
+    "entities": {
+      "programs_schemes_missions": {
+        "description": "Initiatives of any kind.",
+        "data": [
+          {
+            "id": "program_scheme-janani-suraksha-yojana",
+            "names": ["Janani Suraksha Yojana", "JSY"],
+            "description": "",
+            "type": "program_scheme",
+            "methods": [
+              {
+                "name": "Demand promotion",
+                "description": "Demand promotion for promoting institutional delivery."
+              },
+              {
+                "name": "Conditional cash transfer",
+                "description": "Conditional cash transfer for promoting institutional delivery."
+              }
+            ],
+            "objectives": [
+              {
+                "name": "Promote institutional delivery",
+                "description": "Promote institutional childbirth to improve maternal and infant health outcomes."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "text": [
+      "Janani Shishu Suraksha Karyakram (JSSK) entitles all pregnant women and sick infants (up to one year of age) delivering in public health institutions to have absolutely free and no-expense delivery, including caesarean section. The entitlements include free drugs and consumables, free diet during the stay, free diagnostics, free transportation and free blood transfusion, if required. Similar entitlements are also in place for sick infants."
+    ],
+    "entities": {
+      "programs_schemes_missions": {
+        "description": "Initiatives of any kind.",
+        "data": [
+          {
+            "id": "program_scheme-janani-shishu-suraksha-karyakram",
+            "names": ["Janani Shishu Suraksha Karyakram", "JSSK"],
+            "description": "",
+            "type": "program_scheme",
+            "methods": [
+              {
+                "name": "Absolutely free and no-expense delivery",
+                "description": "Absolutely free and no-expense delivery for pregnant women and sick infants (up to one year of age) delivering in public health institutions to have absolutely free and no-expense delivery, including caesarean section."
+              },
+              {
+                "name": "Free drugs and consumables",
+                "description": "Free drugs and consumables for pregnant women and sick infants (up to one year of age) delivering in public health institutions."
+              },
+              {
+                "name": "Free diet during the stay",
+                "description": "Free diet during the stay for pregnant women and sick infants (up to one year of age) delivering in public health institutions."
+              },
+              {
+                "name": "Free diagnostics",
+                "description": "Free diagnostics for pregnant women and sick infants (up to one year of age) delivering in public health institutions."
+              },
+              {
+                "name": "Free transportation",
+                "description": "Free transportation for pregnant women and sick infants (up to one year of age) delivering in public health institutions."
+              },
+              {
+                "name": "Free blood transfusion",
+                "description": "Free blood transfusion for pregnant women and sick infants (up to one year of age) delivering in public health institutions."
+              }
+            ],
+            "objectives": [
+              {
+                "name": "Promote institutional delivery",
+                "description": "Promote institutional childbirth to improve maternal and infant health outcomes."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "text": [
+      "Pradhan Mantri Surakshit Matritva Abhiyan (PMSMA) provides pregnant women a fixed day, free of cost, assured and quality antenatal checkup by a Specialist/Medical Officer on the 9th day of every month."
+    ],
+    "entities": {
+      "programs_schemes_missions": {
+        "description": "Initiatives of any kind.",
+        "data": [
+          {
+            "id": "program_scheme-pradhan-mantri-surakshit-matritva-abhiyan",
+            "names": ["Pradhan Mantri Surakshit Matritva Abhiyan", "PMSMA"],
+            "description": "",
+            "type": "program_scheme",
+            "methods": [
+              {
+                "name": "Fixed day, free of cost, assured and quality antenatal checkup",
+                "description": "Fixed day, free of cost, assured and quality antenatal checkup for pregnant women."
+              }
+            ],
+            "objectives": [
+              {
+                "name": "Promote institutional delivery",
+                "description": "Promote institutional childbirth to improve maternal and infant health outcomes."
+              },
+              {
+                "name": "Track high-risk pregnancies",
+                "description": "Track high-risk pregnancies to improve maternal and infant health outcomes."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "text": [
+      "Extended PMSMA strategy focuses on quality antenatal care (ANC) for pregnant women, especially high-risk pregnant (HRP) women and individual HRP tracking with financial incentivization for the identified high-risk pregnant women and accompanying Accredited Social Health Activists (ASHAs) for extra 3 visits over and above the PMSMA visit."
+    ],
+    "entities": {
+      "programs_schemes_missions": {
+        "description": "Initiatives of any kind.",
+        "data": [
+          {
+            "id": "program_scheme-extended-pmsma-strategy",
+            "names": ["Extended PMSMA Strategy", "EPMSMA", "Extended Pradhan Mantri Surakshit Matritva Abhiyan"],
+            "description": "",
+            "type": "program_scheme",
+            "methods": [
+              {
+                "name": "Quality antenatal care",
+                "description": "Quality antenatal care for pregnant women."
+              },
+              {
+                "name": "Individual HRP tracking",
+                "description": "Individual HRP tracking for pregnant women."
+              },
+              {
+                "name": "Financial incentivization",
+                "description": "Financial incentivization for the identified high-risk pregnant women"
+              },
+              {
+                "name": "Extra 3 visits over and above the PMSMA visit",
+                "description": "Extra 3 visits over and above the PMSMA visit for the identified high-risk pregnant women."
+              }
+            ],
+            "objectives": [
+              {
+                "name": "Promote institutional delivery",
+                "description": "Promote institutional childbirth to improve maternal and infant health outcomes."
+              },
+              {
+                "name": "De-risk high-risk pregnancies",
+                "description": "De-risk high-risk pregnancies to improve maternal and infant health outcomes."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "text": [
+      "Monthly Village Health, Sanitation and Nutrition Day is an outreach activity at Anganwadi centers for provision of maternal and child care including nutrition in convergence with the ICDS."
+    ],
+    "entities": {
+      "programs_schemes_missions": {
+        "description": "Initiatives of any kind.",
+        "data": []
+      }
+    }
+  },
+  {
+    "text": [
+      "Outreach camps are provisioned to improve the reach of health care services, especially in tribal and hard-to-reach areas. This platform is used to increase awareness for Maternal and Child health services and community mobilization as well as to track high-risk pregnancies."
+    ],
+    "entities": {
+      "programs_schemes_missions": {
+        "description": "Initiatives of any kind.",
+        "data": []
+      }
+    }
+  },
+  {
+    "text": [
+      "The establishment of Special Newborn Care Units (SNCUs) and Newborn Stabilization Units (NBSUs) under Facility Based Newborn Care (FBNC) program provides specialized care to sick and small newborns at district and sub-district levels, addressing neonatal health complications."
+    ],
+    "entities": {
+      "programs_schemes_missions": {
+        "description": "Initiatives of any kind.",
+        "data": []
+      }
+    }
+  },
+  {
+    "text": [
+      "The Mother Absolute Affection (MAA) Program promotes breastfeeding practices, emphasizing the importance of early initiation and exclusive breastfeeding in young children."
+    ],
+    "entities": {
+      "programs_schemes_missions": {
+        "description": "Initiatives of any kind.",
+        "data": []
+      }
+    }
+  },
+  {
+    "text": [
+      "Accredited Social Health Activists (ASHAs) conduct scheduled home visits under Home-Based Newborn Care (HBNC) and Home-Based Care of Young Children (HBYC), improving child-rearing practices and identifying sick newborns and young children for timely referral and care."
+    ],
+    "entities": {
+      "programs_schemes_missions": {
+        "description": "Initiatives of any kind.",
+        "data": []
       }
     }
   }
