@@ -1,0 +1,24 @@
+{
+  "questions": [
+    {
+      "question": "whether the Government has launched specific initiatives under the National Health Mission (NHM) in Maharashtra and Bihar to improve maternal and infant health outcomes and if so, the details thereof;",
+      "id": "a"
+    },
+    {
+      "question": "whether the reduction in the Maternal Mortality Ratio (MMR) and Infant Mortality Rate (IMR) in these States is attributed to targeted interventions under NHM and if so, the details of measures that have been most effective;",
+      "id": "b"
+    },
+    {
+      "question": "whether there are ongoing efforts to further reduce the Total Fertility Rate (TFR) in Maharashtra and Bihar for population control in these States and if so, the details of strategies being adopted to achieve this goal;",
+      "id": "c"
+    },
+    {
+      "question": "whether the Government has allocated specific financial resources or support to these States under NHM for enhancing healthcare infrastructure and services particularly in rural areas and if so, the details thereof;",
+      "id": "d"
+    },
+    {
+      "question": "whether the Government anticipates that continued implementation of NHM initiatives is likely to lead in improved health indicators and if so, the details of the projected outcomes for the coming years?",
+      "id": "e"
+    }
+  ]
+}
