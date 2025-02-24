@@ -710,7 +710,24 @@
     "entities": {
       "programs_schemes_missions": {
         "description": "Initiatives of any kind.",
-        "data": []
+        "data": [
+          {
+            "id": "program_scheme-accredited-social-health-activists",
+            "names": ["Accredited Social Health Activists", "ASHAs"],
+            "description": "",
+            "type": "program_scheme",
+            "methods": [
+              {
+                "name": "Home-Based Newborn Care",
+                "description": "Home-Based Newborn Care for newborns."
+              },
+              {
+                "name": "Home-Based Care of Young Children",
+                "description": "Home-Based Care of Young Children for young children."
+              }
+            ]
+          }
+        ]
       }
     }
   }
