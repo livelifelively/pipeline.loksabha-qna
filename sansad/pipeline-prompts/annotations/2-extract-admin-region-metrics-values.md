@@ -173,12 +173,8 @@ The output JSON should have the following top-level structure:
 ```json
 [
   {
-    "metrics": [
-      /* Array of _Metric_ entities */
-    ],
-    "units": [
-      /* Array of _Metric_Unit_ entities */
-    ]
+    "metric": _Metric_,
+    "unit": _Metric_Unit_
   }
 ]
 ```
@@ -189,11 +185,10 @@ Detailed Schema for each entity type:
 
    ```json
    {
-     "name_id": "...", /* String, unique identifier (snake_case) */
-     "names": [ "...", ... ], /* Array of Strings, metric names (full and abbreviations) */
+     "name_id": "...", /* String, unique identifier (snake_case), e.g., 'maternal_mortality_ratio' */
+     "names": [ "...", ... ], /* Array of Strings, metric names (full and abbreviations), e.g., ["Maternal Mortality Ratio", "MMR"] */
      "description": "...", /* String, brief description */
      "dataType": "...", /* String, from: Categorical_Nominal, Categorical_Ordinal, Numerical_Discrete_Interval, Numerical_Discrete_Ratio, Numerical_Continuous_Interval, Numerical_Continuous_Ratio */
-     "units": [ /* Array of name_id strings of associated _Metric_Unit_ entities */ ]
    }
    ```
 
@@ -201,8 +196,8 @@ Detailed Schema for each entity type:
 
    ```json
    {
-     "name_id": "...", /* String, unique identifier (snake_case) */
-     "names": [ "...", ... ], /* Array of Strings, unit names (full and abbreviations) */
+     "name_id": "...", /* String, unique identifier (snake_case), e.g., 'per_lakh_live_births' */
+     "names": [ "...", ... ], /* Array of Strings, unit names (full and abbreviations), e.g., ["per lakh live births", "per lakh"] */
      "description": "...", /* String, brief description */
    }
    ```
@@ -211,19 +206,25 @@ Instructions:
 
 Carefully read the statement and extract the information to populate the JSON structure described above.
 
-Strictly adhere to the JSON structure and entity schemas provided. If there are multiple metrics are identified, return list of metrics, metric unit pairs.
+Strictly adhere to the JSON structure and entity schemas provided. If there are multiple metrics are identified, return list of metric-unit pairs, with each pair represented as an element in the top-level JSON array.
 
-For each metric and unit identified in the statement, create a corresponding _Metric_ and _Metric_Unit_ entity in the "metrics" and "units" arrays respectively. Ensure you populate all attributes as described in the schema. If a description is not explicitly in the statement, provide a concise, general description. For _Metric_ entities, the "units" attribute should be an array of `name_id` strings that correspond to the `name_id` of the _Metric_Unit_ entities you create.
+For each metric and unit identified in the statement, create a corresponding _Metric_ and _Metric_Unit_ entity in the "metrics" and "units" arrays respectively within each element of the top-level JSON array. Ensure you populate all attributes as described in the schema. If a description is not explicitly in the statement, provide a concise, general description. For _Metric_ entities, the "units" attribute should be an array of `name_id` strings that correspond to the `name_id` of the _Metric_Unit_ entities you create.
+
+Generate a unique `name_id` in snake_case based on the primary name of the metric or unit. For example, 'Maternal Mortality Ratio' should become `maternal_mortality_ratio`, and 'per lakh live births' should become `per_lakh_live_births`. Ensure `name_id`s are unique within the 'metrics' and 'units' arrays, respectively, for each pair.
+
+Identify all the unique metrics in the input statement. Each metric must have a unit. They are a pair.
 
 Output the complete JSON object.
 
-Output JSON:
+Output JSON (Template - for a single pair example):
 
 ```json
-{
-  "metrics": [],
-  "units": []
-}
+[
+  {
+    "metrics": _Metric_,
+    "units": _Metric_Unit_
+  }
+]
 ```
 
 Input Statement:
