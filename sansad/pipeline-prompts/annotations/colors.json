@@ -1,0 +1,74 @@
+[
+  {
+    "color_name": "Orange",
+    "color_code": "#FFA500",
+    "description": "Schemes or programs or missions",
+    "examples": null
+  },
+  {
+    "color_name": "Pink",
+    "color_code": "#FF69B4",
+    "description": "Physical/digital infrastructure that deliver services directly.",
+    "examples": "hospitals or RTO offices, police stations"
+  },
+  {
+    "color_name": "Red",
+    "color_code": "#FF0000",
+    "description": "Top level organisations planning & laying processes, financing @scale.",
+    "examples": "Government Of India, H.P. government, Municipal corp., DC office?, Ministry of H&FW, Department of education"
+  },
+  {
+    "color_name": "Dark Blue",
+    "color_code": "#00008B",
+    "description": "Rules & processes & protocols",
+    "examples": null
+  },
+  {
+    "color_name": "Lime Green",
+    "color_code": "#32CD32",
+    "description": "Services provided, benefits delivered",
+    "examples": null
+  },
+  {
+    "color_name": "Goldenrod",
+    "color_code": "#DAA520",
+    "description": "Quantitative or Categorical Data",
+    "examples": null
+  },
+  {
+    "color_name": "Blue",
+    "color_code": "#0000FF",
+    "description": "Administrative regions",
+    "examples": "Kangra (District) Punjab (State) India (country) Chennai (city)"
+  },
+  {
+    "color_name": "Purple",
+    "color_code": "#800080",
+    "description": "Citizen Life cycle status or attribute",
+    "examples": "economic status, family member HighRisk! Pregnancy, infancy, Middle age"
+  },
+  {
+    "color_name": "Cyan",
+    "color_code": "#00FFFF",
+    "description": "Citizen or Citizen Group",
+    "examples": "graduate male, women, infant, pregnant women, Breastfeeding Woman, family, Jams, Banjars, remote village, Parsis"
+  },
+  {
+    "color_name": "Brown",
+    "color_code": "#A52A2A",
+    "description": "Government Official. Individuals in government roles",
+    "examples": null
+  },
+  {
+    "color_name": "Yellow",
+    "color_code": "#FFFF00",
+    "description": "Documents & Reports. General category of documents and reports",
+    "examples": null
+  },
+  {
+    "color_name": "Grey",
+    "color_code": "#808080",
+    "description": "Health Issues",
+    "examples": null
+  }
+]
