@@ -97,6 +97,9 @@
             },
             "regions": {
               "id": "region-india-state-maharashtra"
+            },
+            "source_documents": {
+              "id": "source-document-srs-special-bulletin-mmr-2018-20"
             }
           }
         },
@@ -108,6 +111,9 @@
             },
             "regions": {
               "id": "region-india-state-bihar"
+            },
+            "source_documents": {
+              "id": "source-document-srs-special-bulletin-mmr-2018-20"
             }
           }
         },
@@ -119,6 +125,9 @@
             },
             "regions": {
               "id": "region-india-state-maharashtra"
+            },
+            "source_documents": {
+              "id": "source-document-srs-special-bulletin-mmr-2018-20"
             }
           }
         },
@@ -130,47 +139,6 @@
             },
             "regions": {
               "id": "region-india-state-bihar"
-            }
-          }
-        },
-        {
-          "description": "source document for maternal mortality rate in maharashtra in 2014-16",
-          "entities": {
-            "metrics": {
-              "id": "metric-healthcare-mmr-maharashtra-2014-16"
-            },
-            "source_documents": {
-              "id": "source-document-srs-special-bulletin-mmr-2018-20"
-            }
-          }
-        },
-        {
-          "description": "source document for maternal mortality rate in bihar in 2014-16",
-          "entities": {
-            "metrics": {
-              "id": "metric-healthcare-mmr-bihar-2014-16"
-            },
-            "source_documents": {
-              "id": "source-document-srs-special-bulletin-mmr-2018-20"
-            }
-          }
-        },
-        {
-          "description": "source document for maternal mortality rate in maharashtra in 2018-20",
-          "entities": {
-            "metrics": {
-              "id": "metric-healthcare-mmr-maharashtra-2018-20"
-            },
-            "source_documents": {
-              "id": "source-document-srs-special-bulletin-mmr-2018-20"
-            }
-          }
-        },
-        {
-          "description": "source document for maternal mortality rate in bihar in 2018-20",
-          "entities": {
-            "metrics": {
-              "id": "metric-healthcare-mmr-bihar-2018-20"
             },
             "source_documents": {
               "id": "source-document-srs-special-bulletin-mmr-2018-20"
@@ -312,7 +280,66 @@
             "url": "https://censusindia.gov.in/nada/index.php/catalog/44379"
           }
         ]
+      },
+      "citizen_profiles": {
+        "description": "Citizen Profiles of any kind.",
+        "data": [
+          {
+            "id": "citizen_profile-infants"
+          }
+        ]
+      },
+      "citizen_life_stages": {
+        "description": "Citizen Life Stages.",
+        "data": [
+          {
+            "id": "citizen_life_stage-infants",
+            "names": ["Birth"],
+            "description": "",
+            "type": "citizen_life_stage",
+            "country": "India"
+          }
+        ]
       }
+    },
+    "relationships": {
+      "description": "Relationships between entities.",
+      "data": [
+        {
+          "description": "infant mortality rate in maharashtra in 2014-2020",
+          "entities": {
+            "metrics": {
+              "id": "metric-healthcare-imr-maharashtra-2014-2020"
+            },
+            "citizen_profiles": {
+              "id": "citizen_profile-infants"
+            },
+            "citizen_life_stages": {
+              "id": "citizen_life_stage-infants"
+            },
+            "source_documents": {
+              "id": "source-document-srs-special-bulletin-imr-2020"
+            }
+          }
+        },
+        {
+          "description": "infant mortality rate in bihar in 2014-2020",
+          "entities": {
+            "metrics": {
+              "id": "metric-healthcare-imr-bihar-2014-2020"
+            },
+            "citizen_profiles": {
+              "id": "citizen_profile-infants"
+            },
+            "citizen_life_stages": {
+              "id": "citizen_life_stage-infants"
+            },
+            "source_documents": {
+              "id": "source-document-srs-special-bulletin-imr-2020"
+            }
+          }
+        }
+      ]
     }
   },
   {
@@ -398,98 +425,53 @@
         "description": "Initiatives of any kind.",
         "data": [
           {
-            "id": "program_scheme-monthly-village-health-sanitation-and-nutrition-day",
-            "names": ["Monthly Village Health, Sanitation and Nutrition Day"],
+            "id": "program_scheme-national-health-mission",
+            "names": ["National Health Mission", "NHM"],
             "description": "",
-            "type": "program_scheme",
-            "methods": [
-              {
-                "name": "Provision of maternal and child care including nutrition",
-                "description": "Provision of maternal and child care including nutrition at Anganwadi centers."
-              }
-            ],
-            "objectives": [
-              {
-                "name": "Promote maternal and child health",
-                "description": "Promote maternal and child health to improve maternal and infant health outcomes."
-              }
-            ]
+            "type": "program_scheme"
+          }
+        ]
+      },
+      "regions": {
+        "description": "Regions of any kind.",
+        "data": [
+          {
+            "id": "region-india",
+            "names": ["India"],
+            "description": "",
+            "type": "country",
+            "country": "India"
           },
           {
-            "id": "program_scheme-outreach-camps",
-            "names": ["Outreach Camps"],
+            "id": "region-india-state-maharashtra",
+            "names": ["Maharashtra"],
             "description": "",
-            "type": "program_scheme",
-            "methods": [
-              {
-                "name": "Improve the reach of health care services",
-                "description": "Improve the reach of health care services to improve maternal and infant health outcomes."
-              }
-            ],
-            "objectives": [
-              {
-                "name": "Promote maternal and child health",
-                "description": "Promote maternal and child health to improve maternal and infant health outcomes."
-              }
-            ]
+            "type": "state",
+            "country": "India"
           },
           {
-            "id": "program_scheme-special-newborn-care-units",
-            "names": ["Special Newborn Care Units", "SNCUs"],
+            "id": "region-india-state-bihar",
+            "names": ["Bihar"],
             "description": "",
-            "type": "program_scheme",
-            "methods": [
-              {
-                "name": "Specialized care to sick and small newborns",
-                "description": "Specialized care to sick and small newborns at district and sub-district levels."
-              }
-            ],
-            "objectives": [
-              {
-                "name": "Promote maternal and child health",
-                "description": "Promote maternal and child health to improve maternal and infant health outcomes."
-              }
-            ]
+            "type": "state",
+            "country": "India"
+          }
+        ]
+      },
+      "organisations": {
+        "description": "Organisations of any kind.",
+        "data": [
+          {
+            "id": "organisations-government-of-india",
+            "names": ["Government of India"],
+            "description": "",
+            "type": "organisations"
           },
           {
-            "id": "program_scheme-mother-absolute-affection-program",
-            "names": ["Mother Absolute Affection Program", "MAA"],
+            "id": "organisations-national-health-mission",
+            "names": ["National Health Mission", "NHM"],
             "description": "",
-            "type": "program_scheme",
-            "methods": [
-              {
-                "name": "Promote breastfeeding practices",
-                "description": "Promote breastfeeding practices to improve maternal and infant health outcomes."
-              }
-            ],
-            "objectives": [
-              {
-                "name": "Promote maternal and child health",
-                "description": "Promote maternal and child health to improve maternal and infant health outcomes."
-              }
-            ]
-          },
-          {
-            "id": "program_scheme-accredited-social-health-activists",
-            "names": ["Accredited Social Health Activists", "ASHAs"],
-            "description": "",
-            "type": "program_scheme",
-            "methods": [
-              {
-                "name": "Home-Based Newborn Care",
-                "description": "Home-Based Newborn Care for newborns."
-              },
-              {
-                "name": "Home-Based Care of Young Children",
-                "description": "Home-Based Care of Young Children for young children."
-              }
-            ],
-            "objectives": [
-              {
-                "name": "Promote maternal and child health",
-                "description": "Promote maternal and child health to improve maternal and infant health outcomes."
-              }
-            ]
+            "type": "organisations"
           }
         ]
       }
@@ -710,8 +692,126 @@
     "entities": {
       "programs_schemes_missions": {
         "description": "Initiatives of any kind.",
-        "data": []
+        "data": [
+          {
+            "id": "program_scheme-home-based-newborn-care",
+            "names": ["Home-Based Newborn Care"],
+            "description": "",
+            "type": "program_scheme"
+          }
+        ]
+      },
+      "government_officials": {
+        "description": "Government Officials of any kind.",
+        "data": [
+          {
+            "id": "government_official-accredited-social-health-activists",
+            "names": ["Accredited Social Health Activists", "ASHAs"],
+            "description": "",
+            "type": "government_official"
+          }
+        ]
+      },
+      "services_benefits": {
+        "description": "Physican or digital points of contact and delivery of services.",
+        "data": [
+          {
+            "id": "services_benefits-home-based-newborn-care",
+            "names": ["Home-Based Newborn Care"],
+            "description": "Home-Based Newborn Care for newborns."
+          },
+          {
+            "id": "services_benefits-home-based-care-of-young-children",
+            "names": ["Home-Based Care of Young Children"],
+            "description": "Home-Based Care of Young Children for young children."
+          },
+          {
+            "id": "services_benefits-identifying-sick-newborns-and-young-children-for-timely-referral-and-care",
+            "names": ["Identifying sick newborns and young children for timely referral and care"],
+            "description": "Identifying sick newborns and young children for timely referral and care."
+          },
+          {
+            "id": "services_benefits-improving-child-rearing-practices",
+            "names": ["Improving child-rearing practices"],
+            "description": "Improving child-rearing practices for young children."
+          }
+        ]
       }
+    },
+    "relationships": {
+      "description": "Relationships between entities.   ",
+      "data": [
+        {
+          "description": "home-based newborn care",
+          "entities": {
+            "government_officials": {
+              "id": "government_official-accredited-social-health-activists"
+            },
+            "services_benefits": {
+              "id": "services_benefits-home-based-newborn-care"
+            },
+            "programs_schemes_missions": {
+              "id": "program_scheme-home-based-newborn-care"
+            }
+          }
+        },
+        {
+          "description": "home-based care of young children",
+          "entities": {
+            "government_officials": {
+              "id": "government_official-accredited-social-health-activists"
+            },
+            "services_benefits": {
+              "id": "services_benefits-home-based-care-of-young-children"
+            },
+            "programs_schemes_missions": {
+              "id": "program_scheme-home-based-newborn-care"
+            }
+          }
+        },
+        {
+          "description": "identifying sick newborns and young children for timely referral and care",
+          "entities": {
+            "government_officials": {
+              "id": "government_official-accredited-social-health-activists"
+            },
+            "services_benefits": {
+              "id": "services_benefits-identifying-sick-newborns-and-young-children-for-timely-referral-and-care"
+            },
+            "programs_schemes_missions": {
+              "id": "program_scheme-home-based-newborn-care"
+            }
+          }
+        },
+        {
+          "description": "improving child-rearing practices",
+          "entities": {
+            "government_officials": {
+              "id": "government_official-accredited-social-health-activists"
+            },
+            "services_benefits": {
+              "id": "services_benefits-improving-child-rearing-practices"
+            },
+            "programs_schemes_missions": {
+              "id": "program_scheme-home-based-newborn-care"
+            }
+          }
+        },
+        {
+          "description": "accredited social health activists",
+          "entities": {
+            "government_officials": {
+              "id": "government_official-accredited-social-health-activists"
+            },
+            "programs_schemes_missions": {
+              "id": "program_scheme-home-based-newborn-care"
+            },
+            "services_benefits": {
+              "id": "services_benefits-home-based-newborn-care"
+            }
+          }
+        }
+      ]
     }
   }
 ]
