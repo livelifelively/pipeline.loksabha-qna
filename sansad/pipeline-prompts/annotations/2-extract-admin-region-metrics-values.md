@@ -164,11 +164,15 @@ Detailed Schema for each entity type:
 
 =============
 
-Task: Extract structured information from the following statement and output it as a JSON object that strictly adheres to the schema described below. For each identified metric-unit pair, also extract the location(s) and the corresponding substring of the metric mention within the input statement.
+**Task: Extract structured information and output _ONLY_ JSON. No other text is allowed.**
+
+**IMPORTANT: Your ENTIRE response MUST be a valid JSON object conforming to the schema below. Do not include any introductory text, explanations, or any other text outside of the JSON object itself. If no metric-unit pairs are found, return an EMPTY JSON ARRAY `[]`.**
+
+For each identified metric-unit pair in the following statement, extract structured information and output it as a JSON object that strictly adheres to the schema described below. Also, for each pair, extract the location(s) and the corresponding substring of the **metric mention** (including any associated value) within the input statement.
 
 Schema Description:
 
-The output JSON should have the following top-level structure:
+The output JSON MUST have the following top-level structure:
 
 ```json
 [
@@ -177,9 +181,9 @@ The output JSON should have the following top-level structure:
     "unit": _Metric_Unit_,
     "locations": [
       {
-        "start_char": Integer,  /* Zero-based start character index of the metric mention */
-        "end_char": Integer,    /* Zero-based end character index of the metric mention (exclusive) */
-        "substring": String     /* The substring from the input statement corresponding to the location */
+        "start_char": Integer,  /* Zero-based start character index of the metric mention (including value) */
+        "end_char": Integer,    /* Zero-based end character index of the metric mention (including value, exclusive) */
+        "substring": String     /* The substring representing the metric mention (including value) from the input statement */
       }
       /* ... more location objects if metric is mentioned multiple times ... */
     ]
@@ -204,9 +208,9 @@ Detailed Schema for each entity type:
 
    ```json
    {
-     "name_id": "...", /* String, unique identifier (snake_case), e.g., 'number_of_ncd_clinics', 'per_lakh_live_births' */
-     "names": [ "...", ... ], /* Array of Strings, unit names (full and abbreviations), e.g., ["NCD Clinics", "District NCD Clinics"], ["per lakh live births", "per lakh"] */
-     "description": "...", /* String, brief description */
+     "name_id": "...", /* String, unique identifier (snake_case), e.g., 'number_of_ncd_clinics', 'per_lakh_live_births_unit' */
+     "names": [ "...", ... ], /* Array of Strings, unit names (full and abbreviations), e.g., ["NCD Clinics", "District NCD Clinics"], ["Per Lakh Live Births", "Per Lakh"] */
+     "description": "...", /* String, brief description - could describe the type of unit */
    }
    ```
 
@@ -214,17 +218,17 @@ Instructions:
 
 Carefully read the statement and extract the information to populate the JSON structure described above.
 
-Strictly adhere to the JSON structure and entity schemas provided. If there are multiple metric-unit pairs identified, return a list of these pairs, with each pair represented as an element in the top-level JSON array. For each pair, identify and record the location(s) of the metric mention within the input statement as zero-based character ranges (`start_char` and `end_char`), and extract the corresponding `substring` from the input statement. If a metric is mentioned multiple times, record all locations and substrings.
+**STRICTLY adhere to the JSON structure and entity schemas provided. Your output MUST be valid JSON and ONLY JSON.** If there are multiple metric-unit pairs identified, return a list of these pairs, with each pair represented as an element in the top-level JSON array. For each pair, identify and record the location(s) of the **metric mention** (including any associated value) within the input statement as zero-based character ranges (`start_char` and `end_char`), and extract the corresponding **metric mention substring** (including the value) from the input statement. If a metric mention is repeated with different values or in different locations, record all locations and substrings.
 
-For the `locations`, ensure that `start_char` and `end_char` are zero-based character indices into the input statement string. `start_char` should point to the first character of the metric mention, and `end_char` should point to the character immediately after the end of the metric mention (exclusive). Also, extract the exact substring from the input statement that falls within this character range and include it as the `substring` value.
+For the `locations`, ensure that `start_char` and `end_char` are zero-based character indices into the input statement string. `start_char` should point to the first character of the **metric mention (including value)**, and `end_char` should point to the character immediately after the end of the **metric mention (including value)** (exclusive). Also, extract the exact substring representing the **metric mention (including value)** from the input statement that falls within this character range and include it as the `substring` value.
 
 For each metric and unit identified in the statement, create a corresponding `_Metric_` and `_Metric_Unit_` entity. Ensure you populate all attributes as described in the schema. If a description is not explicitly in the statement, provide a concise, general description.
 
-Generate a unique `name_id` in snake_case based on the primary name of the metric or unit. For example, 'Number of NCD Clinics' should become `number_of_ncd_clinics`, 'NCD Clinics' should become `ncd_clinics`, 'Maternal Mortality Ratio' should become `maternal_mortality_ratio`, and 'per lakh live births' should become `per_lakh_live_births`. Ensure `name_id`s are unique within the 'metrics' and 'units' context, respectively, for each pair.
+Generate a unique `name_id` in snake_case based on the primary name of the metric or unit. For example, 'Number of NCD Clinics' could become `number_of_ncd_clinics`, 'District NCD Clinics' could become `district_ncd_clinics_unit`, 'Maternal Mortality Ratio' could become `maternal_mortality_ratio`, and 'per lakh live births' could become `per_lakh_live_births_unit`. Ensure `name_id`s are unique within the 'metrics' and 'units' context, respectively, for each pair.
 
-Identify all the unique metrics in the input statement. Each metric must have a corresponding unit. They are considered a pair. For each identified metric, locate its mention(s) in the input string, determine the zero-based start and end character indices of each mention, and extract the substring at that location.
+Identify all the unique metrics in the input statement. Each metric must have a corresponding unit. They are considered a pair. For each identified metric, locate its mention(s) in the input string, determine the zero-based start and end character indices of each **metric mention (including value)**, and extract the substring at that location, ensuring it includes the numerical value if present.
 
-Output the complete JSON object.
+**Output ONLY the complete JSON object. Do not add any text before or after the JSON. If no metric-unit pairs are found in the input statement, output an EMPTY JSON ARRAY: `[]`**
 
 Output JSON (Template - for a single pair example):
 
@@ -241,7 +245,7 @@ Output JSON (Template - for a single pair example):
       {
         "start_char": Integer,
         "end_char": Integer,
-        "substring": String
+        "substring": String /* Metric mention substring WITH numerical value */
       }
     ]
   }
