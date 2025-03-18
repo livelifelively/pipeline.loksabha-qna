@@ -272,7 +272,7 @@ Rs.1.19 lakh crore have been authorized under the scheme"
 
 **IMPORTANT: Your ENTIRE response MUST be a valid JSON object conforming to the schema below. Do not include any introductory text, explanations, or any other text outside of the JSON object itself. If no metric-unit-magnitude (if applicable) pairs are found, return an EMPTY JSON ARRAY `[]`.**
 
-For each identified metric-unit-magnitude (if applicable) combination in the following statement, extract structured information and output it as a JSON object that strictly adheres to the schema described below. Also, for each combination, extract the location(s) and the corresponding substring of the **metric mention** (including any associated value and magnitude).
+For each identified metric-unit-magnitude (if applicable) combination in the following statement, extract structured information and output it as a JSON object that strictly adheres to the schema described below. Also, for each combination, extract the location(s) and the corresponding substring of the **metric mention** (including any associated value and magnitude), and the **value** itself.
 
 Schema Description:
 
@@ -284,6 +284,7 @@ The output JSON MUST have the following top-level structure:
     "metric": _Metric_,
     "unit": _Metric_Unit_,
     "magnitude": _Magnitude_, /* OPTIONAL: Include only if a magnitude is present */
+    "value": String,          /* String representation of the value */
     "locations": [
       {
         "start_char": Integer,  /* Zero-based start character index of the metric mention (including value and magnitude) */
@@ -334,7 +335,7 @@ Instructions:
 
 Carefully read the statement and extract the information to populate the JSON structure described above.
 
-**STRICTLY adhere to the JSON structure and entity schemas provided. Your output MUST be valid JSON and ONLY JSON.** If there are multiple metric-unit-magnitude (if applicable) combinations identified, return a list of these combinations, with each combination represented as an element in the top-level JSON array. For each combination, identify and record the location(s) of the **metric mention** (including any associated value and magnitude) within the input statement as zero-based character ranges (`start_char` and `end_char`), and extract the corresponding **metric mention substring** (including the value and magnitude) from the input statement. If a metric mention is repeated with different values, magnitudes or in different locations, record all locations and substrings. If no magnitude is mentioned for a metric-unit pair, the `magnitude` field in the JSON should be omitted for that entry.
+**STRICTLY adhere to the JSON structure and entity schemas provided. Your output MUST be valid JSON and ONLY JSON.** If there are multiple metric-unit-magnitude (if applicable) combinations identified, return a list of these combinations, with each combination represented as an element in the top-level JSON array. For each combination, identify and record the location(s) of the **metric mention** (including any associated value and magnitude) within the input statement as zero-based character ranges (`start_char` and `end_char`), and extract the corresponding **metric mention substring** (including the value and magnitude) from the input statement. Also, extract the **value** as a string. If a metric mention is repeated with different values, magnitudes or in different locations, record all locations, substrings, and corresponding values. If no magnitude is mentioned for a metric-unit pair, the `magnitude` field in the JSON should be omitted for that entry.
 
 For the `locations`, ensure that `start_char` and `end_char` are zero-based character indices into the input statement string. `start_char` should point to the first character of the **metric mention (including value and magnitude)**, and `end_char` should point to the character immediately after the end of the **metric mention (including value and magnitude)** (exclusive). Also, extract the exact substring representing the **metric mention (including value and magnitude)** from the input statement that falls within this character range and include it as the `substring` value.
 
@@ -342,7 +343,7 @@ For each metric, unit, and magnitude (if present) identified in the statement, c
 
 Generate a unique `name_id` in snake_case based on the primary name of the metric, unit, or magnitude. For example, 'Number of NCD Clinics' could become `number_of_ncd_clinics`, 'Indian Rupee' could become `indian_rupee_unit`, 'Lakh' could become `lakh_scale`, 'District NCD Clinics' could become `district_ncd_clinics_unit`, 'Maternal Mortality Ratio' could become `maternal_mortality_ratio`, and 'per lakh live births' could become `per_lakh_live_births_unit`. Ensure `name_id`s are unique within their respective entity contexts.
 
-Identify all the unique metrics in the input statement. Each metric must have a corresponding unit and may have a magnitude. They are considered a combination. For each identified metric, locate its mention(s) in the input string, determine the zero-based start and end character indices of each **metric mention (including value and magnitude)**, and extract the substring at that location, ensuring it includes the numerical value and magnitude if present.
+Identify all the unique metrics in the input statement. Each metric must have a corresponding unit and may have a magnitude. They are considered a combination. For each identified metric, locate its mention(s) in the input string, determine the zero-based start and end character indices of each **metric mention (including value and magnitude)**, and extract the substring at that location, ensuring it includes the value and magnitude if present. Also extract the ** value** itself.
 
 **Output ONLY the complete JSON object. Do not add any text before or after the JSON. If no metric-unit-magnitude (if applicable) combinations are found in the input statement, output an EMPTY JSON ARRAY: `[]`**
 
@@ -360,6 +361,7 @@ Output JSON (Template - for a single combination example with magnitude):
     "magnitude": {
       /* _Magnitude_ entity will be placed here */
     },
+    "value": String,          /* Numerical value as string */
     "locations": [
       {
         "start_char": Integer,
