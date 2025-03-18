@@ -408,7 +408,7 @@ The output JSON MUST have the following top-level structure:
       {
         "start_char": Integer,  /* Zero-based start character index of the COMPLETE metric mention (including metric name, value, unit, and magnitude if present). This index points to the beginning of the entire phrase in the input text that represents the metric measurement. */
         "end_char": Integer,    /* Zero-based end character index of the COMPLETE metric mention (including metric name, value, unit, and magnitude if present, exclusive). This index points to the position immediately after the end of the entire metric measurement phrase. */
-        "substring": String     /* The substring representing the COMPLETE metric mention (including metric name, value, unit, and magnitude if present) from the input statement. This MUST include the metric name if it is present in the text and capture the entire phrase that contextually refers to the metric measurement. */
+        "substring": String /* Complete metric mention substring WITH metric name, numerical value and magnitude. The substring representing the COMPLETE metric mention MUST include the metric name if it is present in the text AND any immediately adjacent contextual words or phrases that are essential to understanding what the metric refers to. This is particularly important for clarity and to avoid ambiguity. Prioritize capturing enough context to understand the meaning of the numerical value. For Example: If the input text is `Total hospital expenditure was Rs. 1.19 lakh crore`, the locations.substring should be `hospital expenditure was Rs. 1.19 lakh crore` */
       }
       /* ... more location objects if metric is mentioned multiple times ... */
     ]
@@ -448,6 +448,25 @@ The output JSON MUST have the following top-level structure:
       "description": "...", /* String, brief description - describes the numerical scale (e.g., "100,000", "1,000,000", "10,000,000") */
       "scale_value": Integer /* Integer value of the scale, e.g., 100000, 1000000, 10000000 */
     }
+    ```
+
+4.  **`value` Field:** Represents the numerical value associated with the metric-unit-magnitude combination.
+
+    ```json
+    String          /* String representation of the numerical value EXACTLY as it appears in the text.  */
+    ```
+
+5.  **`locations` Field:** Represents the location(s) of the complete metric mention in the input text.
+
+    ```json
+    [
+      {
+        "start_char": Integer,  /* Zero-based start character index of the complete metric mention */
+        "end_char": Integer,    /* Zero-based end character index of the complete metric mention (exclusive) */
+        "substring": String     /* The substring representing the complete metric mention MUST include the metric name if it is present in the text AND any immediately adjacent contextual words or phrases that are essential to understanding what the metric refers to. This is particularly important for clarity and to avoid ambiguity. Prioritize capturing enough context to understand the meaning of the numerical value. For Example: If the input text is `Total hospital expenditure was Rs. 1.19 lakh crore`, the locations.substring should be `hospital expenditure was Rs. 1.19 lakh crore` */
+      }
+      /* ... more location objects if metric is mentioned multiple times ... */
+    ]
     ```
 
 **Instructions:**
