@@ -3,32 +3,33 @@ from typing import Any, Dict
 
 from ..pipeline.context import PipelineContext
 from ..utils.gemini_api import extract_text_from_pdf, init_gemini
+from ..utils.project_root import find_project_root
 
 # Initialize Gemini model
 model = init_gemini()
 
 
-async def extract_pdf_contents(question_data: Dict[str, Any]) -> Dict[str, Any]:
+async def extract_pdf_contents(pdf_path: Path) -> str:
     """
-    Extract contents from a question PDF using Gemini API.
+    Extract contents from a question PDF using Marker.
 
     Args:
-        question_data: Dictionary containing question information
+        pdf_path: Path to the PDF file
 
     Returns:
-        Dictionary with extracted question and answer text
+        Extracted text in markdown format
     """
-    pdf_path = Path(question_data["questions_file_path_local"])
 
     try:
-        # Extract text using Gemini API
-        extracted_text = await extract_text_from_pdf(model, pdf_path)
+        # Extract text using Marker
+        extracted_text = await extract_text_from_pdf(pdf_path, model)
 
-        return {
-            **question_data,
-            "question_text": extracted_text["question_text"],
-            "answer_text": extracted_text["answer_text"],
-        }
+        # Save extracted text to markdown file
+        output_path = pdf_path.parent / "extracted_text.md"
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(extracted_text)
+
+        return extracted_text
 
     except Exception as e:
         raise Exception(f"Failed to extract PDF contents: {str(e)}") from e
@@ -46,6 +47,7 @@ async def batch_pdf_extraction(outputs: Dict[str, Any], context: PipelineContext
         Dict containing extraction results
     """
     downloaded_questions = outputs.get("downloaded_sansad_session_questions", [])
+    project_root = find_project_root()
 
     context.log_step("extraction_start", total_questions=len(downloaded_questions))
 
@@ -54,13 +56,13 @@ async def batch_pdf_extraction(outputs: Dict[str, Any], context: PipelineContext
 
     for i, question in enumerate(downloaded_questions):
         try:
-            # Check if PDF file exists
-            pdf_path = Path(question["questions_file_path_local"])
+            # Check if PDF file exists using absolute path
+            pdf_path = Path(project_root) / question["questions_file_path_local"]
             if not pdf_path.exists():
                 raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 
             # Extract contents
-            result = await extract_pdf_contents(question)
+            result = await extract_pdf_contents(pdf_path)
             processed_questions.append(result)
 
             context.log_step(
