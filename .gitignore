@@ -167,3 +167,5 @@ ENV/
 
 # Temporal
 .temporal/
+
+*.venv/
