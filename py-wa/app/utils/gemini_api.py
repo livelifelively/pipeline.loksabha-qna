@@ -17,7 +17,7 @@ def init_gemini() -> Any:
 
 async def extract_text_from_pdf(file_path: Path | str, genai_model: Any) -> str:
     """
-    Extract text from PDF using Marker for high-quality extraction.
+    Extract text from PDF using Marker with Gemini LLM for high-quality extraction.
 
     Args:
         file_path: Path to the PDF file
@@ -30,12 +30,28 @@ async def extract_text_from_pdf(file_path: Path | str, genai_model: Any) -> str:
     from marker.models import create_model_dict
 
     try:
-        # Initialize Marker converter
+        # Initialize Marker converter with LLM
+        # converter = PdfConverter(
+        #     artifact_dict=create_model_dict(),
+        #     config={
+        #         "output_format": "markdown",
+        #         "paginate_output": True,
+        #         "use_llm": True,  # Enable LLM usage
+        #         "redo_inline_math": True,  # Better math conversion
+        #         "llm_service": "marker.services.gemini.GoogleGeminiService",  # Specify LLM service
+        #         "gemini_api_key": os.getenv("GEMINI_API_KEY"),  # Pass API key through config
+        #         "gemini_model": "gemini-2.0-flash",  # Specify model
+        #         "llm_timeout": 120,  # Increase timeout to 120 seconds
+        #         "llm_retries": 3,  # Add retries for failed calls
+        #         "llm_retry_delay": 2,  # Delay between retries in seconds
+        #     },
+        # )
+
         converter = PdfConverter(
             artifact_dict=create_model_dict(),
             config={
                 "output_format": "markdown",
-                "paginate_output": False,
+                "paginate_output": True,
             },
         )
 
