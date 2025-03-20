@@ -8,12 +8,12 @@ const activities = proxyActivities({
   // causing issues when I was debugging. after certain time it would just restart and take control back to initial point.
   // the issue was small timeout (60 seconds)
   // so I increased it to 600 seconds.
-  startToCloseTimeout: '60000 second',
+  startToCloseTimeout: '600000 second',
   taskQueue: 'ts-tasks-queue',
 });
 
 const pythonActivities = proxyActivities({
-  startToCloseTimeout: '60000 second',
+  startToCloseTimeout: '600000 second',
   taskQueue: 'py-tasks-queue',
 });
 

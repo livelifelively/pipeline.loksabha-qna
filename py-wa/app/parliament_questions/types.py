@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -41,15 +41,16 @@ class ParliamentQuestion(BaseModel):
 
 class QuestionMetaAnalysis(BaseModel):
     """
-    #TODO: Add more fields and structure_conformance is not a boolean, it is a percentage
-    # need to review it while implementing it
-    Metadata analysis of a parliament question.
+    Enhanced metadata analysis of a parliament question using Marker.
     """
 
     num_pages: Optional[int] = Field(None, description="Number of pages in the PDF")
     has_table: Optional[bool] = Field(None, description="Whether the document contains tables")
-    answer_length: Optional[int] = Field(None, description="Number of characters in the answer")
-    structure_conformance: Optional[bool] = Field(None, description="Whether document follows standard structure")
+    answer_length: Optional[int] = Field(None, description="Number of text blocks in the document")
+    structure_conformance: Optional[float] = Field(
+        None, description="Percentage indicating how well the document follows standard structure", ge=0.0, le=100.0
+    )
+    raw_metadata: Optional[Dict[str, Any]] = Field(None, description="Raw metadata from Marker analysis")
 
 
 class ParliamentQuestionsPipelineState(BaseModel):
