@@ -32,12 +32,12 @@ def create_metric_highlighting_task(agent):
         name="metric_phrase_highlighting",
 
         description="""
-        Identify and highlight meaningful phrases from the input statement that represent mentions of metrics, measurements, or quantitative data. 
-        The focus is on highlighting contextually rich phrases that clearly indicate what is being measured, along with associated numerical values and units.
+        Identify and highlight meaningful phrases from the input statement that represent mentions of metrics, measurements, and quantitative data. 
+        The focus is on highlighting contextually rich phrases that clearly indicate what is being measured, the associated numerical values and unit of measurement.
         """,
 
         expected_output="""
-        A list of strings, where each string is a phrase extracted (highlighted) directly from the input statement.  Each phrase in the list represents a potential mention of a metric, measurement, or quantitative data.  These phrases are expected to be:
+        A list of strings, where each string is a phrase extracted (highlighted) directly from the input statement. Each phrase in the list represents a potential mention of a metric, measurement, or quantitative data. These phrases are expected to be:
 
         - Contextually Meaningful: Each phrase should capture a meaningful unit of text from the input, not just isolated numbers or keywords. They should provide enough context to understand what is being measured or quantified.
         - Quantitatively Focused: The phrases should relate to numerical values, measurements, or quantities. They should contain elements like numerical values, units of measurement, magnitude words, or metric keywords.
@@ -64,6 +64,7 @@ def create_metric_highlighting_task(agent):
 
         Key Considerations Illustrated by the Example:
 
+        - For example, in "health cover of Rs. 5 lakhs per family per year", "health cover" corresponds to what is being measured, "5 lakhs" what is the quantity in terms of value and magnitude, and "Rs. per family per year" is the unit of measurement. all three parts, that are, what is being measured, how much is measurement (value and magnitude) and unit, are all mandatory.
         - Context is Prioritized: Notice that shorter phrases like just "5 lakhs", "55 crore", or "40%" are **not** included as standalone outputs in the expected list. This is because the task prioritizes extracting *contextually rich phrases* that provide more information about *what* is being measured.
         - Meaningful Phrases: The extracted phrases are meaningful units of text that represent complete metric mentions within the context of the input statement.
         - Direct Extraction: The phrases are directly copied from the input text, maintaining the original wording and order.
