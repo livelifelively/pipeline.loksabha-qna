@@ -5,7 +5,7 @@ import path from 'path';
 const app = express();
 const port = process.env.PORT || 1337;
 
-app.get('/sansad', (req: Request, res: Response): void => {
+app.get('/path', (req: Request, res: Response): void => {
   try {
     const requestedPath = req.query.p?.toString() || '';
     const recursive = req.query.r === 'true';
@@ -64,6 +64,31 @@ app.get('/sansad', (req: Request, res: Response): void => {
     } else {
       res.status(500).json({ error: 'Failed to read directory' });
     }
+  }
+});
+
+app.get('/file', (req: Request, res: Response): void => {
+  try {
+    const requestedPath = req.query.p?.toString() || '';
+    const basePath = path.join(__dirname, '../sansad');
+    const fullPath = path.join(basePath, requestedPath);
+
+    // Security check: Use path.resolve for better normalization and comparison
+    if (!path.resolve(fullPath).startsWith(path.resolve(basePath))) {
+      res.status(400).json({ error: 'Invalid path' });
+      return;
+    }
+
+    if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
+      res.status(404).json({ error: 'File not found' });
+      return;
+    }
+
+    const fileContent = fs.readFileSync(fullPath, 'utf8');
+    res.json({ content: fileContent });
+  } catch (error: any) {
+    console.error('Error accessing file:', error);
+    res.status(500).json({ error: 'Failed to read file' });
   }
 });
 
