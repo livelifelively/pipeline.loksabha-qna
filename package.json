@@ -11,7 +11,10 @@
     "start:workflow-exec": "ts-node ts-wa/start-workflow.ts",
     "start:workflow-exec:debug": "node --inspect=9230 -r ts-node/register ts-wa/start-workflow.ts",
     "start:workflow": "concurrently \"npm run start:worker-ts\" \"npm run start:worker-py\" \"npx wait-on tcp:7233 && npm run start:workflow-exec\"",
-    "start:workflow:debug": "concurrently \"npm run start:worker-ts:debug\" \"npm run start:worker-py:debug\" \"npx wait-on tcp:7233 && npm run start:workflow-exec:debug\""
+    "start:workflow:debug": "concurrently \"npm run start:worker-ts:debug\" \"npm run start:worker-py:debug\" \"npx wait-on tcp:7233 && npm run start:workflow-exec:debug\"",
+    "start:api": "ts-node api/server.ts",
+    "start:api:dev": "nodemon --watch 'api/**/*.ts' --exec ts-node api/server.ts",
+    "build:api": "tsc -p api/tsconfig.json"
   },
   "keywords": [],
   "author": "",
@@ -21,14 +24,19 @@
     "@temporalio/client": "^1.11.7",
     "@temporalio/worker": "^1.11.7",
     "@temporalio/workflow": "^1.11.7",
-    "@types/node": "^22.13.1",
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.14.0",
+    "express": "^5.1.0",
     "lodash": "^4.17.21",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.8.2"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.15",
+    "@typescript-eslint/eslint-plugin": "^8.29.0",
+    "@typescript-eslint/parser": "^8.29.0",
     "concurrently": "^9.1.2",
+    "nodemon": "^3.1.9",
     "wait-on": "^8.0.2"
   }
 }
