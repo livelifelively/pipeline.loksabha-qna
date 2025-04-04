@@ -5,13 +5,10 @@ import path from 'path';
 const app = express();
 const port = process.env.PORT || 1337;
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Pipeline API is running' });
-});
-
 app.get('/sansad', (req: Request, res: Response): void => {
   try {
-    const requestedPath = req.query.path?.toString() || '';
+    const requestedPath = req.query.p?.toString() || '';
+    const recursive = req.query.r === 'true';
     const basePath = path.join(__dirname, '../sansad');
     const fullPath = path.join(basePath, requestedPath);
 
@@ -27,14 +24,35 @@ app.get('/sansad', (req: Request, res: Response): void => {
       return;
     }
 
-    const items = fs.readdirSync(fullPath, { withFileTypes: true });
-    const contents = items.map((item) => ({
-      name: item.name,
-      type: item.isDirectory() ? 'directory' : 'file',
-    }));
+    // Function to get directory contents
+    const getDirectoryContents = (dirPath: string, shouldRecurse: boolean): any[] => {
+      const items = fs.readdirSync(dirPath, { withFileTypes: true });
+      return items.map((item) => {
+        const itemPath = path.join(dirPath, item.name);
+        const relativePath = path.relative(fullPath, itemPath);
+
+        if (item.isDirectory()) {
+          return {
+            name: item.name,
+            type: 'directory',
+            path: relativePath,
+            contents: shouldRecurse ? getDirectoryContents(itemPath, true) : [],
+          };
+        }
+
+        return {
+          name: item.name,
+          type: 'file',
+          path: relativePath,
+        };
+      });
+    };
+
+    const contents = getDirectoryContents(fullPath, recursive);
 
     res.json({
       path: requestedPath,
+      recursive,
       contents,
     });
   } catch (error: any) {
