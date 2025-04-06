@@ -1,9 +1,13 @@
 import express, { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
+import cors from 'cors';
 
 const app = express();
 const port = process.env.PORT || 1337;
+
+// Enable CORS for all routes with default settings
+app.use(cors());
 
 app.get('/path', (req: Request, res: Response): void => {
   try {
