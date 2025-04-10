@@ -1,3 +1,4 @@
+import json
 import logging
 from itertools import groupby
 from operator import itemgetter
@@ -8,9 +9,16 @@ from ..pipeline.context import PipelineContext
 from ..utils.file_utils import filename_generator, kebab_case_names
 from ..utils.pdf import DownloadConfig, download_pdfs
 from ..utils.project_root import find_project_root
-from .types import ParliamentQuestion
+from .types import ParliamentQuestion, QuestionType
 
 logger = logging.getLogger(__name__)
+
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, QuestionType):
+            return obj.value  # Simply return the enum value
+        return super().default(obj)
 
 
 async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: PipelineContext) -> Dict[str, Any]:
@@ -84,6 +92,13 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
                 )
                 downloaded_questions.append(downloaded_question)
 
+                # Write progress to JSON file
+                progress_file_path = question_dir / "progress.json"
+                data_to_write = {"meta": downloaded_question.model_dump()}
+                context.log_step("data_to_write", data=data_to_write)
+                with open(progress_file_path, "w") as progress_file:
+                    json.dump(data_to_write, progress_file, indent=4, cls=CustomJSONEncoder)
+
                 context.log_step(
                     "question_processed",
                     question_number=question["question_number"],
@@ -105,6 +120,12 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
 
     return {
         "failed_sansad_session_question_download": failed_downloads,
-        "downloaded_sansad_session_questions": [q.dict() for q in downloaded_questions],
+        "downloaded_sansad_session_questions": [
+            {
+                **q.model_dump(),
+                "type": str(q.type.value) if q.type else None,  # Explicitly convert enum to string
+            }
+            for q in downloaded_questions
+        ],
         "status": status,
     }
