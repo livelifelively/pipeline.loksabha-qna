@@ -96,6 +96,53 @@ app.get('/file', (req: Request, res: Response): void => {
   }
 });
 
+app.post('/files', express.json(), (req: Request, res: Response): void => {
+  try {
+    const filePaths = req.body.paths || [];
+
+    if (!Array.isArray(filePaths)) {
+      res.status(400).json({ error: 'Invalid request format. Expected "paths" array in request body' });
+      return;
+    }
+
+    const basePath = path.join(__dirname, '../sansad');
+    const results: Record<string, { content: string } | { error: string }> = {};
+
+    for (const requestedPath of filePaths) {
+      if (typeof requestedPath !== 'string') {
+        results[String(requestedPath)] = { error: 'Invalid path format' };
+        continue;
+      }
+
+      const fullPath = path.join(basePath, requestedPath);
+
+      // Security check: Use path.resolve for better normalization and comparison
+      if (!path.resolve(fullPath).startsWith(path.resolve(basePath))) {
+        results[requestedPath] = { error: 'Invalid path' };
+        continue;
+      }
+
+      try {
+        if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
+          results[requestedPath] = { error: 'File not found' };
+          continue;
+        }
+
+        const fileContent = fs.readFileSync(fullPath, 'utf8');
+        results[requestedPath] = { content: fileContent };
+      } catch (readError) {
+        console.error(`Error reading file ${requestedPath}:`, readError);
+        results[requestedPath] = { error: 'Failed to read file' };
+      }
+    }
+
+    res.json({ files: results });
+  } catch (error: any) {
+    console.error('Error processing multiple files request:', error);
+    res.status(500).json({ error: 'Failed to process request' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
