@@ -4,8 +4,8 @@
   "main": "index.js",
   "scripts": {
     "build:ts": "tsc",
-    "start:worker-ts": "ts-node ts-wa/src/worker.ts",
-    "start:worker-ts:debug": "node --inspect=9229 -r ts-node/register ts-wa/src/worker.ts",
+    "start:worker-ts": "ts-node ts-wa/worker.ts",
+    "start:worker-ts:debug": "node --inspect=9229 -r ts-node/register ts-wa/worker.ts",
     "start:worker-py": "cd py-wa && source .venv/bin/activate && python -m app.worker && cd ..",
     "start:worker-py:debug": "cd py-wa && source .venv/bin/activate && DEBUG_ENABLED=true python -m app.worker && cd ..",
     "start:workflow-exec": "ts-node ts-wa/start-workflow.ts",

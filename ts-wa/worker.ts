@@ -1,5 +1,5 @@
 import { Worker } from '@temporalio/worker';
-import { multiLanguageWorkflow } from './workflow';
+// import { multiLanguageWorkflow } from '../apps/ts/workflow';
 import { tsActivity } from './activities';
 
 async function run() {

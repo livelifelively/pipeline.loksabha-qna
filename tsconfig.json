@@ -13,6 +13,6 @@
     "resolveJsonModule": true,
     "types": ["node"]
   },
-  "include": ["ts-wa/src/**/*"],
+  "include": ["apps/src/**/*"],
   "exclude": ["build", "node_modules"]
 }
