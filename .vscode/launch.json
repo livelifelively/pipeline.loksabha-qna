@@ -7,7 +7,8 @@
       "request": "attach",
       "port": 9229,
       "restart": true,
-      "sourceMaps": true
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/workflows/ts/**/*.js"]
     },
     {
       "name": "TypeScript: Attach to Workflow Executor",
@@ -15,7 +16,8 @@
       "request": "attach",
       "port": 9230,
       "restart": true,
-      "sourceMaps": true
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/workflows/ts/**/*.js"]
     },
     {
       "name": "Python: Attach to Worker",

@@ -13,6 +13,6 @@
     "resolveJsonModule": true,
     "types": ["node"]
   },
-  "include": ["api/**/*", "apps/ts/**/*"],
+  "include": ["api/**/*", "apps/ts/**/*", "workflows/ts/workflow.ts", "workflows/ts/start-workflow.ts"],
   "exclude": ["build", "node_modules"]
 }
