@@ -5,17 +5,17 @@ from fastapi import APIRouter, HTTPException
 from apps.py.parliament_questions.pdf_extraction import extract_pdf_contents
 
 from ..core.config import get_settings
-from ..schemas.pdf import PDFExtractResponse
+from ..schemas.pdf import PDFExtractRequest, PDFExtractResponse
 
 router = APIRouter(tags=["pdf"])
 
 
 @router.post("/extract-pdf", response_model=PDFExtractResponse)
-async def extract_pdf_endpoint(file_path: str):
+async def extract_pdf_endpoint(request: PDFExtractRequest):
     """Extract text from a PDF file using its path in the sansad directory."""
     settings = get_settings()
     base_path = Path(settings.SANSAD_BASE_PATH)
-    full_path = base_path / file_path
+    full_path = base_path / request.file_path
 
     try:
         full_path = full_path.resolve()
@@ -31,7 +31,7 @@ async def extract_pdf_endpoint(file_path: str):
         raise HTTPException(status_code=400, detail="File must be a PDF")
 
     try:
-        extracted_text = await extract_pdf_contents(full_path)
+        extracted_text = await extract_pdf_contents(full_path, extractor_type=request.extractor_type)
         return {"text": extracted_text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from None
