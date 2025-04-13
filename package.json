@@ -12,9 +12,9 @@
     "start:workflow-exec:debug": "node --inspect=9230 -r ts-node/register workflows/ts/start-workflow.ts",
     "start:workflow": "concurrently \"npm run start:worker-ts\" \"npm run start:worker-py\" \"npx wait-on tcp:7233 && npm run start:workflow-exec\"",
     "start:workflow:debug": "concurrently \"npm run start:worker-ts:debug\" \"npm run start:worker-py:debug\" \"npx wait-on tcp:7233 && npm run start:workflow-exec:debug\"",
-    "start:api": "ts-node api/server.ts",
-    "start:api:dev": "nodemon --watch 'api/**/*.ts' --exec ts-node api/server.ts",
-    "build:api": "tsc -p api/tsconfig.json"
+    "start:api-ts": "ts-node api/ts/server.ts",
+    "start:api-ts:dev": "nodemon --watch 'api/ts/**/*.ts' --exec ts-node api/ts/server.ts",
+    "build:api-ts": "tsc -p api/ts/tsconfig.json"
   },
   "keywords": [],
   "author": "",
