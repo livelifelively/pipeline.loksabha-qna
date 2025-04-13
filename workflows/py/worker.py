@@ -4,8 +4,9 @@ import logging
 from temporalio.client import Client
 from temporalio.worker import Worker
 
+from apps.py.utils.debug import setup_debugger
+
 from .activities.parliament import process_questions
-from .utils.debug import setup_debugger
 
 
 class WorkerError(Exception):

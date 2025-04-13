@@ -2,7 +2,7 @@ from typing import Any
 
 from temporalio import activity
 
-from ..pipeline.sansad_session_pipeline import sansad_session_pipeline
+from apps.py.pipeline.sansad_session_pipeline import sansad_session_pipeline
 
 
 @activity.defn

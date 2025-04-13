@@ -3,7 +3,7 @@ import { tsActivity } from './activities';
 
 async function run() {
   const worker = await Worker.create({
-    workflowsPath: require.resolve('./multi-language.workflow'),
+    workflowsPath: require.resolve('./workflow'),
     activities: {
       tsActivity,
     },

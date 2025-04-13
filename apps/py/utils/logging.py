@@ -3,7 +3,7 @@ from typing import Optional
 
 from colorlog import ColoredFormatter
 
-from app.utils.run_context import RunContext
+from apps.py.utils.run_context import RunContext
 
 
 def setup_logger(name: str = None, run_context: Optional[RunContext] = None) -> logging.Logger:
