@@ -13,7 +13,7 @@ app.get('/path', (req: Request, res: Response): void => {
   try {
     const requestedPath = req.query.p?.toString() || '';
     const recursive = req.query.r === 'true';
-    const basePath = path.join(__dirname, '../sansad');
+    const basePath = path.join(__dirname, '../../sansad');
     const fullPath = path.join(basePath, requestedPath);
 
     // Security check: Use path.resolve for better normalization and comparison
@@ -74,7 +74,7 @@ app.get('/path', (req: Request, res: Response): void => {
 app.get('/file', (req: Request, res: Response): void => {
   try {
     const requestedPath = req.query.p?.toString() || '';
-    const basePath = path.join(__dirname, '../sansad');
+    const basePath = path.join(__dirname, '../../sansad');
     const fullPath = path.join(basePath, requestedPath);
 
     // Security check: Use path.resolve for better normalization and comparison
@@ -105,7 +105,7 @@ app.post('/files', express.json(), (req: Request, res: Response): void => {
       return;
     }
 
-    const basePath = path.join(__dirname, '../sansad');
+    const basePath = path.join(__dirname, '../../sansad');
     const results: Record<string, { content: string } | { error: string }> = {};
 
     for (const requestedPath of filePaths) {
