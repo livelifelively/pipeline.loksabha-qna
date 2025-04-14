@@ -2,6 +2,28 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Debug API TypeScript",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start:api-ts:dev"],
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "outFiles": ["${workspaceFolder}/api/ts/**/*.js"],
+      "sourceMaps": true,
+      "restart": true
+    },
+    {
+      "name": "Debug API Python",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["api.py.main:app", "--reload", "--port", "8001"],
+      "jinja": true,
+      "justMyCode": false,
+      "console": "integratedTerminal"
+    },
+    {
       "name": "TypeScript: Attach to Worker",
       "type": "node",
       "request": "attach",
