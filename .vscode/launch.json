@@ -52,8 +52,12 @@
       "justMyCode": false,
       "pathMappings": [
         {
-          "localRoot": "${workspaceFolder}/py-wa",
-          "remoteRoot": "${workspaceFolder}/py-wa"
+          "localRoot": "${workspaceFolder}/workflows/py",
+          "remoteRoot": "${workspaceFolder}/workflows/py"
+        },
+        {
+          "localRoot": "${workspaceFolder}/api/py",
+          "remoteRoot": "${workspaceFolder}/api/py"
         }
       ]
     }
