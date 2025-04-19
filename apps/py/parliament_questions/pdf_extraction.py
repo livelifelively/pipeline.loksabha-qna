@@ -2,14 +2,14 @@ from pathlib import Path
 from typing import Any, Dict
 
 from ..pipeline.context import PipelineContext
-from ..utils.gemini_api import extract_text_from_pdf, init_gemini
+from ..utils.gemini_api import extract_text_from_pdf
 from ..utils.project_root import find_project_root
 
 # Initialize Gemini model
-model = init_gemini()
+# model = init_gemini()
 
 
-async def extract_pdf_contents(pdf_path: Path) -> str:
+async def extract_pdf_contents(pdf_path: Path, extractor_type: str = "marker") -> str:
     """
     Extract contents from a question PDF using Marker.
 
@@ -22,7 +22,7 @@ async def extract_pdf_contents(pdf_path: Path) -> str:
 
     try:
         # Extract text using Marker
-        extracted_text = await extract_text_from_pdf(pdf_path, model)
+        extracted_text = await extract_text_from_pdf(pdf_path, extractor_type)
 
         # Save extracted text to markdown file
         output_path = pdf_path.parent / "extracted_text.md"
@@ -68,7 +68,7 @@ async def batch_pdf_extraction(outputs: Dict[str, Any], context: PipelineContext
             context.log_step(
                 "question_extracted",
                 question_number=question["question_number"],
-                progress=f"{i+1}/{len(downloaded_questions)}",
+                progress=f"{i + 1}/{len(downloaded_questions)}",
             )
 
         except Exception as e:

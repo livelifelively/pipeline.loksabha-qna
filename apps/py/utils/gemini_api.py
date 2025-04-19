@@ -17,13 +17,12 @@ def init_gemini() -> Any:
     return genai.GenerativeModel("gemini-2.0-flash")
 
 
-async def extract_text_from_pdf(file_path: Path | str, genai_model: Any, extractor_type: str = "marker") -> str:
+async def extract_text_from_pdf(file_path: Path | str, extractor_type: str = "marker") -> str:
     """
     Extract text from PDF using the specified extractor.
 
     Args:
         file_path: Path to the PDF file
-        genai_model: Initialized Gemini model
         extractor_type: Type of PDF extractor to use ("marker" or "markitdown")
 
     Returns:
