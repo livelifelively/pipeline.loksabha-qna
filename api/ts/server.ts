@@ -88,10 +88,50 @@ app.get('/file', (req: Request, res: Response): void => {
       return;
     }
 
+    // Only handle text files
+    const ext = path.extname(fullPath).toLowerCase();
+    if (ext === '.pdf') {
+      res.status(400).json({ error: 'Use /binary endpoint for PDF files' });
+      return;
+    }
+
     const fileContent = fs.readFileSync(fullPath, 'utf8');
     res.json({ content: fileContent });
   } catch (error: any) {
     console.error('Error accessing file:', error);
+    res.status(500).json({ error: 'Failed to read file' });
+  }
+});
+
+app.get('/binary', (req: Request, res: Response): void => {
+  try {
+    const requestedPath = req.query.p?.toString() || '';
+    const basePath = path.join(__dirname, '../../sansad');
+    const fullPath = path.join(basePath, requestedPath);
+
+    // Security check: Use path.resolve for better normalization and comparison
+    if (!path.resolve(fullPath).startsWith(path.resolve(basePath))) {
+      res.status(400).json({ error: 'Invalid path' });
+      return;
+    }
+
+    if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
+      res.status(404).json({ error: 'File not found' });
+      return;
+    }
+
+    const ext = path.extname(fullPath).toLowerCase();
+    if (ext !== '.pdf') {
+      res.status(400).json({ error: 'Use /file endpoint for text files' });
+      return;
+    }
+
+    const fileStream = fs.createReadStream(fullPath);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${path.basename(fullPath)}"`);
+    fileStream.pipe(res);
+  } catch (error: any) {
+    console.error('Error accessing binary file:', error);
     res.status(500).json({ error: 'Failed to read file' });
   }
 });
