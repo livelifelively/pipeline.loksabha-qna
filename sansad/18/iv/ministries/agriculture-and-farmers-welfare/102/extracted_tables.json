@@ -1,0 +1,555 @@
+[
+  {
+    "table_number": 1,
+    "page": 4,
+    "headers": [
+      "S. NO.",
+      "State Name",
+      "NPOP",
+      "PGS under PKVY"
+    ],
+    "rows": [
+      {
+        "S. NO.": "1",
+        "State Name": "Andhra Pradesh",
+        "NPOP": "63,678.69",
+        "PGS under PKVY": "3,60,805"
+      },
+      {
+        "S. NO.": "2",
+        "State Name": "Bihar",
+        "NPOP": "29,062.13",
+        "PGS under PKVY": "31,561"
+      },
+      {
+        "S. NO.": "3",
+        "State Name": "Chhattisgarh",
+        "NPOP": "15,144.13",
+        "PGS under PKVY": "1,01,279"
+      },
+      {
+        "S. NO.": "4",
+        "State Name": "Goa",
+        "NPOP": "12,287.40",
+        "PGS under PKVY": "15334"
+      },
+      {
+        "S. NO.": "5",
+        "State Name": "Gujarat",
+        "NPOP": "6,80,819.99",
+        "PGS under PKVY": "10000"
+      },
+      {
+        "S. NO.": "6",
+        "State Name": "Haryana",
+        "NPOP": "2,925.33",
+        "PGS under PKVY": "-"
+      },
+      {
+        "S. NO.": "7",
+        "State Name": "Himachal Pradesh",
+        "NPOP": "9,334.28",
+        "PGS under PKVY": "18748"
+      },
+      {
+        "S. NO.": "8",
+        "State Name": "Jharkhand",
+        "NPOP": "54,408.20",
+        "PGS under PKVY": "25300"
+      },
+      {
+        "S. NO.": "9",
+        "State Name": "Kerala",
+        "NPOP": "44,263.91",
+        "PGS under PKVY": "94480"
+      },
+      {
+        "S. NO.": "10",
+        "State Name": "Karnataka",
+        "NPOP": "71,085.99",
+        "PGS under PKVY": "20900"
+      },
+      {
+        "S. NO.": "11",
+        "State Name": "Madhya Pradesh",
+        "NPOP": "11,48,236.07",
+        "PGS under PKVY": "74960"
+      },
+      {
+        "S. NO.": "12",
+        "State Name": "Maharashtra",
+        "NPOP": "10,01,080.32",
+        "PGS under PKVY": "66756"
+      },
+      {
+        "S. NO.": "13",
+        "State Name": "Odisha",
+        "NPOP": "1,81,022.28",
+        "PGS under PKVY": "45800"
+      },
+      {
+        "S. NO.": "14",
+        "State Name": "Punjab",
+        "NPOP": "11,089.41",
+        "PGS under PKVY": "6981"
+      },
+      {
+        "S. NO.": "15",
+        "State Name": "Tamil Nadu",
+        "NPOP": "42,758.27",
+        "PGS under PKVY": "32940"
+      },
+      {
+        "S. NO.": "16",
+        "State Name": "Telangana",
+        "NPOP": "84,865.16",
+        "PGS under PKVY": "8100"
+      },
+      {
+        "S. NO.": "17",
+        "State Name": "Rajasthan",
+        "NPOP": "5,80,092.22",
+        "PGS under PKVY": "148500"
+      },
+      {
+        "S. NO.": "18",
+        "State Name": "Uttar Pradesh",
+        "NPOP": "66,391.34",
+        "PGS under PKVY": "171185"
+      },
+      {
+        "S. NO.": "19",
+        "State Name": "Uttarakhand",
+        "NPOP": "1,01,820.39",
+        "PGS under PKVY": "140740"
+      },
+      {
+        "S. NO.": "20",
+        "State Name": "West Bengal",
+        "NPOP": "8,117.80",
+        "PGS under PKVY": "21400"
+      },
+      {
+        "S. NO.": "21",
+        "State Name": "Assam",
+        "NPOP": "27,079.40",
+        "PGS under PKVY": "4400"
+      },
+      {
+        "S. NO.": "22",
+        "State Name": "Arunachal Pradesh",
+        "NPOP": "16,537.53",
+        "PGS under PKVY": "380"
+      },
+      {
+        "S. NO.": "23",
+        "State Name": "Meghalaya",
+        "NPOP": "29,703.30",
+        "PGS under PKVY": "900"
+      },
+      {
+        "S. NO.": "24",
+        "State Name": "Manipur",
+        "NPOP": "32,584.50",
+        "PGS under PKVY": "600"
+      },
+      {
+        "S. NO.": "25",
+        "State Name": "Mizoram",
+        "NPOP": "14,238.30",
+        "PGS under PKVY": "780"
+      },
+      {
+        "S. NO.": "26",
+        "State Name": "Nagaland",
+        "NPOP": "16,221.56",
+        "PGS under PKVY": "480"
+      },
+      {
+        "S. NO.": "27",
+        "State Name": "Sikkim",
+        "NPOP": "75,729.78",
+        "PGS under PKVY": "63000"
+      },
+      {
+        "S. NO.": "28",
+        "State Name": "Tripura",
+        "NPOP": "20,481.36",
+        "PGS under PKVY": "1000"
+      },
+      {
+        "S. NO.": "29",
+        "State Name": "Jammu & Kashmir",
+        "NPOP": "34,746.75",
+        "PGS under PKVY": "5160"
+      },
+      {
+        "S. NO.": "30",
+        "State Name": "Pondicherry",
+        "NPOP": "21.51",
+        "PGS under PKVY": "-"
+      },
+      {
+        "S. NO.": "31",
+        "State Name": "Delhi",
+        "NPOP": "9.60",
+        "PGS under PKVY": "-"
+      },
+      {
+        "S. NO.": "32",
+        "State Name": "Ladakh",
+        "NPOP": "-",
+        "PGS under PKVY": "10480"
+      },
+      {
+        "S. NO.": "33",
+        "State Name": "Daman & Diew",
+        "NPOP": "-",
+        "PGS under PKVY": "642"
+      },
+      {
+        "S. NO.": "34",
+        "State Name": "Dadar & Nagar Haveli",
+        "NPOP": "-",
+        "PGS under PKVY": "500"
+      },
+      {
+        "S. NO.": "Total",
+        "State Name": "",
+        "NPOP": "44,75,836.90",
+        "PGS under PKVY": "14,98,583"
+      },
+      {
+        "S. NO.": "Grand Total (NPOP + PGS)",
+        "State Name": "",
+        "NPOP": "59,74,419.90",
+        "PGS under PKVY": ""
+      }
+    ],
+    "accuracy": 99.33,
+    "whitespace": 2.03,
+    "order": 1
+  },
+  {
+    "table_number": 2,
+    "page": 5,
+    "headers": [
+      "S. No. \nName of the State \nFarmers",
+      "",
+      ""
+    ],
+    "rows": [
+      {
+        "S. No. \nName of the State \nFarmers": "PKVY",
+        "": ""
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "1",
+        "": "7,46,976"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "2",
+        "": "43,208"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "3",
+        "": "60,294"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "4",
+        "": "17,836"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "5",
+        "": "12,685"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "6",
+        "": "32,714"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "7",
+        "": "37,598"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "8",
+        "": "3,10,841"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "9",
+        "": "1,16,360"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "10",
+        "": "87,350"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "11",
+        "": "70,026"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "12",
+        "": "6,676"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "13",
+        "": "2,17,479"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "14",
+        "": "37,886"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "15",
+        "": "18,405"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "16",
+        "": "2,73,672"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "17",
+        "": "48,585"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "18",
+        "": "9,740"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "19",
+        "": "2,054"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "20",
+        "": "2,275"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "21",
+        "": "44,932"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "22",
+        "": "12,900"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "23",
+        "": "3,01,109"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "24",
+        "": "3,590"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "25",
+        "": "1,324"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "26",
+        "": "14,070"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "",
+        "": "25,30,585"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "MOVCDNER",
+        "": ""
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "1",
+        "": "15699"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "2",
+        "": "24,425"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "3",
+        "": "42,338"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "4",
+        "": "19,841"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "5",
+        "": "22,104"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "6",
+        "": "31,128"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "7",
+        "": "38,645"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "8",
+        "": "25,753"
+      },
+      {
+        "S. No. \nName of the State \nFarmers": "",
+        "": "2,19,933"
+      }
+    ],
+    "accuracy": 99.99,
+    "whitespace": 6.84,
+    "order": 1
+  },
+  {
+    "table_number": 3,
+    "page": 6,
+    "headers": [
+      "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "rows": [
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "",
+        "": ""
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "PKVY",
+        "": ""
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "1",
+        "": "2099.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "2",
+        "": "312.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "3",
+        "": "1188.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "4",
+        "": "282.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "5",
+        "": "70.50"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "6",
+        "": "399.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "7",
+        "": "974.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "8",
+        "": "392.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "9",
+        "": "1250.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "10",
+        "": "1256.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "11",
+        "": "373.50"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "12",
+        "": "278.50"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "13",
+        "": "750.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "14",
+        "": "1620.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "15",
+        "": "212.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "16",
+        "": "4500.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "17",
+        "": "1120.75"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "18",
+        "": "746.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "19",
+        "": "2305.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "20",
+        "": "2305.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "",
+        "": "20,463.75"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "MOVCDNER",
+        "": ""
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "S. \nNo.",
+        "": "2024-25"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "",
+        "": "Release"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "1",
+        "": "2031.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "2",
+        "": "1977.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "3",
+        "": "2343.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "4",
+        "": "1735.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "5",
+        "": "2380.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "6",
+        "": "988.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "7",
+        "": "1219.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "8",
+        "": "2266.00"
+      },
+      {
+        "S. \n2022-23 \n2023-24 \n2024-25 \nNo. \nName of the State \nRelease  \nRelease \nRelease": "",
+        "": "14,939.00"
+      }
+    ],
+    "accuracy": 100.0,
+    "whitespace": 11.67,
+    "order": 1
+  }
+]

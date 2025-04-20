@@ -1,20 +1,36 @@
 {
-    "meta": {
-        "question_number": 1302,
-        "subjects": "Drought and Floods due to Climate Change",
-        "loksabha_number": "18",
-        "member": [
-            "Shri Virendra Singh"
-        ],
-        "ministry": "AGRICULTURE AND FARMERS WELFARE",
-        "type": "UNSTARRED",
-        "date": "11.02.2025",
-        "questions_file_path_local": "sansad/18/iv/ministries/agriculture-and-farmers-welfare/1302/AU1302_PLB5Za.pdf",
-        "questions_file_path_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AU1302_PLB5Za.pdf?source=pqals",
-        "questions_file_path_hindi_local": null,
-        "questions_file_path_hindi_web": "https://sansad.in/getFile/loksabhaquestions/qhindi/184/AU1302_PLB5Za.pdf?source=pqals",
-        "question_text": null,
-        "answer_text": null,
-        "session_number": "4"
+  "meta": {
+    "question_number": 1302,
+    "subjects": "Drought and Floods due to Climate Change",
+    "loksabha_number": "18",
+    "member": [
+      "Shri Virendra Singh"
+    ],
+    "ministry": "AGRICULTURE AND FARMERS WELFARE",
+    "type": "UNSTARRED",
+    "date": "11.02.2025",
+    "questions_file_path_local": "sansad/18/iv/ministries/agriculture-and-farmers-welfare/1302/AU1302_PLB5Za.pdf",
+    "questions_file_path_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AU1302_PLB5Za.pdf?source=pqals",
+    "questions_file_path_hindi_local": null,
+    "questions_file_path_hindi_web": "https://sansad.in/getFile/loksabhaquestions/qhindi/184/AU1302_PLB5Za.pdf?source=pqals",
+    "question_text": null,
+    "answer_text": null,
+    "session_number": "4"
+  },
+  "steps": [
+    {
+      "step": "pdf_extraction",
+      "timestamp": "2025-04-20T16:04:35.043408",
+      "status": "success",
+      "data": {
+        "extracted_text_path": "extracted_text.md",
+        "tables_path": "extracted_tables.json",
+        "has_tables": false,
+        "num_tables": 0,
+        "tables_data": {
+          "tables_summary": []
+        }
+      }
     }
+  ]
 }

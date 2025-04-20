@@ -1,20 +1,65 @@
 {
-    "meta": {
-        "question_number": 21,
-        "subjects": "Coconut Production",
-        "loksabha_number": "18",
-        "member": [
-            "Shri B K Parthasarathi"
-        ],
-        "ministry": "AGRICULTURE AND FARMERS WELFARE",
-        "type": "STARRED",
-        "date": "04.02.2025",
-        "questions_file_path_local": "sansad/18/iv/ministries/agriculture-and-farmers-welfare/21/AS21_auOLJk.pdf",
-        "questions_file_path_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AS21_auOLJk.pdf?source=pqals",
-        "questions_file_path_hindi_local": null,
-        "questions_file_path_hindi_web": "https://sansad.in/getFile/loksabhaquestions/qhindi/184/AS21_auOLJk.pdf?source=pqals",
-        "question_text": null,
-        "answer_text": null,
-        "session_number": "4"
+  "meta": {
+    "question_number": 21,
+    "subjects": "Coconut Production",
+    "loksabha_number": "18",
+    "member": [
+      "Shri B K Parthasarathi"
+    ],
+    "ministry": "AGRICULTURE AND FARMERS WELFARE",
+    "type": "STARRED",
+    "date": "04.02.2025",
+    "questions_file_path_local": "sansad/18/iv/ministries/agriculture-and-farmers-welfare/21/AS21_auOLJk.pdf",
+    "questions_file_path_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AS21_auOLJk.pdf?source=pqals",
+    "questions_file_path_hindi_local": null,
+    "questions_file_path_hindi_web": "https://sansad.in/getFile/loksabhaquestions/qhindi/184/AS21_auOLJk.pdf?source=pqals",
+    "question_text": null,
+    "answer_text": null,
+    "session_number": "4"
+  },
+  "steps": [
+    {
+      "step": "pdf_extraction",
+      "timestamp": "2025-04-20T16:10:13.928310",
+      "status": "success",
+      "data": {
+        "extracted_text_path": "extracted_text.md",
+        "tables_path": "extracted_tables.json",
+        "has_tables": true,
+        "num_tables": 4,
+        "tables_data": {
+          "tables_summary": [
+            {
+              "table_number": 1,
+              "page": 3,
+              "accuracy": 96.07,
+              "num_rows": 22,
+              "num_columns": 12
+            },
+            {
+              "table_number": 2,
+              "page": 4,
+              "accuracy": 98.75,
+              "num_rows": 20,
+              "num_columns": 7
+            },
+            {
+              "table_number": 3,
+              "page": 5,
+              "accuracy": 81.95,
+              "num_rows": 16,
+              "num_columns": 21
+            },
+            {
+              "table_number": 4,
+              "page": 6,
+              "accuracy": 94.94,
+              "num_rows": 10,
+              "num_columns": 4
+            }
+          ]
+        }
+      }
     }
+  ]
 }
