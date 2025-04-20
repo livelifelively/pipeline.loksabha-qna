@@ -1,10 +1,7 @@
 import os
-from pathlib import Path
 from typing import Any
 
 import google.generativeai as genai
-
-from .pdf_extractors import get_pdf_extractor
 
 
 def init_gemini() -> Any:
@@ -15,23 +12,3 @@ def init_gemini() -> Any:
 
     genai.configure(api_key=api_key)
     return genai.GenerativeModel("gemini-2.0-flash")
-
-
-async def extract_text_from_pdf(file_path: Path | str, extractor_type: str = "marker") -> str:
-    """
-    Extract text from PDF using the specified extractor.
-
-    Args:
-        file_path: Path to the PDF file
-        extractor_type: Type of PDF extractor to use ("marker" or "markitdown")
-
-    Returns:
-        Combined text in markdown format
-    """
-    try:
-        extractor = get_pdf_extractor(extractor_type)
-        return await extractor.extract_text(file_path)
-    except Exception as e:
-        error_msg = f"Error extracting text from PDF: {str(e)}"
-        print(error_msg)
-        return f"[{error_msg}]"
