@@ -1,7 +1,7 @@
 [
   {
     "iteration": 1,
-    "timestamp": "2025-04-14T03:17:39.615555",
+    "timestamp": "2025-04-21T02:52:03.851719",
     "steps": [
       {
         "step": 0,
@@ -11,9 +11,99 @@
       },
       {
         "step": 1,
-        "log_file": "sansad/18/iv/sansad-session-pipeline-logs/1.STEP_1_SUCCESS_Fetch Questions PDFs.log.json",
+        "log_file": "sansad/18/iv/sansad-session-pipeline-logs/1.STEP_1_PARTIAL_Fetch Questions PDFs.log.json",
+        "status": "PARTIAL",
+        "key": "STEP_1_PARTIAL_Fetch Questions PDFs"
+      }
+    ]
+  },
+  {
+    "iteration": 2,
+    "timestamp": "2025-04-21T03:33:48.610581",
+    "steps": [
+      {
+        "step": 0,
+        "log_file": "sansad/18/iv/sansad-session-pipeline-logs/2.STEP_0_SUCCESS_Adapt Input Data.log.json",
         "status": "SUCCESS",
-        "key": "STEP_1_SUCCESS_Fetch Questions PDFs"
+        "key": "STEP_0_SUCCESS_Adapt Input Data"
+      },
+      {
+        "step": 1,
+        "log_file": "sansad/18/iv/sansad-session-pipeline-logs/2.STEP_1_PARTIAL_Fetch Questions PDFs.log.json",
+        "status": "PARTIAL",
+        "key": "STEP_1_PARTIAL_Fetch Questions PDFs"
+      }
+    ]
+  },
+  {
+    "iteration": 3,
+    "timestamp": "2025-04-21T03:34:31.345269",
+    "steps": [
+      {
+        "step": 0,
+        "log_file": "sansad/18/iv/sansad-session-pipeline-logs/3.STEP_0_SUCCESS_Adapt Input Data.log.json",
+        "status": "SUCCESS",
+        "key": "STEP_0_SUCCESS_Adapt Input Data"
+      },
+      {
+        "step": 1,
+        "log_file": "sansad/18/iv/sansad-session-pipeline-logs/3.STEP_1_PARTIAL_Fetch Questions PDFs.log.json",
+        "status": "PARTIAL",
+        "key": "STEP_1_PARTIAL_Fetch Questions PDFs"
+      }
+    ]
+  },
+  {
+    "iteration": 4,
+    "timestamp": "2025-04-21T03:35:23.763003",
+    "steps": [
+      {
+        "step": 0,
+        "log_file": "sansad/18/iv/sansad-session-pipeline-logs/4.STEP_0_SUCCESS_Adapt Input Data.log.json",
+        "status": "SUCCESS",
+        "key": "STEP_0_SUCCESS_Adapt Input Data"
+      },
+      {
+        "step": 1,
+        "log_file": "sansad/18/iv/sansad-session-pipeline-logs/4.STEP_1_PARTIAL_Fetch Questions PDFs.log.json",
+        "status": "PARTIAL",
+        "key": "STEP_1_PARTIAL_Fetch Questions PDFs"
+      }
+    ]
+  },
+  {
+    "iteration": 5,
+    "timestamp": "2025-04-21T03:36:26.073844",
+    "steps": [
+      {
+        "step": 0,
+        "log_file": "sansad/18/iv/sansad-session-pipeline-logs/5.STEP_0_SUCCESS_Adapt Input Data.log.json",
+        "status": "SUCCESS",
+        "key": "STEP_0_SUCCESS_Adapt Input Data"
+      },
+      {
+        "step": 1,
+        "log_file": "sansad/18/iv/sansad-session-pipeline-logs/5.STEP_1_PARTIAL_Fetch Questions PDFs.log.json",
+        "status": "PARTIAL",
+        "key": "STEP_1_PARTIAL_Fetch Questions PDFs"
+      }
+    ]
+  },
+  {
+    "iteration": 6,
+    "timestamp": "2025-04-21T03:37:45.166947",
+    "steps": [
+      {
+        "step": 0,
+        "log_file": "sansad/18/iv/sansad-session-pipeline-logs/6.STEP_0_SUCCESS_Adapt Input Data.log.json",
+        "status": "SUCCESS",
+        "key": "STEP_0_SUCCESS_Adapt Input Data"
+      },
+      {
+        "step": 1,
+        "log_file": "sansad/18/iv/sansad-session-pipeline-logs/6.STEP_1_PARTIAL_Fetch Questions PDFs.log.json",
+        "status": "PARTIAL",
+        "key": "STEP_1_PARTIAL_Fetch Questions PDFs"
       }
     ]
   }
