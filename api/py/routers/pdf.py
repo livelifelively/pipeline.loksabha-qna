@@ -30,7 +30,7 @@ async def extract_pdf_endpoint(request: PDFExtractRequest):
         raise HTTPException(status_code=400, detail="File must be a PDF")
 
     try:
-        extracted_text = await extract_pdf_contents(full_path, extractor_type=request.extractor_type)
-        return {"text": extracted_text}
+        extracted_data = await extract_pdf_contents(full_path, extractor_type=request.extractor_type)
+        return extracted_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from None
