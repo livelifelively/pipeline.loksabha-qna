@@ -1,18 +1,18 @@
 {
     "meta": {
         "question_number": 438,
-        "subjects": "Budgetary Allocations for the MGNREGS",
+        "subjects": "Beneficiaries under MGNREGS",
         "loksabha_number": "18",
         "member": [
-            "Shri Tariq Anwar"
+            "Adv Dean Kuriakose"
         ],
         "ministry": "RURAL DEVELOPMENT",
-        "type": "UNSTARRED",
-        "date": "04.02.2025",
-        "questions_file_path_local": "sansad/18/iv/ministries/rural-development/438/AU438_Zr1GQU.pdf",
-        "questions_file_path_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AU438_Zr1GQU.pdf?source=pqals",
+        "type": "STARRED",
+        "date": "01.04.2025",
+        "questions_file_path_local": "sansad/18/iv/ministries/rural-development/438/AS438_SpDFyk.pdf",
+        "questions_file_path_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AS438_SpDFyk.pdf?source=pqals",
         "questions_file_path_hindi_local": null,
-        "questions_file_path_hindi_web": "https://sansad.in/getFile/loksabhaquestions/qhindi/184/AU438_Zr1GQU.pdf?source=pqals",
+        "questions_file_path_hindi_web": "https://sansad.in/getFile/loksabhaquestions/qhindi/184/AS438_SpDFyk.pdf?source=pqals",
         "question_text": null,
         "answer_text": null,
         "session_number": "4"
