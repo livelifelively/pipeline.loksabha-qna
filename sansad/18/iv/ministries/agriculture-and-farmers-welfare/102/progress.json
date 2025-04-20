@@ -1,58 +1,20 @@
 {
-  "meta": {
-    "question_number": 102,
-    "subjects": "Setting up of Organic Compost and Bio-gas Plants",
-    "loksabha_number": "18",
-    "member": [
-      "Dr. K Sudhakar"
-    ],
-    "ministry": "AGRICULTURE AND FARMERS WELFARE",
-    "type": "STARRED",
-    "date": "11.02.2025",
-    "questions_file_path_local": "sansad/18/iv/ministries/agriculture-and-farmers-welfare/102/AS102_TIrgZu.pdf",
-    "questions_file_path_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AS102_TIrgZu.pdf?source=pqals",
-    "questions_file_path_hindi_local": null,
-    "questions_file_path_hindi_web": "https://sansad.in/getFile/loksabhaquestions/qhindi/184/AS102_TIrgZu.pdf?source=pqals",
-    "question_text": null,
-    "answer_text": null,
-    "session_number": "4"
-  },
-  "steps": [
-    {
-      "step": "pdf_extraction",
-      "timestamp": "2025-04-20T14:50:53.079899",
-      "status": "success",
-      "data": {
-        "extracted_text_path": "extracted_text.md",
-        "tables_path": "extracted_tables.json",
-        "has_tables": true,
-        "num_tables": 3,
-        "tables_data": {
-          "tables_summary": [
-            {
-              "table_number": 1,
-              "page": 4,
-              "accuracy": 99.33,
-              "num_rows": 36,
-              "num_columns": 4
-            },
-            {
-              "table_number": 2,
-              "page": 5,
-              "accuracy": 99.99,
-              "num_rows": 38,
-              "num_columns": 3
-            },
-            {
-              "table_number": 3,
-              "page": 6,
-              "accuracy": 100.0,
-              "num_rows": 35,
-              "num_columns": 5
-            }
-          ]
-        }
-      }
+    "meta": {
+        "question_number": 102,
+        "subjects": "Setting up of Organic Compost and Bio-gas Plants",
+        "loksabha_number": "18",
+        "member": [
+            "Dr. K Sudhakar"
+        ],
+        "ministry": "AGRICULTURE AND FARMERS WELFARE",
+        "type": "STARRED",
+        "date": "11.02.2025",
+        "questions_file_path_local": "sansad/18/iv/ministries/agriculture-and-farmers-welfare/102/AS102_TIrgZu.pdf",
+        "questions_file_path_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AS102_TIrgZu.pdf?source=pqals",
+        "questions_file_path_hindi_local": null,
+        "questions_file_path_hindi_web": "https://sansad.in/getFile/loksabhaquestions/qhindi/184/AS102_TIrgZu.pdf?source=pqals",
+        "question_text": null,
+        "answer_text": null,
+        "session_number": "4"
     }
-  ]
 }
