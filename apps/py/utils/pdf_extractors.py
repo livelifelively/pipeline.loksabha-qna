@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
@@ -18,17 +19,25 @@ class PDFExtractor(ABC):
 class MarkerExtractor(PDFExtractor):
     """PDF extractor using the Marker library."""
 
+    def __init__(self):
+        self.converter = self._get_cached_converter()
+
+    @staticmethod
+    @lru_cache()
+    def _get_cached_converter() -> PdfConverter:
+        """Get a cached PDF converter instance."""
+        return PdfConverter(
+            artifact_dict=create_model_dict(),
+            config={
+                "output_format": "markdown",
+                "paginate_output": True,
+            },
+        )
+
     async def extract_text(self, file_path: Path | str) -> str:
         """Extract text from a PDF file using Marker."""
         try:
-            converter = PdfConverter(
-                artifact_dict=create_model_dict(),
-                config={
-                    "output_format": "markdown",
-                    "paginate_output": True,
-                },
-            )
-            rendered = converter(str(file_path))
+            rendered = self.converter(str(file_path))
             return rendered.markdown
         except Exception as e:
             raise Exception(f"Error extracting text from PDF using Marker: {str(e)}") from e

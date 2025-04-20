@@ -2,17 +2,32 @@ import json
 import shutil
 import tempfile
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List
 
 import camelot
+from marker.converters.pdf import PdfConverter
+from marker.models import create_model_dict
 
 from ..pipeline.context import PipelineContext
-from ..utils.gemini_api import extract_text_from_pdf
+from ..utils.pdf_extractors import get_pdf_extractor
 from ..utils.project_root import find_project_root
 
 # Initialize Gemini model
 # model = init_gemini()
+
+
+@lru_cache()
+def get_pdf_converter() -> PdfConverter:
+    """Get or create a cached PDF converter instance."""
+    return PdfConverter(
+        artifact_dict=create_model_dict(),
+        config={
+            "output_format": "markdown",
+            "paginate_output": True,
+        },
+    )
 
 
 async def extract_tables_from_pdf(pdf_path: Path) -> List[Dict]:
@@ -229,3 +244,23 @@ async def batch_pdf_extraction(outputs: Dict[str, Any], context: PipelineContext
     )
 
     return {"status": status, "extracted_questions": processed_questions, "failed_extractions": failed_extractions}
+
+
+async def extract_text_from_pdf(file_path: Path | str, extractor_type: str = "marker") -> str:
+    """
+    Extract text from PDF using the specified extractor.
+
+    Args:
+        file_path: Path to the PDF file
+        extractor_type: Type of PDF extractor to use ("marker" or "markitdown")
+
+    Returns:
+        Combined text in markdown format
+    """
+    try:
+        extractor = get_pdf_extractor(extractor_type)
+        return await extractor.extract_text(file_path)
+    except Exception as e:
+        error_msg = f"Error extracting text from PDF: {str(e)}"
+        print(error_msg)
+        return f"[{error_msg}]"
