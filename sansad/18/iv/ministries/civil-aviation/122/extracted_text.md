@@ -1,1 +1,0 @@
-[Error extracting text from PDF using Marker: 404 Client Error: Not Found for url: https://models.datalab.to/Users/dollyparmar/Library/Caches/datalab/models/text_detection/2025_02_18/manifest.json]
