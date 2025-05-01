@@ -12,7 +12,7 @@ from marker.models import create_model_dict
 
 from ..pipeline.context import PipelineContext
 from ..utils.pdf_extractors import get_pdf_extractor
-from ..utils.project_root import find_project_root
+from ..utils.project_root import get_loksabha_data_root
 
 # Initialize Gemini model
 # model = init_gemini()
@@ -206,7 +206,6 @@ async def batch_pdf_extraction(outputs: Dict[str, Any], context: PipelineContext
         Dict containing extraction results
     """
     downloaded_questions = outputs.get("downloaded_sansad_session_questions", [])
-    project_root = find_project_root()
 
     context.log_step("extraction_start", total_questions=len(downloaded_questions))
 
@@ -216,7 +215,7 @@ async def batch_pdf_extraction(outputs: Dict[str, Any], context: PipelineContext
     for i, question in enumerate(downloaded_questions):
         try:
             # Check if PDF file exists using absolute path
-            pdf_path = Path(project_root) / question["questions_file_path_local"]
+            pdf_path = get_loksabha_data_root() / question["questions_file_path_local"]
             if not pdf_path.exists():
                 raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 

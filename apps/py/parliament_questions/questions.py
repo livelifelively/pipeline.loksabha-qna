@@ -2,13 +2,12 @@ import json
 import logging
 from itertools import groupby
 from operator import itemgetter
-from pathlib import Path
 from typing import Any, Dict
 
 from ..pipeline.context import PipelineContext
 from ..utils.file_utils import filename_generator, kebab_case_names
 from ..utils.pdf import DownloadConfig, download_pdfs
-from ..utils.project_root import find_project_root
+from ..utils.project_root import get_loksabha_data_root
 from .types import ParliamentQuestion, QuestionType
 
 logger = logging.getLogger(__name__)
@@ -39,8 +38,7 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
     context.log_step("init", params={"sansad": sansad, "session": session})
 
     # Setup directories
-    project_root = find_project_root()
-    sansad_session_directory = Path(project_root) / "sansad" / sansad / session
+    sansad_session_directory = get_loksabha_data_root() / sansad / session
     sansad_session_directory.mkdir(parents=True, exist_ok=True)
 
     # Group questions by ministry
@@ -60,8 +58,7 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
             question_dir.mkdir(parents=True, exist_ok=True)
 
             pdf_url = question["questions_file_path_web"]
-            project_root = find_project_root()
-            relative_question_dir = question_dir.relative_to(project_root)
+            relative_question_dir = question_dir.relative_to(get_loksabha_data_root())
 
             try:
                 # Download PDF

@@ -4,7 +4,7 @@ from typing import Any, Dict
 from ..pipeline.context import PipelineContext
 from ..pipeline.pipeline import run_pipeline
 from ..pipeline.types import PipelineStep
-from ..utils.project_root import find_project_root
+from ..utils.project_root import get_loksabha_data_root
 from .types import QuestionPipelineState
 
 
@@ -58,8 +58,7 @@ async def single_question_analysis_pipeline(question: Dict[str, Any], parent_con
     ).model_dump()
 
     # Setup pipeline directories
-    project_root = Path(find_project_root())
-    question_dir = project_root / Path(question["questions_file_path_local"]).parent
+    question_dir = get_loksabha_data_root() / Path(question["questions_file_path_local"]).parent
     pipeline_dir = question_dir / "pipeline-logs"
     pipeline_dir.mkdir(parents=True, exist_ok=True)
     progress_file = pipeline_dir / "progress-status.json"
@@ -104,7 +103,7 @@ async def batch_question_analysis(outputs: Dict[str, Any], context: PipelineCont
             context.log_step(
                 "question_processed",
                 question_number=question["question_number"],
-                progress=f"{i+1}/{len(downloaded_questions)}",
+                progress=f"{i + 1}/{len(downloaded_questions)}",
             )
 
         except Exception as e:

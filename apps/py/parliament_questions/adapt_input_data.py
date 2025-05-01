@@ -1,11 +1,10 @@
 import json
-from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
 from ..pipeline.context import PipelineContext
-from ..utils.project_root import find_project_root
+from ..utils.project_root import get_loksabha_data_root
 from .types import ParliamentQuestion
 
 
@@ -50,8 +49,7 @@ async def adapt_source_questions_list_to_parliament_questions(
     context.log_step("init", params={"sansad": sansad, "session": session})
 
     # Setup file paths
-    project_root = Path(find_project_root())
-    sansad_session_directory = project_root / "sansad" / sansad / session
+    sansad_session_directory = get_loksabha_data_root() / sansad / session
     qna_file = sansad_session_directory / f"{sansad}_{session}.qna.source.json"
 
     if not qna_file.exists():

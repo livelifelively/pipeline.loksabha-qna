@@ -34,3 +34,17 @@ def find_project_root() -> str:
             )
 
         current_dir = parent_dir
+
+
+def get_loksabha_data_root() -> Path:
+    """
+    Gets the path to the sansad data root directory.
+
+    Returns:
+        Path: The absolute path to the sansad data directory (loksabha-qna).
+
+    Note:
+        This assumes the data directory is located at '../data/loksabha-qna'
+        relative to the project root.
+    """
+    return Path(find_project_root()).parent / "data" / "loksabha-qna"

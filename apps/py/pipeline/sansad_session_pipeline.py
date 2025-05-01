@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Any
 
 from ..parliament_questions import fetch_and_categorize_questions_pdfs
@@ -6,7 +5,7 @@ from ..parliament_questions.adapt_input_data import adapt_source_questions_list_
 
 # from ..parliament_questions.pdf_extraction import batch_pdf_extraction
 from ..parliament_questions.types import ParliamentQuestionsPipelineState
-from ..utils.project_root import find_project_root
+from ..utils.project_root import get_loksabha_data_root
 from .context import PipelineContext
 from .pipeline import run_pipeline
 from .types import PipelineStep
@@ -49,7 +48,7 @@ async def sansad_session_pipeline(sansad: str, session: str) -> Any:
     ).model_dump()
 
     # Setup pipeline directories
-    sansad_session_directory = Path(find_project_root()) / "sansad" / sansad / session
+    sansad_session_directory = get_loksabha_data_root() / sansad / session
     sansad_progress_dir = sansad_session_directory / "sansad-session-pipeline-logs"
     progress_status_file = sansad_progress_dir / "progress-status.json"
 
