@@ -48,3 +48,13 @@ def get_loksabha_data_root() -> Path:
         relative to the project root.
     """
     return Path(find_project_root()).parent / "data" / "loksabha-qna"
+
+
+def get_data_root() -> Path:
+    """
+    Gets the path to the data root directory (repos/data).
+
+    Returns:
+        Path: The absolute path to the data directory.
+    """
+    return get_loksabha_data_root().parent

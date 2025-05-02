@@ -9,6 +9,12 @@ from apps.py.utils.run_context import RunContext
 def setup_logger(name: str = None, run_context: Optional[RunContext] = None) -> logging.Logger:
     """Configure colored logging for the application."""
 
+    logger = logging.getLogger(name or __name__)
+
+    # Clear any existing handlers
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
     formatter = ColoredFormatter(
         "%(log_color)s[%(asctime)s][%(run_id)s] - %(name)s - %(levelname)s - %(message)s",
         log_colors={
@@ -23,7 +29,6 @@ def setup_logger(name: str = None, run_context: Optional[RunContext] = None) -> 
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
 
-    logger = logging.getLogger(name or __name__)
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
 

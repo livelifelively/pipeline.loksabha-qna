@@ -3,7 +3,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from ..utils.project_root import find_project_root
+from apps.py.utils.project_root import get_data_root
+
 from .exceptions import FileOperationError, ProgressError
 from .types import ProgressData, ProgressIteration, ProgressStep, StepStatus
 
@@ -66,18 +67,7 @@ async def log_progress(
     status: StepStatus,
     iteration: ProgressIteration,
 ) -> None:
-    """Log progress for current pipeline step.
-
-    Args:
-        progress_dir: Directory for progress files
-        progress_file: Main progress tracking file
-        progress_data: Data to log
-        status: Status of the current step
-        iteration: Current iteration object
-
-    Raises:
-        ProgressError: If progress logging fails
-    """
+    """Log progress for current pipeline step."""
     try:
         # Convert dict to ProgressData object
         if not isinstance(progress_data, ProgressData):
@@ -88,18 +78,20 @@ async def log_progress(
 
         # Create log file path
         log_file = progress_dir / f"{iteration.iteration}.{progress_data.key}.log.json"
-        project_root = Path(find_project_root())
-        relative_log_file = log_file.relative_to(project_root)
 
-        # Update iteration steps
+        # Get data root and make path relative to it
+        data_root = get_data_root()
+        relative_log_file = log_file.relative_to(data_root)
+
+        # Store the data-relative path
         iteration.steps.append(
             ProgressStep(step=len(iteration.steps), log_file=relative_log_file, status=status, key=progress_data.key)
         )
 
-        # Write progress data to log file using model_dump_json instead of json()
+        # Write progress data to log file
         log_file.write_text(progress_data.model_dump_json(indent=2))
 
-        # Update progress status file using model_dump_json
+        # Update progress status file
         existing_index = next(
             (i for i, iter in enumerate(progress_status) if iter["iteration"] == iteration.iteration), -1
         )
