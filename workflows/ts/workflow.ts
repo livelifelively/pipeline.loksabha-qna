@@ -10,11 +10,13 @@ const activities = proxyActivities({
   // so I increased it to 600 seconds.
   startToCloseTimeout: '600000 second',
   taskQueue: 'ts-tasks-queue',
+  retry: { maximumAttempts: 1 },
 });
 
 const pythonActivities = proxyActivities({
   startToCloseTimeout: '600000 second',
   taskQueue: 'py-tasks-queue',
+  retry: { maximumAttempts: 1 },
 });
 
 export async function multiLanguageWorkflow(initialString: string): Promise<string> {
