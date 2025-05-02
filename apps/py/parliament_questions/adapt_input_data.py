@@ -83,7 +83,7 @@ async def adapt_source_questions_list_to_parliament_questions(
                 # questions_file_path_hindi_local=question.questionsFilePathHindi,
                 questions_file_path_hindi_web=str(question.questionsFilePathHindi).strip()
                 if question.questionsFilePathHindi
-                else None,
+                else "",
             )
             parliament_session_questions.append(adapted_question)
 
