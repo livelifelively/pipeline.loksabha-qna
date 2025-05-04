@@ -47,7 +47,7 @@ def get_loksabha_data_root() -> Path:
         This assumes the data directory is located at '../data/loksabha-qna'
         relative to the project root.
     """
-    return Path(find_project_root()).parent / "data" / "loksabha-qna"
+    return Path(find_project_root()).parent.parent / "data" / "loksabha-qna"
 
 
 def get_data_root() -> Path:
