@@ -36,6 +36,10 @@ npm install
 2. Set up Python virtual environment:
 
 ```bash
+uv venv
+```
+
+```bash
 uv pip install -e "."
 uv pip install -e ".[dev]"
 ```
