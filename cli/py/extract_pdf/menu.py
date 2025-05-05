@@ -5,6 +5,8 @@ import sys
 import asyncio
 import json
 from typing import Dict, Any, List
+import time
+
 
 # Add parent directory to path to import from other modules
 sys.path.append(str(Path(__file__).parents[4]))
@@ -37,6 +39,69 @@ def pdf_menu():
         elif action == "back":
             break
 
+def find_all_document_paths(selected_ministries):
+    """Find document paths across all selected ministries."""
+    all_document_paths = []
+    for ministry in selected_ministries:
+        ministry_docs = find_document_paths(ministry)
+        all_document_paths.extend(ministry_docs)
+    
+    return all_document_paths
+
+def confirm_extraction_process(all_document_paths, selected_ministries):
+    """Get confirmation from the user to proceed with extraction."""
+    print(f"\nFound {len(all_document_paths)} document paths with PDF files across {len(selected_ministries)} ministries.")
+    return inquirer.confirm(
+        message=f"Do you want to extract text from these {len(all_document_paths)} documents?",
+        default=True
+    ).execute()
+
+def run_extraction(all_document_paths, extractor_type="marker"):
+    """Run the extraction process and return results."""
+    return asyncio.run(extract_documents(all_document_paths, extractor_type))
+
+def display_extraction_results(results):
+    """Display a summary of extraction results."""
+    print("\nExtraction Complete!")
+    print(f"Status: {results['status']}")
+    print(f"Total documents processed: {results['total_processed']}")
+    print(f"Total documents failed: {results['total_failed']}")
+
+def save_extraction_results(results, selected_sansad, selected_session, selected_ministries):
+    """Save extraction results to a file if user confirms."""
+    save_results = inquirer.confirm(
+        message="Do you want to save extraction results summary?",
+        default=True
+    ).execute()
+    
+    if save_results:
+        # Create timestamp for filename
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Create a concise representation of the ministries for the filename
+        if len(selected_ministries) == 1:
+            ministry_name_for_file = selected_ministries[0].name
+        else:
+            ministry_name_for_file = f"{selected_ministries[0].name}_and_{len(selected_ministries)-1}_more"
+        
+        # Create the filename with session and ministry information
+        filename = f"extraction_results_{ministry_name_for_file}_{timestamp}.json"
+        
+        # Save in the session directory
+        results_file = selected_session / filename
+        
+        # Ensure the directory exists
+        results_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Save the results
+        with open(results_file, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2)
+            
+        print(f"Results saved to: {results_file}")
+    
+    return save_results
+
 def extract_pdf_workflow():
     """Main workflow for PDF extraction."""
     # Get the data root directory
@@ -60,73 +125,105 @@ def extract_pdf_workflow():
     # Display selection summary
     display_selection_summary(selected_sansad, selected_session, selected_ministries)
     
-    # Find document paths across all selected ministries
-    all_document_paths = []
-    for ministry in selected_ministries:
-        ministry_docs = find_document_paths(ministry)
-        all_document_paths.extend(ministry_docs)
-    
-    if not all_document_paths:
-        print("\nNo PDF documents found to extract across selected ministries.")
-        inquirer.text(message="Press Enter to continue...").execute()
-        return
-    
-    # Select extractor type
-    # extractor_type = inquirer.select(
-    #     message="Select PDF extractor type:",
-    #     choices=[
-    #         Choice(value="marker", name="Marker PDF (recommended)"),
-    #         Choice(value="pdfplumber", name="PDF Plumber"),
-    #         Choice(value="pypdf", name="PyPDF")
-    #     ],
-    #     default="marker"
-    # ).execute()
+    # Use marker as the default extractor type
     extractor_type = "marker"
     
-    # Confirm extraction
-    print(f"\nFound {len(all_document_paths)} document paths with PDF files across {len(selected_ministries)} ministries.")
-    confirm = inquirer.confirm(
-        message=f"Do you want to extract text from these {len(all_document_paths)} documents?",
-        default=True
-    ).execute()
+    # Process each ministry separately
+    overall_results = {
+        "total_ministries": len(selected_ministries),
+        "total_processed": 0,
+        "total_failed": 0,
+        "ministry_results": []
+    }
     
-    if not confirm:
-        print("\nExtraction cancelled.")
-        inquirer.text(message="Press Enter to continue...").execute()
-        return
+    for ministry in selected_ministries:
+        ministry_result = process_ministry(ministry, extractor_type, selected_sansad, selected_session)
+        if ministry_result:
+            overall_results["total_processed"] += ministry_result["total_processed"]
+            overall_results["total_failed"] += ministry_result["total_failed"]
+            overall_results["ministry_results"].append({
+                "ministry_name": ministry.name,
+                "results": ministry_result
+            })
+    
+    # Display overall summary
+    print("\nOverall Extraction Results:")
+    print(f"Total ministries processed: {len(overall_results['ministry_results'])}/{overall_results['total_ministries']}")
+    print(f"Total documents processed: {overall_results['total_processed']}")
+    print(f"Total documents failed: {overall_results['total_failed']}")
+    
+    inquirer.text(message="Press Enter to continue...").execute()
+
+def process_ministry(ministry, extractor_type, selected_sansad, selected_session):
+    """Process a single ministry's documents."""
+    print(f"\n\nProcessing Ministry: {ministry.name}")
+    print("="*50)
+    
+    # Find document paths for this ministry
+    document_paths = find_document_paths(ministry)
+    
+    if not document_paths:
+        print(f"No PDF documents found in ministry: {ministry.name}")
+        return None
+    
+    # Display information and countdown timer
+    print(f"Found {len(document_paths)} document paths with PDF files in {ministry.name}.")
+    print("Starting extraction in 10 seconds...")
+    
+    # Countdown timer with option to cancel
+    for i in range(10, 0, -1):
+        print(f"Starting in {i} seconds... (Press Ctrl+C to cancel)", end="\r")
+        try:
+            time.sleep(1)
+        except KeyboardInterrupt:
+            print("\nExtraction cancelled for ministry: {ministry.name}")
+            return None
+    
+    print("\nStarting extraction for ministry: {ministry.name}".ljust(60))
     
     # Execute the extraction asynchronously
     try:
-        # Run the async extraction in the event loop
-        results = asyncio.run(extract_documents(all_document_paths, extractor_type))
+        print(f"Starting extraction of {len(document_paths)} documents...")
         
-        # Display results
-        print("\nExtraction Complete!")
+        # Run the extraction
+        results = asyncio.run(extract_documents(document_paths, extractor_type))
+        
+        # Display results for this ministry
+        print(f"\nExtraction Complete for {ministry.name}!")
         print(f"Status: {results['status']}")
-        print(f"Total documents processed: {results['total_processed']}")
-        print(f"Total documents failed: {results['total_failed']}")
+        print(f"Documents processed: {results['total_processed']}")
+        print(f"Documents failed: {results['total_failed']}")
         
-        # Save results summary if requested
-        save_results = inquirer.confirm(
-            message="Do you want to save extraction results summary?",
-            default=True
-        ).execute()
+        # Save results for this ministry automatically
+        save_ministry_results(results, selected_sansad, selected_session, ministry)
         
-        if save_results:
-            # Create timestamp for filename
-            from datetime import datetime
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            results_file = data_root / f"extraction_results_{timestamp}.json"
-            
-            with open(results_file, "w", encoding="utf-8") as f:
-                json.dump(results, f, indent=2)
-                
-            print(f"Results saved to: {results_file}")
+        return results
         
     except Exception as e:
-        print(f"\nError during extraction process: {str(e)}")
+        print(f"\nError during extraction process for {ministry.name}: {str(e)}")
+        return None
+def save_ministry_results(results, selected_sansad, selected_session, ministry):
+    """Save extraction results for a ministry to a file automatically."""
+    # Create timestamp for filename
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
-    inquirer.text(message="Press Enter to continue...").execute()
+    # Create the filename with ministry information
+    filename = f"extraction_results_{ministry.name}_{timestamp}.json"
+    
+    # Save in the session directory
+    results_file = selected_session / filename
+    
+    # Ensure the directory exists
+    results_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Save the results
+    with open(results_file, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2)
+        
+    print(f"Results saved to: {results_file}")
+    
+    return results_file
 
 def select_sansad(data_root):
     """Select a sansad from the data root directory."""
