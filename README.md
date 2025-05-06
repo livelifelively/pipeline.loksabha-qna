@@ -21,7 +21,7 @@ A multi-language pipeline system for processing parliament questions using Tempo
 
 ## Prerequisites
 
-- Node.js (v14+)
+- Node.js (v22+)
 - Python (3.12)
 - Temporal server running locally
 
@@ -33,10 +33,11 @@ A multi-language pipeline system for processing parliament questions using Tempo
 npm install
 ```
 
-2. Set up Python virtual environment:
+2. Set up and activate Python virtual environment:
 
 ```bash
 uv venv
+source .venv/bin/activate
 ```
 
 ```bash
