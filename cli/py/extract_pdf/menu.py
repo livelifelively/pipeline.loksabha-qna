@@ -122,8 +122,18 @@ def extract_pdf_workflow():
     if not selected_ministries:
         return
     
-    # Display selection summary
-    display_selection_summary(selected_sansad, selected_session, selected_ministries)
+    # Count documents across all ministries
+    all_ministry_docs = []
+    ministry_doc_counts = {}
+    
+    for ministry in selected_ministries:
+        ministry_docs = find_document_paths(ministry)
+        all_ministry_docs.extend(ministry_docs)
+        ministry_doc_counts[ministry.name] = len(ministry_docs)
+    
+    # Display selection summary with document counts
+    display_selection_summary(selected_sansad, selected_session, selected_ministries, 
+                             ministry_doc_counts, len(all_ministry_docs))
     
     # Use marker as the default extractor type
     extractor_type = "marker"
@@ -202,6 +212,7 @@ def process_ministry(ministry, extractor_type, selected_sansad, selected_session
     except Exception as e:
         print(f"\nError during extraction process for {ministry.name}: {str(e)}")
         return None
+
 def save_ministry_results(results, selected_sansad, selected_session, ministry):
     """Save extraction results for a ministry to a file automatically."""
     # Create timestamp for filename
@@ -209,10 +220,10 @@ def save_ministry_results(results, selected_sansad, selected_session, ministry):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     # Create the filename with ministry information
-    filename = f"extraction_results_{ministry.name}_{timestamp}.json"
+    filename = f"extraction_results.json"
     
     # Save in the session directory
-    results_file = selected_session / filename
+    results_file = selected_session / 'ministries' / ministry.name / filename
     
     # Ensure the directory exists
     results_file.parent.mkdir(parents=True, exist_ok=True)
@@ -332,13 +343,20 @@ def find_document_paths(ministry_path):
         print(f"\nError finding document paths: {str(e)}")
         return []
 
-def display_selection_summary(sansad, session, ministries):
-    """Display a summary of the selected items."""
+def display_selection_summary(sansad, session, ministries, ministry_doc_counts, total_docs):
+    """Display a summary of the selected items with document counts."""
     print("\nSelected:")
     print(f"  Sansad: {sansad.name}")
     print(f"  Session: {session.name}")
     print(f"  Ministries: {', '.join(ministry.name for ministry in ministries)}")
     print(f"  Total ministries selected: {len(ministries)}")
+    print(f"  Total documents to process: {total_docs}")
+    
+    # Show document count breakdown if there are multiple ministries
+    if len(ministries) > 1:
+        print("\nDocuments per ministry:")
+        for ministry_name, doc_count in ministry_doc_counts.items():
+            print(f"  {ministry_name}: {doc_count} document(s)")
 
 # Add new extraction function for CLI
 async def extract_documents(document_paths: List[Path], extractor_type: str = "marker"):
