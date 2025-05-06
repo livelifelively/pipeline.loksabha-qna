@@ -44,7 +44,25 @@ uv pip install -e "."
 uv pip install -e ".[dev]"
 ```
 
-## Run Workflow
+## Run CLI
+
+```
+npm run start:cli
+```
+
+### Pdf extract flow
+
+follow the flow, choose
+sansad number (pointer and enter)
+session and (pointer and enter)
+ministry (select multiple using pointer and space. enter to continue)
+enter.
+
+### Commit data changes in data repo
+
+commit by ministry. easy to revert if needed.
+
+## Run Workflows
 
 ```
 npm run start:workflow:debug
