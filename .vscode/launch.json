@@ -24,6 +24,14 @@
       "console": "integratedTerminal"
     },
     {
+      "name": "Debug CLI Python",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "cli.py.extract_pdf.menu",
+      "justMyCode": false,
+      "console": "integratedTerminal"
+    },
+    {
       "name": "TypeScript: Attach to Worker",
       "type": "node",
       "request": "attach",

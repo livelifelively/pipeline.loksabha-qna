@@ -22,7 +22,7 @@ You are provided with the OCR output of a Lok Sabha Starred Question document th
         - `<ol>` and `<li>` for ordered (numbered) lists. If the original document uses letters for lists, you can still use `<ol>` for ordered lists in HTML, or use CSS for letter styling if precise letter representation is crucial.
         - `<strong>` or `<b>` for bold text (where emphasis is intended).
         - `<em>` or `<i>` for italic text (where emphasis is intended).
-        - `<br>` for line breaks within paragraphs if needed to preserve important line breaks from the original document.
+        - `<br/>` for line breaks within paragraphs if needed to preserve important line breaks from the original document.
         - Clean OCR artifacts and normalize whitespace in the text _before_ embedding it within HTML tags.
         - For plain text that doesn't clearly fit into paragraphs or lists, enclose it in `<p>` tags as the default.
 

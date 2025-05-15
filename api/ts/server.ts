@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import cors from 'cors';
 
+const BASE_PATH = path.join(__dirname, '../../../../data/loksabha-qna');
+
 const app = express();
 const port = process.env.PORT || 1337;
 
@@ -13,7 +15,7 @@ app.get('/path', (req: Request, res: Response): void => {
   try {
     const requestedPath = req.query.p?.toString() || '';
     const recursive = req.query.r === 'true';
-    const basePath = path.join(__dirname, '../../sansad');
+    const basePath = BASE_PATH;
     const fullPath = path.join(basePath, requestedPath);
 
     // Security check: Use path.resolve for better normalization and comparison
@@ -74,7 +76,7 @@ app.get('/path', (req: Request, res: Response): void => {
 app.get('/file', (req: Request, res: Response): void => {
   try {
     const requestedPath = req.query.p?.toString() || '';
-    const basePath = path.join(__dirname, '../../sansad');
+    const basePath = BASE_PATH;
     const fullPath = path.join(basePath, requestedPath);
 
     // Security check: Use path.resolve for better normalization and comparison
@@ -106,7 +108,7 @@ app.get('/file', (req: Request, res: Response): void => {
 app.get('/binary', (req: Request, res: Response): void => {
   try {
     const requestedPath = req.query.p?.toString() || '';
-    const basePath = path.join(__dirname, '../../sansad');
+    const basePath = BASE_PATH;
     const fullPath = path.join(basePath, requestedPath);
 
     // Security check: Use path.resolve for better normalization and comparison
@@ -145,7 +147,7 @@ app.post('/files', express.json(), (req: Request, res: Response): void => {
       return;
     }
 
-    const basePath = path.join(__dirname, '../../sansad');
+    const basePath = BASE_PATH;
     const results: Record<string, { content: string } | { error: string }> = {};
 
     for (const requestedPath of filePaths) {
