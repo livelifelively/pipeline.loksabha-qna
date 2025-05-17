@@ -1,5 +1,4 @@
 import json
-import os
 from typing import Any, Dict
 
 import google.generativeai as genai
@@ -8,20 +7,28 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Module-level instance
+_key_manager = None
+
 
 def init_gemini() -> Any:
-    """Initialize Gemini API with API key."""
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY environment variable not set")
+    """Initialize Gemini API with API key from key manager."""
+    global _key_manager
+    from apps.py.llm_api_key import KeyManager
+
+    # Create key manager if it doesn't exist
+    if _key_manager is None:
+        _key_manager = KeyManager(service_name="gemini")
+
+    key_name, api_key = _key_manager.get_next_key()
 
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel("gemini-2.0-flash")
+    return genai.GenerativeModel("gemini-2.0-flash"), key_name
 
 
 def extract_text_from_pdf_page(pdf_page_path: str) -> Dict:
     """
-    Extract text content from a PDF page using Gemini Vision API.
+    Extract text content from a PDF page using Gemini Vision API with key rotation.
 
     Args:
         pdf_page_path: Path to the PDF page file
@@ -29,7 +36,12 @@ def extract_text_from_pdf_page(pdf_page_path: str) -> Dict:
     Returns:
         Dictionary with extracted text content in markdown format
     """
-    model = init_gemini()
+    from apps.py.llm_api_key.usage_tracker import UsageTracker
+
+    model, key_name = init_gemini()
+    tracker = UsageTracker(service_name="gemini")
+
+    print(f"[Gemini API] Using key {key_name} for text extraction")
 
     try:
         # Read the PDF file directly
@@ -60,18 +72,24 @@ def extract_text_from_pdf_page(pdf_page_path: str) -> Dict:
         # Call Gemini API with PDF directly
         response = model.generate_content([prompt, {"mime_type": "application/pdf", "data": pdf_data}])
 
+        # Record successful usage
+        tracker.record_usage(key_name, success=True)
+
         # Process response
         extracted_text = response.text.strip()
 
         return {"status": "success", "content": extracted_text, "format": "markdown"}
     except Exception as e:
+        # Record failed usage
+        tracker.record_usage(key_name, success=False)
+
         print(f"Error extracting text from PDF page: {str(e)}")
         return {"status": "error", "error": str(e)}
 
 
 def extract_tables_from_pdf_page(pdf_page_path: str) -> Dict:
     """
-    Extract tables from a PDF page using Gemini Vision API.
+    Extract tables from a PDF page using Gemini Vision API with key rotation.
 
     Args:
         pdf_page_path: Path to the PDF page file
@@ -79,7 +97,19 @@ def extract_tables_from_pdf_page(pdf_page_path: str) -> Dict:
     Returns:
         Dictionary with extracted table data in JSON format
     """
-    model = init_gemini()
+    from apps.py.llm_api_key.rate_limiter import RateLimiter
+    from apps.py.llm_api_key.usage_tracker import UsageTracker
+
+    model, key_name = init_gemini()
+    tracker = UsageTracker(service_name="gemini")
+    limiter = RateLimiter(requests_per_minute=10)
+
+    # Apply rate limiting
+    wait_time = limiter.wait_if_needed()
+    if wait_time > 0:
+        print(f"[Rate Limiter] Waiting {wait_time:.1f}s before API call")
+
+    print(f"[Gemini API] Using key {key_name} for table extraction")
 
     try:
         # Read the PDF file directly
@@ -105,6 +135,9 @@ def extract_tables_from_pdf_page(pdf_page_path: str) -> Dict:
         # Call Gemini API
         response = model.generate_content([prompt, {"mime_type": "application/pdf", "data": pdf_data}])
 
+        # Record successful usage
+        tracker.record_usage(key_name, success=True)
+
         # Process response - handle potential JSON parsing issues carefully
         try:
             extracted_text = response.text.strip()
@@ -127,8 +160,12 @@ def extract_tables_from_pdf_page(pdf_page_path: str) -> Dict:
                 else:
                     raise ValueError(f"Failed to parse JSON: {e}")
         except Exception as json_error:
+            # Still count as a successful API call since the API responded
             return {"status": "error", "error": f"JSON parsing error: {str(json_error)}", "raw_response": response.text}
 
     except Exception as e:
+        # Record failed usage
+        tracker.record_usage(key_name, success=False)
+
         print(f"Error extracting tables from PDF page: {str(e)}")
         return {"status": "error", "error": str(e)}

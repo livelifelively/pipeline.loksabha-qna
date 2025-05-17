@@ -22,7 +22,6 @@ from apps.py.parliament_questions.document_processing import (
     save_ministry_extraction_results,
 )
 from apps.py.parliament_questions.pdf_extraction import extract_pdf_contents
-from apps.py.utils.paths import get_absolute_document_path
 from apps.py.utils.project_root import get_loksabha_data_root
 from cli.py.utils.table import print_table  # Import the table utility
 
@@ -480,42 +479,53 @@ def process_documents_with_tables(documents):
         documents: List of document dictionaries with table information
     """
     total_documents = len(documents)
+    data_root = get_loksabha_data_root()
 
     print(f"\nProcessing {total_documents} documents with tables...")
+
+    # If processing multiple documents, ask for batch confirmation
+    if total_documents > 1:
+        batch_process = inquirer.confirm(
+            message=f"Do you want to process all {total_documents} documents without individual confirmation?",
+            default=True,
+        ).execute()
+    else:
+        batch_process = False
 
     for i, doc in enumerate(documents, 1):
         doc_path_str = doc["path"]
         table_pages = doc["table_pages"]
 
-        try:
-            # Convert relative path to absolute path using shared utility
-            doc_path = get_absolute_document_path(doc_path_str)
+        # Convert relative path to absolute path using data root
+        doc_path = Path(doc_path_str)
+        if not doc_path.is_absolute():
+            doc_path = data_root / doc_path
 
-            print(f"\n[{i}/{total_documents}] Processing document: {doc_path.name}")
-            print(f"  Pages with tables: {', '.join(map(str, table_pages))}")
+        print(f"\n[{i}/{total_documents}] Processing document: {doc_path.name}")
+        print(f"  Pages with tables: {', '.join(map(str, table_pages))}")
 
-            # Confirm processing for this document
+        # Only ask for confirmation if not in batch mode
+        proceed = True
+        if not batch_process:
             proceed = inquirer.confirm(message="Process this document?", default=True).execute()
 
-            if proceed:
-                try:
-                    # Make sure PDF exists
-                    if not doc_path.exists():
-                        raise FileNotFoundError(f"PDF file not found at: {doc_path}")
+        if proceed:
+            try:
+                # Make sure PDF exists
+                if not doc_path.exists():
+                    raise FileNotFoundError(f"PDF file not found at: {doc_path}")
 
-                    # Define output folder in the document directory
-                    output_folder = doc_path.parent / "pages"
+                # Define output folder in the document directory
+                output_folder = doc_path.parent / "pages"
 
-                    # Call PDF splitter function with absolute path
-                    print("  Splitting PDF and processing pages with tables...")
-                    split_pdf_pages_from_file(str(doc_path), table_pages, str(output_folder))
+                # Call PDF splitter function with absolute path
+                print("  Splitting PDF and processing pages with tables...")
+                split_pdf_pages_from_file(str(doc_path), table_pages, str(output_folder))
 
-                    print("  ✓ Successfully processed pages with tables")
-                except Exception as e:
-                    print(f"  ✗ Error processing document: {str(e)}")
-            else:
-                print("  Skipped document")
-        except Exception as e:
-            print(f"  ✗ Error with document path: {str(e)}")
+                print("  ✓ Successfully processed pages with tables")
+            except Exception as e:
+                print(f"  ✗ Error processing document: {str(e)}")
+        else:
+            print("  Skipped document")
 
     print("\nDocument processing complete!")

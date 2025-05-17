@@ -157,90 +157,132 @@ def process_pages(pages_folder: str, page_numbers: List[int]):
 
         page_results = {"page_number": page_num, "text_extraction": None, "table_extraction": None}
 
+        # Check if extraction has already been done for this page
+        existing_extraction = check_existing_extraction(pages_folder, page_num)
+
         try:
             print(f"  Processing page {page_num} from file: {page_file.name}")
 
-            # 1. Extract text using Gemini API
-            print("    Extracting text content...")
-            text_result = extract_text_from_pdf_page(str(page_file))
+            # 1. Extract text using Gemini API (if not already done)
+            if existing_extraction["text_extraction"]["exists"]:
+                print(
+                    f"    ✓ Text already extracted, using existing file: {Path(existing_extraction['text_extraction']['path']).name}"
+                )
 
-            if text_result["status"] == "success":
-                # Save extracted text to a markdown file
-                output_md = pages_folder / f"page_{page_num}.md"
-                with open(output_md, "w", encoding="utf-8") as f:
-                    f.write(text_result["content"])
-
-                # Store relative path instead of absolute path
+                # Use the existing extraction
                 try:
-                    rel_path = output_md.relative_to(data_root)
+                    rel_path = Path(existing_extraction["text_extraction"]["path"]).relative_to(data_root)
                     relative_path = str(rel_path)
                 except ValueError:
-                    # If the path is not relative to data_root, use the full path as fallback
-                    relative_path = str(output_md)
+                    relative_path = existing_extraction["text_extraction"]["path"]
 
-                print(f"    ✓ Extracted text saved to {output_md.name}")
-                page_results["text_extraction"] = {"status": "success", "output_file": relative_path}
-            else:
-                print(f"    ✗ Failed to extract text: {text_result.get('error', 'Unknown error')}")
                 page_results["text_extraction"] = {
-                    "status": "error",
-                    "error": text_result.get("error", "Unknown error"),
+                    "status": "success",
+                    "output_file": relative_path,
+                    "reused_existing": True,
                 }
+            else:
+                print("    Extracting text content...")
+                text_result = extract_text_from_pdf_page(str(page_file))
 
-            # 2. Extract tables using Gemini API
-            print("    Extracting tables...")
-            try:
-                table_result = extract_tables_from_pdf_page(str(page_file))
-
-                if table_result["status"] == "success":
-                    # Save extracted tables to a JSON file
-                    output_json = pages_folder / f"page_{page_num}_tables.json"
-
-                    # Fix: Check the content type and wrap in proper structure if needed
-                    content = table_result["content"]
-                    if isinstance(content, list):
-                        # If content is a list, wrap it in a dictionary with a tables key
-                        formatted_content = {"tables": content}
-                    else:
-                        # If it's already a dictionary, use it as is
-                        formatted_content = content
-
-                    with open(output_json, "w", encoding="utf-8") as f:
-                        json.dump(formatted_content, f, indent=2)
+                if text_result["status"] == "success":
+                    # Save extracted text to a markdown file
+                    output_md = pages_folder / f"page_{page_num}.md"
+                    with open(output_md, "w", encoding="utf-8") as f:
+                        f.write(text_result["content"])
 
                     # Store relative path instead of absolute path
                     try:
-                        rel_path = output_json.relative_to(data_root)
+                        rel_path = output_md.relative_to(data_root)
                         relative_path = str(rel_path)
                     except ValueError:
                         # If the path is not relative to data_root, use the full path as fallback
-                        relative_path = str(output_json)
+                        relative_path = str(output_md)
 
-                    # Check if tables were found - handle both list and dict formats
-                    if isinstance(content, list):
-                        tables_count = len(content)
-                    else:
-                        tables_count = len(content.get("tables", []))
-
-                    if tables_count > 0:
-                        print(f"    ✓ Extracted {tables_count} tables saved to {output_json.name}")
-                    else:
-                        print("    ✓ No tables found on this page")
-
-                    page_results["table_extraction"] = {
-                        "status": "success",
-                        "output_file": relative_path,
-                        "tables_count": tables_count,
-                    }
+                    print(f"    ✓ Extracted text saved to {output_md.name}")
+                    page_results["text_extraction"] = {"status": "success", "output_file": relative_path}
                 else:
-                    print(f"    ✗ Failed to extract tables: {table_result.get('error', 'Unknown error')}")
-                    page_results["table_extraction"] = {
+                    print(f"    ✗ Failed to extract text: {text_result.get('error', 'Unknown error')}")
+                    page_results["text_extraction"] = {
                         "status": "error",
-                        "error": table_result.get("error", "Unknown error"),
+                        "error": text_result.get("error", "Unknown error"),
                     }
-            except Exception as table_error:
-                print(f"    ✗ Exception in table extraction: {str(table_error)}")
-                page_results["table_extraction"] = {"status": "error", "error": str(table_error)}
+
+            # 2. Extract tables using Gemini API (if not already done)
+            if existing_extraction["table_extraction"]["exists"]:
+                print(
+                    f"    ✓ Tables already extracted, using existing file: {Path(existing_extraction['table_extraction']['path']).name}"
+                )
+
+                # Use the existing extraction
+                try:
+                    rel_path = Path(existing_extraction["table_extraction"]["path"]).relative_to(data_root)
+                    relative_path = str(rel_path)
+                except ValueError:
+                    relative_path = existing_extraction["table_extraction"]["path"]
+
+                tables_count = existing_extraction["table_extraction"].get("tables_count", 0)
+
+                page_results["table_extraction"] = {
+                    "status": "success",
+                    "output_file": relative_path,
+                    "tables_count": tables_count,
+                    "reused_existing": True,
+                }
+            else:
+                print("    Extracting tables...")
+                try:
+                    table_result = extract_tables_from_pdf_page(str(page_file))
+
+                    if table_result["status"] == "success":
+                        # Save extracted tables to a JSON file
+                        output_json = pages_folder / f"page_{page_num}_tables.json"
+
+                        # Fix: Check the content type and wrap in proper structure if needed
+                        content = table_result["content"]
+                        if isinstance(content, list):
+                            # If content is a list, wrap it in a dictionary with a tables key
+                            formatted_content = {"tables": content}
+                        else:
+                            # If it's already a dictionary, use it as is
+                            formatted_content = content
+
+                        with open(output_json, "w", encoding="utf-8") as f:
+                            json.dump(formatted_content, f, indent=2)
+
+                        # Store relative path instead of absolute path
+                        try:
+                            rel_path = output_json.relative_to(data_root)
+                            relative_path = str(rel_path)
+                        except ValueError:
+                            # If the path is not relative to data_root, use the full path as fallback
+                            relative_path = str(output_json)
+
+                        # Check if tables were found - handle both list and dict formats
+                        if isinstance(content, list):
+                            tables_count = len(content)
+                        else:
+                            tables_count = len(content.get("tables", []))
+
+                        if tables_count > 0:
+                            print(f"    ✓ Extracted {tables_count} tables saved to {output_json.name}")
+                        else:
+                            print("    ✓ No tables found on this page")
+
+                        page_results["table_extraction"] = {
+                            "status": "success",
+                            "output_file": relative_path,
+                            "tables_count": tables_count,
+                        }
+                    else:
+                        print(f"    ✗ Failed to extract tables: {table_result.get('error', 'Unknown error')}")
+                        page_results["table_extraction"] = {
+                            "status": "error",
+                            "error": table_result.get("error", "Unknown error"),
+                        }
+                except Exception as table_error:
+                    print(f"    ✗ Exception in table extraction: {str(table_error)}")
+                    page_results["table_extraction"] = {"status": "error", "error": str(table_error)}
 
         except Exception as e:
             print(f"  Error processing page {page_num}: {str(e)}")
@@ -270,3 +312,48 @@ def process_pages(pages_folder: str, page_numbers: List[int]):
 
     print(f"Processing complete. Results saved to {results_file}")
     return results
+
+
+def check_existing_extraction(pages_folder: Path, page_num: int) -> dict:
+    """
+    Check if extraction has already been done for a page.
+
+    Args:
+        pages_folder: Path to the folder containing pages
+        page_num: Page number to check
+
+    Returns:
+        Dictionary with text and table extraction status
+    """
+    result = {"text_extraction": {"exists": False, "path": None}, "table_extraction": {"exists": False, "path": None}}
+
+    # Check for text extraction (markdown file)
+    md_file = pages_folder / f"page_{page_num}.md"
+    if md_file.exists() and md_file.stat().st_size > 0:
+        result["text_extraction"]["exists"] = True
+        result["text_extraction"]["path"] = str(md_file)
+
+    # Check for table extraction (JSON file)
+    json_file = pages_folder / f"page_{page_num}_tables.json"
+    if json_file.exists() and json_file.stat().st_size > 0:
+        result["table_extraction"]["exists"] = True
+        result["table_extraction"]["path"] = str(json_file)
+
+        # Optionally load the JSON to check if it's valid
+        try:
+            with open(json_file, "r", encoding="utf-8") as f:
+                import json
+
+                tables_data = json.load(f)
+
+                # Check if the table data has content
+                if isinstance(tables_data, dict) and "tables" in tables_data:
+                    result["table_extraction"]["tables_count"] = len(tables_data["tables"])
+                elif isinstance(tables_data, list):
+                    result["table_extraction"]["tables_count"] = len(tables_data)
+        except:
+            # If there's an error loading the JSON, mark as not existing
+            result["table_extraction"]["exists"] = False
+            result["table_extraction"]["path"] = None
+
+    return result
