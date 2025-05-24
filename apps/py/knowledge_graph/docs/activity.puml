@@ -1,0 +1,49 @@
+@startuml Knowledge Graph Creation - Data Cleaning
+
+|API Layer|
+start
+:Receive PATCH request
+with cleaned data;
+
+|Service Layer|
+:Initialize CleanedDataService;
+
+if (Is first page update?) then (yes)
+  |Repository Layer|
+  :Read progress.json;
+  :Get pdf_extraction step data;
+  
+  |Service Layer|
+  :Initialize CleanedData;
+  note right
+    - Create empty pages structure
+    - Set initial metadata
+    - Use pdf_extraction
+    step data for setup
+  end note
+else (no)
+  |Repository Layer|
+  :Get cleaned data file path;
+  :Read existing cleaned data;
+endif
+
+|Service Layer|
+:Update pages data;
+note right
+  - Merge new pages with existing
+  - Update metadata
+  - Sort pages by number
+end note
+
+|Repository Layer|
+:Save updated cleaned data;
+:Update progress.json with
+new data_cleaning step;
+
+|API Layer|
+:Return success response
+with updated pages;
+
+stop
+
+@enduml
