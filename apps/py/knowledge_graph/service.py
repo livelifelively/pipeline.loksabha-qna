@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Dict, List
+from typing import List
+
+from api.py.schemas.knowledge_graph import QuestionMetadata
 
 from .exceptions import KnowledgeGraphError
 from .repository import CleanedDataRepository
 from .types import CleanedData, CleanedDataMetadata, PageData
-from .validator import QuestionValidator
 
 
 @dataclass
@@ -17,17 +18,16 @@ class UpdateResult:
 
 
 class CleanedDataService:
-    def __init__(self):
-        self.repository = CleanedDataRepository()
-        self.validator = QuestionValidator()
+    def __init__(self, repository: CleanedDataRepository):
+        self.repository = repository
 
-    async def update_cleaned_data(self, pages: List[PageData], metadata: Dict[str, str]) -> UpdateResult:
+    async def update_cleaned_data(self, pages: List[PageData], metadata: QuestionMetadata) -> UpdateResult:
         """
         Update cleaned data for knowledge graph creation.
 
         Args:
             pages: List of pages to update
-            metadata: Question metadata (question_id, loksabha_number, session_number)
+            metadata: Question metadata containing document_path
 
         Returns:
             UpdateResult containing updated pages and file path
@@ -37,9 +37,6 @@ class CleanedDataService:
             FileNotFoundError: If question doesn't exist
         """
         try:
-            # Validate question exists
-            await self.validator.validate_question_exists(metadata)
-
             # Get file path
             cleaned_data_path = self.repository.get_cleaned_data_path(metadata)
 
@@ -63,7 +60,7 @@ class CleanedDataService:
             # Wrap unexpected errors
             raise KnowledgeGraphError(f"Unexpected error: {str(e)}") from e
 
-    async def _get_or_initialize_data(self, metadata: Dict[str, str], cleaned_data_path: str) -> CleanedData:
+    async def _get_or_initialize_data(self, metadata: QuestionMetadata, cleaned_data_path: str) -> CleanedData:
         """
         Get existing cleaned data or initialize new data structure.
 

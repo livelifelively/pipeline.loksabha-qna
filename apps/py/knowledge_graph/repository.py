@@ -3,31 +3,27 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Dict
 
+from api.py.schemas.knowledge_graph import QuestionMetadata
+
 from .types import CleanedData
 
 
 class CleanedDataRepository:
-    def __init__(self, base_path: Path = Path("data")):
+    def __init__(self, base_path: Path):
         self.base_path = base_path
 
-    def get_cleaned_data_path(self, metadata: Dict[str, str]) -> Path:
+    def get_cleaned_data_path(self, metadata: QuestionMetadata) -> Path:
         """
-        Get the path for cleaned data file based on metadata.
-
-        Args:
-            metadata: Question metadata containing loksabha_number, session_number, question_id
-
-        Returns:
-            Path to cleaned data file
+        Construct the cleaned data path from metadata and create it if it doesn't exist.
+        Returns the path.
         """
-        # Construct path: data/loksabha_number/session_number/question_id/cleaned_data.json
-        return (
-            self.base_path
-            / metadata["loksabha_number"]
-            / metadata["session_number"]
-            / metadata["question_id"]
-            / "cleaned_data.json"
-        )
+        cleaned_data_path = Path(metadata.document_path) / "cleaned_data.json"
+        if not cleaned_data_path.exists():
+            # Create parent directories if they don't exist
+            cleaned_data_path.parent.mkdir(parents=True, exist_ok=True)
+            # Create an empty file
+            cleaned_data_path.touch()
+        return cleaned_data_path
 
     async def read_cleaned_data(self, file_path: Path) -> CleanedData:
         """
@@ -74,7 +70,7 @@ class CleanedDataRepository:
         except Exception as e:
             raise IOError(f"Error saving cleaned data: {e}") from e
 
-    async def update_progress(self, metadata: Dict[str, str], file_path: Path, data: CleanedData) -> None:
+    async def update_progress(self, metadata: QuestionMetadata, file_path: Path, data: CleanedData) -> None:
         """
         Update progress.json with new data_cleaning step.
 
@@ -126,12 +122,12 @@ class CleanedDataRepository:
         except Exception as e:
             raise IOError(f"Error updating progress: {e}") from e
 
-    async def get_pdf_extraction_data(self, metadata: Dict[str, str]) -> Dict[str, Any]:
+    async def get_pdf_extraction_data(self, metadata: QuestionMetadata) -> Dict[str, Any]:
         """
         Get data from pdf_extraction step.
 
         Args:
-            metadata: Question metadata
+            metadata: Question metadata containing document_path
 
         Returns:
             Dictionary containing pdf_extraction step data
@@ -140,14 +136,7 @@ class CleanedDataRepository:
             FileNotFoundError: If progress.json doesn't exist
             ValueError: If pdf_extraction step not found
         """
-        progress_path = (
-            self.base_path
-            / metadata["loksabha_number"]
-            / metadata["session_number"]
-            / "ministries"
-            / metadata["question_id"]
-            / "progress.json"
-        )
+        progress_path = Path(metadata.document_path) / "progress.json"
 
         try:
             with open(progress_path, "r") as f:

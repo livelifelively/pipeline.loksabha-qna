@@ -3,7 +3,9 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException
 
 from apps.py.knowledge_graph.exceptions import InvalidMetadataError, KnowledgeGraphError, QuestionNotFoundError
+from apps.py.knowledge_graph.repository import CleanedDataRepository
 from apps.py.knowledge_graph.service import CleanedDataService
+from apps.py.utils.project_root import get_loksabha_data_root
 
 from ..schemas.knowledge_graph import CleanedDataUpdateRequest, CleanedDataUpdateResponse
 
@@ -89,7 +91,9 @@ async def update_cleaned_data(request: CleanedDataUpdateRequest):
             - 500: For other errors
     """
     try:
-        service = CleanedDataService()
+        # Initialize the service with repository
+        repository = CleanedDataRepository(base_path=get_loksabha_data_root())
+        service = CleanedDataService(repository=repository)
         result = await service.update_cleaned_data(pages=request.pages, metadata=request.metadata)
 
         return CleanedDataUpdateResponse(

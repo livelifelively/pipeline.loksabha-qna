@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from apps.py.knowledge_graph.types import PageData, TableData
 
@@ -15,13 +15,24 @@ class PageUpdate(BaseModel):
     tables: Optional[List[TableData]] = None
 
 
+class QuestionMetadata(BaseModel):
+    """Metadata for identifying a question"""
+
+    document_path: str = Field(..., description="The path to the question document folder", alias="documentPath")
+
+    @field_validator("document_path")
+    def ensure_absolute_path(cls, v: str) -> str:
+        """Ensure the path is absolute by prepending 'data/' if not present"""
+        if not v.startswith("data/"):
+            return f"data/{v}"
+        return v
+
+
 class CleanedDataUpdateRequest(BaseModel):
     """Request schema for updating cleaned data"""
 
     pages: list[PageData]
-    metadata: Dict[str, str] = Field(
-        ..., description="Metadata containing question_id, loksabha_number, and session_number"
-    )
+    metadata: QuestionMetadata
 
 
 class CleanedDataUpdateResponse(BaseModel):
