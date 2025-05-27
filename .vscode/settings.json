@@ -14,5 +14,10 @@
       "source.fixAll": "explicit"
     }
   },
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "plantuml.server": "https://www.plantuml.com/plantuml",
+  "plantuml.render": "PlantUMLServer",
+  "plantuml.exportFormat": "png",
+  "plantuml.exportOutDir": "./out",
+  "plantuml.diagramsRoot": "."
 }
