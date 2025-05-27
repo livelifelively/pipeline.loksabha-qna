@@ -21,10 +21,11 @@ class QuestionMetadata(BaseModel):
     document_path: str = Field(..., description="The path to the question document folder", alias="documentPath")
 
     @field_validator("document_path")
-    def ensure_absolute_path(cls, v: str) -> str:
-        """Ensure the path is absolute by prepending 'data/' if not present"""
-        if not v.startswith("data/"):
-            return f"data/{v}"
+    def validate_document_path(cls, v: str) -> str:
+        """Validate that the document path is properly formatted"""
+        if not v or v.isspace():
+            raise ValueError("Document path cannot be empty")
+        # Add any other format validations as needed
         return v
 
 

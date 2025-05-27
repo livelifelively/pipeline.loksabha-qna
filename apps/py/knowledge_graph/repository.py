@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 from api.py.schemas.knowledge_graph import QuestionMetadata
 
-from .types import CleanedData
+from .types import CleanedData, CleanedDataMetadata
 
 
 class CleanedDataRepository:
@@ -17,12 +17,20 @@ class CleanedDataRepository:
         Construct the cleaned data path from metadata and create it if it doesn't exist.
         Returns the path.
         """
-        cleaned_data_path = Path(metadata.document_path) / "cleaned_data.json"
+        cleaned_data_path = self.base_path / metadata.document_path / "cleaned_data.json"
         if not cleaned_data_path.exists():
             # Create parent directories if they don't exist
             cleaned_data_path.parent.mkdir(parents=True, exist_ok=True)
-            # Create an empty file
-            cleaned_data_path.touch()
+            # Initialize with empty CleanedData structure
+            initial_data = CleanedData(
+                pages=[],
+                metadata=CleanedDataMetadata(
+                    total_pages=0, pages_with_tables=0, total_tables=0, cleaning_timestamp=datetime.now(UTC)
+                ),
+            )
+            # Use model_dump with json_encoders to properly serialize datetime
+            with open(cleaned_data_path, "w") as f:
+                json.dump(initial_data.model_dump(mode="json"), f, indent=2)
         return cleaned_data_path
 
     async def read_cleaned_data(self, file_path: Path) -> CleanedData:
@@ -66,7 +74,7 @@ class CleanedDataRepository:
 
         try:
             with open(file_path, "w") as f:
-                json.dump(data.model_dump(), f, indent=2)
+                json.dump(data.model_dump(mode="json"), f, indent=2)
         except Exception as e:
             raise IOError(f"Error saving cleaned data: {e}") from e
 

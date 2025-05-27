@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class TableData(BaseModel):
@@ -16,7 +16,8 @@ class PageData(BaseModel):
 
     page_number: int
     text: str
-    tables: Optional[List[TableData]] = Field(default_factory=list)
+    # tables: Optional[List[TableData]] = Field(default_factory=list)
+    tables: Optional[List[Any]] = None
 
 
 class CleanedDataMetadata(BaseModel):
