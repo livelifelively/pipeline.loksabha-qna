@@ -1,0 +1,67 @@
+graph TD;
+    Start((Start)) --> Init["Initialize PDFSelectedPagesTextTableExtractor<br/>with data_root"];
+    Init --> ExtractAndSave["extract_and_save_content<br/>(Main entry point)"];
+    
+    ExtractAndSave --> SplitPages["_split_specific_pages"];
+    
+    subgraph SplitPDF["Split PDF Pages"]
+        SplitPages --> CheckOutputFolder{"Output folder<br/>specified?"};
+        CheckOutputFolder -- "No" --> CreateDefaultFolder["Create 'pages' folder<br/>next to PDF"];
+        CheckOutputFolder -- "Yes" --> UseSpecifiedFolder["Use specified folder"];
+        CreateDefaultFolder --> CreateFolder["Create output folder<br/>(mkdir -p)"];
+        UseSpecifiedFolder --> CreateFolder;
+        CreateFolder --> OpenPDF["Open PDF file"];
+        OpenPDF --> ProcessPages["Process each page"];
+        ProcessPages --> SavePage["Save individual page"];
+        SavePage --> MorePages{"More pages?"};
+        MorePages -- "Yes" --> ProcessPages;
+        MorePages -- "No" --> EndSplit;
+    end
+    
+    subgraph ExtractContent["Extract Page Contents"]
+        CheckPageFile{"Check page_{num}.pdf<br/>exists?"};
+        CheckPageFile -- "No" --> SkipPage["Skip page<br/>(Warning)"];
+        CheckPageFile -- "Yes" --> CheckExisting["_check_existing_extraction"];
+        SkipPage --> NextPage{"More pages?"};
+        NextPage -- "Yes" --> CheckPageFile;
+        NextPage -- "No" --> SaveResults["_save_extraction_results"];
+        CheckExisting --> ExtractText["_extract_text_content"];
+        ExtractText --> ExtractTables["_extract_table_content"];
+        ExtractTables --> SaveResults;
+    end
+    
+    subgraph TextExtraction["Text Extraction"]
+        ExtractText --> TextExists{"Text already<br/>extracted?"};
+        TextExists -- "Yes" --> ReuseText["Reuse existing text"];
+        TextExists -- "No" --> ExtractNewText["Extract new text"];
+        ExtractNewText --> CallTextAPI["extract_text_from_pdf_page"]:::external;
+        CallTextAPI --> SaveText["Save text to .md file"];
+    end
+    
+    subgraph TableExtraction["Table Extraction"]
+        ExtractTables --> TableExists{"Tables already<br/>extracted?"};
+        TableExists -- "Yes" --> ReuseTables["Reuse existing tables"];
+        TableExists -- "No" --> ExtractNewTables["Extract new tables"];
+        ExtractNewTables --> CallTableAPI["extract_tables_from_pdf_page"]:::external;
+        CallTableAPI --> SaveTables["Save tables to .json file"];
+    end
+    
+    SaveResults --> End((End));
+    EndSplit --> CheckPageFile;
+    ReuseText --> ExtractTables;
+    ReuseTables --> SaveResults;
+    SaveText --> ExtractTables;
+    SaveTables --> SaveResults;
+    
+    %% Define styles
+    classDef internal fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    classDef external fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef decision fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef start fill:#9f9,stroke:#333,stroke-width:2px;
+    classDef endNode fill:#f99,stroke:#333,stroke-width:2px;
+    
+    %% Apply styles
+    class Start,End start;
+    class TextExists,TableExists,MorePages,CheckOutputFolder,CheckPageFile,NextPage decision;
+    class CallTextAPI,CallTableAPI external;
+    %% class ExtractAndSave external; 
