@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import knowledge_graph, pdf
+from .routers import knowledge_graph
 
 app = FastAPI(title="Parliament Questions API")
 
@@ -14,5 +14,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(pdf.router, prefix="/api")
 app.include_router(knowledge_graph.router, prefix="/api")
