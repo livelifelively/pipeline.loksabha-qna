@@ -1,0 +1,70 @@
+graph TD;
+    Start((Start Fix Tables)) --> CreateWorkflow["Create FixTablesWorkflow"];
+    CreateWorkflow --> RunWorkflow["Run Workflow"];
+    
+    RunWorkflow --> SelectionWorkflow["SelectionWorkflow<br/>Select Sansad & Ministries"]:::external;
+    SelectionWorkflow --> DisplayHeader["Display Header"];
+    DisplayHeader --> FindTables["Find Documents with Tables"];
+    
+    FindTables --> HasTables{"Found documents<br/>with tables?"};
+    HasTables -- "No" --> End((End));
+    HasTables -- "Yes" --> ShowStats["Show Table Statistics"];
+    
+    ShowStats --> ProcessChoice{"Process<br/>documents?"};
+    ProcessChoice -- "No" --> ShowDetails{"Show detailed<br/>list?"};
+    ProcessChoice -- "Yes" --> SelectMode["Select Processing Mode"];
+    
+    ShowDetails -- "Yes" --> ListDetails["List Document Details"];
+    ShowDetails -- "No" --> End;
+    
+    SelectMode --> ModeChoice{"Processing Mode"};
+    ModeChoice -- "All" --> ProcessAll["Process all documents"];
+    ModeChoice -- "Ministry" --> SelectMinistry["Select ministry"];
+    ModeChoice -- "Document" --> SelectDocument["Select specific document"];
+    
+    SelectMinistry --> FilterByMinistry["Filter documents<br/>by ministry"];
+    SelectDocument --> FilterByDoc["Filter to single<br/>document"];
+    
+    FilterByMinistry --> ProcessDocs["Process selected<br/>documents"];
+    FilterByDoc --> ProcessDocs;
+    ProcessAll --> ProcessDocs;
+    
+    subgraph DocumentProcessing["Process Each Document"]
+        ProcessDocs --> BatchChoice{"Multiple<br/>documents?"};
+        BatchChoice -- "Yes" --> BatchConfirm{"Batch process<br/>without confirmation?"};
+        BatchChoice -- "No" --> SingleConfirm{"Process this<br/>document?"};
+        
+        BatchConfirm -- "Yes" --> ProcessBatch["Process all documents"];
+        BatchConfirm -- "No" --> ProcessOneByOne["Process one by one<br/>with confirmation"];
+        SingleConfirm -- "Yes" --> ProcessSingle["Process single document"];
+        SingleConfirm -- "No" --> SkipDoc["Skip document"];
+        
+        ProcessBatch --> SplitPDF["PDFSelectedPagesTextTableExtractor<br/>extract_and_save_content"]:::external;
+        ProcessOneByOne --> SplitPDF;
+        ProcessSingle --> SplitPDF;
+    end
+    
+    SplitPDF --> ShowResult["Show processing result"];
+    ShowResult --> End;
+    SkipDoc --> End;
+    ListDetails --> End;
+    
+    %% Define styles for internal vs external methods
+    classDef internal fill:#f5f5f5,stroke:#333,stroke-width:2px
+    classDef external fill:#f9f,stroke:#333,stroke-width:2px
+    
+    %% Apply styles to nodes
+    class SelectionWorkflow,SplitPDF external;
+    
+    %% Define styles
+    classDef clickable fill:#e6e6e6,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef process fill:#d4f1f9,stroke:#333,stroke-width:2px;
+    classDef decision fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef start fill:#9f9,stroke:#333,stroke-width:2px;
+    classDef endNode fill:#f99,stroke:#333,stroke-width:2px;
+    
+    %% Apply styles
+    class Start,End start;
+    class HasTables,ProcessChoice,ShowDetails,ModeChoice,BatchChoice,BatchConfirm,SingleConfirm decision;
+    %% class  process;
+    class ShowResult clickable; 

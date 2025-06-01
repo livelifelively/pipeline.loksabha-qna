@@ -1,28 +1,48 @@
 graph TD;
-    Start((Start Extract Workflow)) --> SelectSansad["Select Sansad"];
-    SelectSansad --> SelectSession["Select Session"];
-    SelectSession --> SelectMinistries["Select Ministries"];
+    Start((Start Extract Workflow)) --> CreateWorkflow["Create ExtractPDFWorkflow"];
+    CreateWorkflow --> RunWorkflow["Run Workflow"];
     
-    SelectMinistries --> ShowSummary["Show Selected Documents ProcessingTask Summary"];
-    ShowSummary --> ConfirmExtraction{"Reject<br/>Processing?"};
-    ConfirmExtraction -- "Yes" --> End((End Extract Workflow));
-    ConfirmExtraction -- "No" --> InitResults["Initialize overall_results"];
+    RunWorkflow --> SelectionWorkflow["SelectionWorkflow<br/>Select Sansad, Session & Ministries"]:::external;
+    SelectionWorkflow --> ShowSummary["Show Selected Documents Summary"];
+    ShowSummary --> InitResults["Initialize overall_results"];
     
-    InitResults --> ProcessSelectedMinistries["Process Selected Ministries"];
+    InitResults --> ProcessMinistry["Process Selected Ministries"];
     
     subgraph ProcessSelectedMinistries
-        ProcessMinistry["Process each selected ministry"]:::clickable;
-        ProcessMinistry --> UpdateResults["Update overall_results"];
-        UpdateResults --> CheckMore{"More<br/>Ministries?"};
-        CheckMore -- "Yes" --> ProcessMinistry;
+        ProcessMinistry["Process Ministry"];
+        ProcessMinistry --> DisplayHeader["Display Ministry Header"];
+        DisplayHeader --> GetDocuments["Get Ministry Documents"];
+        GetDocuments --> WaitForRejection["Wait for Potential Rejection"];
+        WaitForRejection -- "Rejected" --> SkipMinistry["Skip Ministry"];
+        SkipMinistry --> CheckMore["Update overall_results"];
+        WaitForRejection -- "Not Rejected" --> SelectDocs["Select Documents to Process"];
+        SelectDocs --> ExtractDocs["Extract Documents"];
+        
+        subgraph DocumentProcessing["Process Each Document"]
+            ExtractDocs --> ProcessSingleDoc["Process Single Document"];
+            ProcessSingleDoc --> ExtractContents["extract_contents"]:::external;
+            ExtractContents --> CheckMoreDocs{"More<br/>Documents?"};
+            CheckMoreDocs -- "Yes" --> ProcessSingleDoc;
+        end
+        
+        CheckMoreDocs -- "No" --> CreateResults["Create Extraction Results"];
+        CreateResults --> DisplayResults["Display Results"];
+        DisplayResults --> SaveResults["Save Results"];
+        SaveResults --> UpdateOverall["Update overall_results"];
     end
     
+    UpdateOverall --> CheckMore{"More<br/>Ministries?"};
+    CheckMore -- "Yes" --> ProcessMinistry;
     CheckMore -- "No" --> ShowResults["Show Overall Results"];
     ShowResults --> WaitForInput["Press Enter to Continue"];
-    WaitForInput --> End;
+    WaitForInput --> End((End Extract Workflow));
     
-    %% Define styles for clickable nodes
-    classDef clickable fill:#f9f,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+    %% Define styles for internal vs external methods
+    classDef internal fill:#f5f5f5,stroke:#333,stroke-width:2px
+    classDef external fill:#f9f,stroke:#333,stroke-width:2px
+    
+    %% Apply styles to nodes
+    class SelectionWorkflow,ExtractContents external
     
     %% Add clickable links
     %% click SelectSansad "select_sansad_workflow.mmd" "Go to Sansad Selection"
