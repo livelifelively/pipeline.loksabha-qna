@@ -2,8 +2,6 @@ from typing import Any
 
 from ..parliament_questions import fetch_and_categorize_questions_pdfs
 from ..parliament_questions.adapt_input_data import adapt_source_questions_list_to_parliament_questions
-
-# from ..parliament_questions.pdf_extraction import batch_pdf_extraction
 from ..parliament_questions.types import ParliamentQuestionsPipelineState
 from ..utils.project_root import get_loksabha_data_root
 from .context import PipelineContext
@@ -34,7 +32,6 @@ async def sansad_session_pipeline(sansad: str, session: str) -> Any:
             name="Fetch Questions PDFs", function=fetch_and_categorize_questions_pdfs, key="FETCH_QUESTIONS_PDFS"
         ),
         # PipelineStep(name="Process Individual Questions", function=batch_question_analysis, key="PROCESS_QUESTIONS"),
-        # PipelineStep(name="Extract PDF Contents", function=batch_pdf_extraction, key="EXTRACT_PDF_CONTENTS"),
     ]
 
     outputs = ParliamentQuestionsPipelineState(
