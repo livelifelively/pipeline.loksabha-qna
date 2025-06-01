@@ -1,0 +1,24 @@
+graph TD;
+    Start((Start Process Ministry)) --> ShowMinistry["Show Ministry Name"];
+    ShowMinistry --> FindDocs["Find Document Paths"];
+    
+    FindDocs --> CheckDocs{"Documents<br/>Found?"};
+    CheckDocs -- "No" --> ShowNoDocs["Show No Documents Message"];
+    ShowNoDocs --> End((End Process Ministry));
+    
+    CheckDocs -- "Yes" --> ShowDocCount["Show Document Count"];
+    ShowDocCount --> Countdown["10 Second Countdown<br/>with Cancel Option"];
+    
+    Countdown --> CheckCancel{"User<br/>Cancelled?"};
+    CheckCancel -- "Yes" --> ShowCancelled["Show Cancelled Message"];
+    ShowCancelled --> End;
+    
+    CheckCancel -- "No" --> StartExtraction["Start Extraction"];
+    StartExtraction --> ExtractDocs["Extract Documents and save results at document level"]:::clickable;
+    
+    ExtractDocs --> ShowResults["Show Ministry Processing Results"];
+    ShowResults --> SaveResults["Save Results to Ministry extraction_results.json"];
+    SaveResults --> End;
+    
+    %% Define styles for clickable nodes
+    classDef clickable fill:#f9f,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5 

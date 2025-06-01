@@ -1,0 +1,52 @@
+graph TD;
+    Start((Start PDF Extraction)) --> CreateExtractor["Create PDFExtractor<br/>instance"];
+    CreateExtractor --> ExtractContents["extract_contents()<br/>Main Orchestrator"];
+    
+    subgraph PDFExtractor["PDFExtractor Class"]
+        ExtractContents --> SetupPaths["_setup_paths()<br/>Initialize file paths"];
+        SetupPaths --> ValidatePDF["_validate_pdf_file()"];
+        
+        ValidatePDF --> LoadProgress["_load_progress_data()"];
+        LoadProgress --> ExtractText["_extract_text_from_pdf()"];
+        
+        ExtractText --> SaveText["_save_file_safely()<br/>Save extracted text"];
+        SaveText --> ExtractTables["_extract_tables_from_pdf()"];
+        
+        ExtractTables --> SaveTables["_save_file_safely()<br/>Save extracted tables"];
+        
+        SaveTables --> CreateStep["_create_extraction_step()"];
+        CreateStep --> CreateSummary["_create_table_summary()"];
+        CreateSummary --> UpdateProgress["_update_progress_step()"];
+        
+        UpdateProgress --> SaveProgress["_save_file_safely()<br/>Save progress.json"];
+        SaveProgress --> Success((Success));
+        
+        %% Error handling flow
+        ExtractContents -- "Error" --> ErrorHandler["Error Handler"];
+        ValidatePDF -- "Error" --> ErrorHandler;
+        LoadProgress -- "Error" --> ErrorHandler;
+        ExtractText -- "Error" --> ErrorHandler;
+        ExtractTables -- "Error" --> ErrorHandler;
+        SaveProgress -- "Error" --> ErrorHandler;
+        
+        ErrorHandler --> CreateFailure["_create_failure_step()"];
+        CreateFailure --> UpdateFailure["_update_progress_step()"];
+        UpdateFailure --> SaveFailure["_save_file_safely()<br/>Save failure in progress.json"];
+        SaveFailure --> Failure((Failure));
+    end
+    
+    %% Define styles
+    classDef clickable fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef error fill:#f66,stroke:#333,stroke-width:2px;
+    classDef success fill:#9f9,stroke:#333,stroke-width:2px;
+    classDef failure fill:#f99,stroke:#333,stroke-width:2px;
+    classDef container fill:#eef,stroke:#333,stroke-width:2px;
+    classDef main fill:#f96,stroke:#333,stroke-width:4px;
+    
+    %% Apply styles
+    class ExtractText,ExtractTables clickable;
+    class ErrorHandler,CreateFailure,UpdateFailure,SaveFailure error;
+    class Success success;
+    class Failure failure;
+    class PDFExtractor container;
+    class ExtractContents main; 

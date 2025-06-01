@@ -1,0 +1,25 @@
+graph TD;
+    Start((Start Extract Documents)) --> ShowTotal["Show total documents count"];
+    ShowTotal --> ProcessDocuments["Process Documents"];
+
+    subgraph ProcessDocuments
+        ProcessDoc["Process document"];
+        ProcessDoc --> CreateExtractor["Create PDFExtractor<br/>instance"];
+        CreateExtractor --> ExtractContent["extract_contents()"];
+        ExtractContent --> ShowResult["Show extraction result"];
+    end
+    
+    ShowResult --> CheckMore{"More<br/>Documents?"};
+    CheckMore -- "Yes" --> ProcessDoc;
+    CheckMore -- "No" --> ReturnSummary["Return result summary<br/>(status, counts, documents)"];
+    
+    ReturnSummary --> End((End Extract Documents));
+    
+    %% Define styles
+    classDef clickable fill:#f9f,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef container fill:#eef,stroke:#333,stroke-width:2px;
+    
+    %% Apply styles
+    class ExtractContent clickable;
+    class ProcessDocuments container; 
+    

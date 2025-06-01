@@ -1,0 +1,30 @@
+graph TD;
+    Start((Start Extract Workflow)) --> SelectSansad["Select Sansad"];
+    SelectSansad --> SelectSession["Select Session"];
+    SelectSession --> SelectMinistries["Select Ministries"];
+    
+    SelectMinistries --> ShowSummary["Show Selected Documents ProcessingTask Summary"];
+    ShowSummary --> ConfirmExtraction{"Reject<br/>Processing?"};
+    ConfirmExtraction -- "Yes" --> End((End Extract Workflow));
+    ConfirmExtraction -- "No" --> InitResults["Initialize overall_results"];
+    
+    InitResults --> ProcessSelectedMinistries["Process Selected Ministries"];
+    
+    subgraph ProcessSelectedMinistries
+        ProcessMinistry["Process each selected ministry"]:::clickable;
+        ProcessMinistry --> UpdateResults["Update overall_results"];
+        UpdateResults --> CheckMore{"More<br/>Ministries?"};
+        CheckMore -- "Yes" --> ProcessMinistry;
+    end
+    
+    CheckMore -- "No" --> ShowResults["Show Overall Results"];
+    ShowResults --> WaitForInput["Press Enter to Continue"];
+    WaitForInput --> End;
+    
+    %% Define styles for clickable nodes
+    classDef clickable fill:#f9f,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+    
+    %% Add clickable links
+    %% click SelectSansad "select_sansad_workflow.mmd" "Go to Sansad Selection"
+    %% click SelectSession "select_session_workflow.mmd" "Go to Session Selection"
+    %% click SelectMinistries "select_ministry_workflow.mmd" "Go to Ministry Selection"

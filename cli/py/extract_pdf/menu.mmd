@@ -1,0 +1,20 @@
+graph TD; 
+    Start((Start CLI)) --> MainMenu["Display Main Menu"];
+    MainMenu --> MainChoice{"Select Operation?"};
+    MainChoice -- "PDF Tools" --> PDFMenu["Display PDF Tools Menu"];
+    MainChoice -- "Quit" --> End((End CLI));
+    
+    PDFMenu --> PDFChoice{"Select Operation?"};
+    PDFChoice -- "Extract Text" --> ExtractWorkflow["Run Extract PDF Workflow"]:::clickable;
+    PDFChoice -- "Fix Tables" --> FixTablesWorkflow["Run Fix Tables Workflow"]:::clickable;
+    PDFChoice -- "Back" --> MainMenu;
+    
+    ExtractWorkflow --> PDFMenu;
+    FixTablesWorkflow --> PDFMenu;
+    
+    %% Define styles for clickable nodes
+    classDef clickable fill:#f9f,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+    
+    %% Add clickable links
+    click ExtractWorkflow "extract_pdf_workflow.mmd" "Go to Extract PDF Workflow"
+    click FixTablesWorkflow "fix_tables_workflow.mmd" "Go to Fix Tables Workflow"

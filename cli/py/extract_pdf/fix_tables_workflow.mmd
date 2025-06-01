@@ -1,0 +1,58 @@
+graph TD;
+    Start((Start Fix Tables)) --> GetSelection["Get Selection<br/>(Sansad, Session, Ministries)"];
+    GetSelection --> SearchTables["Search for documents<br/>with tables"];
+    
+    SearchTables --> HasTables{"Found documents<br/>with tables?"};
+    HasTables -- "No" --> ShowNoTables["Show 'No documents<br/>found' message"];
+    HasTables -- "Yes" --> ShowStats["Show table statistics<br/>by ministry"];
+    
+    ShowStats --> ProcessChoice{"Process<br/>documents?"};
+    ProcessChoice -- "No" --> ShowDetails{"Show detailed<br/>list?"};
+    ProcessChoice -- "Yes" --> SelectMode["Select processing mode"];
+    
+    ShowDetails -- "Yes" --> ListDetails["List all documents<br/>with table details"];
+    ShowDetails -- "No" --> End((End));
+    
+    SelectMode --> ModeChoice{"Processing Mode"};
+    ModeChoice -- "All" --> ProcessAll["Process all documents"];
+    ModeChoice -- "Ministry" --> SelectMinistry["Select ministry"];
+    ModeChoice -- "Document" --> SelectDocument["Select specific document"];
+    
+    SelectMinistry --> FilterByMinistry["Filter documents<br/>by ministry"];
+    SelectDocument --> FilterByDoc["Filter to single<br/>document"];
+    
+    FilterByMinistry --> ProcessDocs["Process selected<br/>documents"];
+    FilterByDoc --> ProcessDocs;
+    ProcessAll --> ProcessDocs;
+    
+    ProcessDocs --> BatchChoice{"Multiple<br/>documents?"};
+    BatchChoice -- "Yes" --> BatchConfirm{"Batch process<br/>without confirmation?"};
+    BatchChoice -- "No" --> SingleConfirm{"Process this<br/>document?"};
+    
+    BatchConfirm -- "Yes" --> ProcessBatch["Process all documents"];
+    BatchConfirm -- "No" --> ProcessOneByOne["Process one by one<br/>with confirmation"];
+    SingleConfirm -- "Yes" --> ProcessSingle["Process single document"];
+    SingleConfirm -- "No" --> SkipDoc["Skip document"];
+    
+    ProcessBatch --> SplitPDF["Split PDF and process<br/>pages with tables"];
+    ProcessOneByOne --> SplitPDF;
+    ProcessSingle --> SplitPDF;
+    
+    SplitPDF --> ShowResult["Show processing result"];
+    ShowResult --> End;
+    SkipDoc --> End;
+    ListDetails --> End;
+    ShowNoTables --> End;
+    
+    %% Define styles
+    classDef clickable fill:#f9f,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef process fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef decision fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef start fill:#9f9,stroke:#333,stroke-width:2px;
+    classDef endNode fill:#f99,stroke:#333,stroke-width:2px;
+    
+    %% Apply styles
+    class Start,End start;
+    class HasTables,ProcessChoice,ShowDetails,ModeChoice,BatchChoice,BatchConfirm,SingleConfirm decision;
+    class SearchTables,ShowStats,ProcessAll,SelectMinistry,SelectDocument,FilterByMinistry,FilterByDoc,ProcessDocs,ProcessBatch,ProcessOneByOne,ProcessSingle,SplitPDF process;
+    class ShowResult clickable; 
