@@ -240,15 +240,15 @@ def process_pages(pages_folder: str, page_numbers: List[int]):
 
                         # Fix: Check the content type and wrap in proper structure if needed
                         content = table_result["content"]
-                        if isinstance(content, list):
-                            # If content is a list, wrap it in a dictionary with a tables key
-                            formatted_content = {"tables": content}
-                        else:
-                            # If it's already a dictionary, use it as is
-                            formatted_content = content
+                        # if isinstance(content, list):
+                        #     # If content is a list, wrap it in a dictionary with a tables key
+                        #     formatted_content = {"tables": content}
+                        # else:
+                        #     # If it's already a dictionary, use it as is
+                        #     formatted_content = content
 
                         with open(output_json, "w", encoding="utf-8") as f:
-                            json.dump(formatted_content, f, indent=2)
+                            json.dump(content, f, indent=2)
 
                         # Store relative path instead of absolute path
                         try:
