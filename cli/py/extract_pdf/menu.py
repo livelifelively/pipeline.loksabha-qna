@@ -21,7 +21,7 @@ from apps.py.parliament_questions.document_processing import (
     find_documents_with_tables,
     save_ministry_extraction_results,
 )
-from apps.py.parliament_questions.pdf_extraction import extract_pdf_contents
+from apps.py.parliament_questions.pdf_extraction import PDFExtractor
 from apps.py.utils.project_root import get_loksabha_data_root
 from cli.py.utils.table import print_table  # Import the table utility
 
@@ -40,7 +40,7 @@ def pdf_menu():
             message="Select an operation:",
             choices=[
                 Choice(value="extract", name="Extract Text from PDF"),
-                Choice(value="fix_tables", name="Fix Tables in PDF"),
+                Choice(value="fix_tables", name="Fix Tables in Using AI"),
                 Choice(value="back", name="Back to Main Menu"),
             ],
             default="extract",
@@ -62,19 +62,6 @@ def confirm_extraction_process(all_document_paths, selected_ministries):
     return inquirer.confirm(
         message=f"Do you want to extract text from these {len(all_document_paths)} documents?", default=True
     ).execute()
-
-
-def run_extraction(all_document_paths, extractor_type="marker"):
-    """Run the extraction process and return results."""
-    return asyncio.run(extract_documents(all_document_paths, extractor_type))
-
-
-def display_extraction_results(results):
-    """Display a summary of extraction results."""
-    print("\nExtraction Complete!")
-    print(f"Status: {results['status']}")
-    print(f"Total documents processed: {results['total_processed']}")
-    print(f"Total documents failed: {results['total_failed']}")
 
 
 def get_selection_workflow():
@@ -117,15 +104,13 @@ def get_selection_workflow():
         selected_sansad, selected_session, selected_ministries, ministry_doc_counts, len(all_ministry_docs)
     )
 
-    return selected_sansad, selected_session, selected_ministries, all_ministry_docs, ministry_doc_counts
+    return selected_sansad, selected_session, selected_ministries
 
 
 def extract_pdf_workflow():
     """Main workflow for PDF extraction."""
     # Get selections using common workflow
-    selected_sansad, selected_session, selected_ministries, all_ministry_docs, ministry_doc_counts = (
-        get_selection_workflow()
-    )
+    selected_sansad, selected_session, selected_ministries = get_selection_workflow()
 
     if not selected_sansad:  # Selection was cancelled
         return
@@ -142,7 +127,7 @@ def extract_pdf_workflow():
     }
 
     for ministry in selected_ministries:
-        ministry_result = process_ministry(ministry, extractor_type, selected_sansad, selected_session)
+        ministry_result = process_ministry(ministry, extractor_type, selected_session)
         if ministry_result:
             overall_results["total_processed"] += ministry_result["total_processed"]
             overall_results["total_failed"] += ministry_result["total_failed"]
@@ -159,7 +144,7 @@ def extract_pdf_workflow():
     inquirer.text(message="Press Enter to continue...").execute()
 
 
-def process_ministry(ministry, extractor_type, selected_sansad, selected_session):
+def process_ministry(ministry, extractor_type, selected_session):
     """Process a single ministry's documents."""
     print(f"\n\nProcessing Ministry: {ministry.name}")
     print("=" * 50)
@@ -322,6 +307,9 @@ async def extract_documents(document_paths: List[Path], extractor_type: str = "m
 
     print(f"\nStarting extraction of {total_documents} documents...")
 
+    # Create PDFExtractor instance
+    extractor = PDFExtractor(extractor_type=extractor_type)
+
     for i, doc_dir in enumerate(document_paths):
         try:
             # Find PDF file in the document directory
@@ -334,8 +322,8 @@ async def extract_documents(document_paths: List[Path], extractor_type: str = "m
             # Show progress
             print(f"Processing [{i + 1}/{total_documents}]: {pdf_path.name}")
 
-            # Extract contents
-            result = await extract_pdf_contents(pdf_path, extractor_type=extractor_type)
+            # Extract contents using the extractor instance
+            result = await extractor.extract_contents(pdf_path)
             processed_documents.append({"path": str(pdf_path), "result": result})
 
             print(f"  ✓ Extraction successful: {pdf_path.name}")
@@ -360,9 +348,7 @@ async def extract_documents(document_paths: List[Path], extractor_type: str = "m
 def fix_tables_workflow():
     """Workflow for fixing tables in PDFs."""
     # Get selections using common workflow
-    selected_sansad, selected_session, selected_ministries, all_ministry_docs, ministry_doc_counts = (
-        get_selection_workflow()
-    )
+    selected_sansad, selected_ministries = get_selection_workflow()
 
     if not selected_sansad:  # Selection was cancelled
         return
