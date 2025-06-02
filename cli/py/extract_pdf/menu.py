@@ -12,7 +12,7 @@ from InquirerPy.base.control import Choice
 sys.path.append(str(Path(__file__).parents[4]))
 
 # Import but don't call directly - we'll handle async separately
-from apps.py.documents.pdf_splitter import PDFSelectedPagesTextTableExtractor
+from apps.py.documents.extractors.orchestrator import PDFExtractionOrchestrator
 from apps.py.parliament_questions.document_processing import (
     calculate_table_statistics,
     find_all_document_paths,
@@ -646,7 +646,7 @@ class FixTablesWorkflow(BaseWorkflow):
             batch_process = False
 
         # Initialize the PDF extractor
-        pdf_extractor = PDFSelectedPagesTextTableExtractor(data_root)
+        pdf_extractor = PDFExtractionOrchestrator(data_root)
 
         for i, doc in enumerate(documents, 1):
             doc_path_str = doc["path"]

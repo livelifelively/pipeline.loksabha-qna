@@ -8,7 +8,7 @@ from apps.py.documents.models import (
     ExtractionSummary,
     SinglePageTableResult,
 )
-from apps.py.utils.progress_handler import ProgressHandler
+from apps.py.documents.utils.progress_handler import ProgressHandler
 from apps.py.utils.project_root import get_loksabha_data_root
 
 from .base import BaseExtractor
