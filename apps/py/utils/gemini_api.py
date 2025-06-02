@@ -1,8 +1,12 @@
 import json
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import google.generativeai as genai
 from dotenv import load_dotenv
+
+from apps.py.documents.models import MultiPageTableDetectionResult
+from apps.py.llm_api_key.rate_limiter import RateLimiter
+from apps.py.llm_api_key.usage_tracker import UsageTracker
 
 # Load environment variables
 load_dotenv()
@@ -36,8 +40,6 @@ def extract_text_from_pdf_page(pdf_page_path: str) -> Dict:
     Returns:
         Dictionary with extracted text content in markdown format
     """
-    from apps.py.llm_api_key.usage_tracker import UsageTracker
-
     model, key_name = init_gemini()
     tracker = UsageTracker(service_name="gemini")
 
@@ -97,9 +99,6 @@ def extract_tables_from_pdf_page(pdf_page_path: str) -> Dict:
     Returns:
         Dictionary with extracted table data in JSON format
     """
-    from apps.py.llm_api_key.rate_limiter import RateLimiter
-    from apps.py.llm_api_key.usage_tracker import UsageTracker
-
     model, key_name = init_gemini()
     tracker = UsageTracker(service_name="gemini")
     limiter = RateLimiter(requests_per_minute=10)
@@ -158,7 +157,7 @@ def extract_tables_from_pdf_page(pdf_page_path: str) -> Dict:
                     parsed_json = json.loads(json_content)
                     return {"status": "success", "content": parsed_json, "format": "json"}
                 else:
-                    raise ValueError(f"Failed to parse JSON: {e}")
+                    raise ValueError(f"Failed to parse JSON: {e}") from e
         except Exception as json_error:
             # Still count as a successful API call since the API responded
             return {"status": "error", "error": f"JSON parsing error: {str(json_error)}", "raw_response": response.text}
@@ -168,4 +167,199 @@ def extract_tables_from_pdf_page(pdf_page_path: str) -> Dict:
         tracker.record_usage(key_name, success=False)
 
         print(f"Error extracting tables from PDF page: {str(e)}")
+        return {"status": "error", "error": str(e)}
+
+
+def detect_multi_page_tables(pdf_path: str) -> MultiPageTableDetectionResult:
+    """
+    Detect if a PDF contains multi-page tables using Gemini Vision API.
+
+    Args:
+        pdf_path: Path to the PDF file (already split to contain only relevant pages)
+
+    Returns:
+        MultiPageTableDetectionResult containing detection results
+    """
+    model, key_name = init_gemini()
+    tracker = UsageTracker(service_name="gemini")
+    limiter = RateLimiter(requests_per_minute=10)
+
+    # Apply rate limiting
+    wait_time = limiter.wait_if_needed()
+    if wait_time > 0:
+        print(f"[Rate Limiter] Waiting {wait_time:.1f}s before API call")
+
+    print(f"[Gemini API] Using key {key_name} for multi-page table detection")
+
+    try:
+        # Read the PDF data
+        with open(pdf_path, "rb") as f:
+            pdf_data = f.read()
+
+        # Prepare the prompt for multi-page table detection
+        prompt = """
+            Analyze the provided PDF pages to identify all continuous tables that span across multiple pages.
+            
+            Consider these factors for each table:
+            1. Table structure continuity (headers, columns, formatting)
+            2. Content continuity (data flows naturally across pages)
+            3. Visual indicators of table continuation (e.g., "continued from previous page")
+            4. Serial number continuity (e.g., row numbers continuing across pages)
+            
+            Respond with a JSON object containing:
+            {
+                "multi_page_tables": [
+                    {
+                        "pages": [list of page numbers that are part of this continuous table],
+                        "confidence": float (0.0 to 1.0),
+                        "reasoning": "brief explanation of why these pages are connected"
+                    },
+                    // ... more tables if found
+                ]
+            }
+            
+            Rules:
+            1. Each table in the list should be a distinct continuous table
+            2. A page can only be part of one table
+            3. If no multi-page tables are found, return an empty list
+            4. Order tables by their starting page number
+            
+            Output only the JSON object, no additional text.
+        """
+
+        # Call Gemini API
+        response = model.generate_content([prompt, {"mime_type": "application/pdf", "data": pdf_data}])
+
+        # Record successful usage
+        tracker.record_usage(key_name, success=True)
+
+        # Process response
+        try:
+            extracted_text = response.text.strip()
+
+            # Try to parse JSON from the response
+            try:
+                parsed_json = json.loads(extracted_text)
+                return MultiPageTableDetectionResult(
+                    status="success",
+                    multi_page_tables=parsed_json.get("multi_page_tables", []),
+                )
+            except json.JSONDecodeError as e:
+                # Try to clean up the response if it contains fence blocks
+                if "```json" in extracted_text:
+                    json_content = extracted_text.split("```json")[1].split("```")[0].strip()
+                    parsed_json = json.loads(json_content)
+                    return MultiPageTableDetectionResult(
+                        status="success",
+                        multi_page_tables=parsed_json.get("multi_page_tables", []),
+                    )
+                elif "```" in extracted_text:
+                    json_content = extracted_text.split("```")[1].split("```")[0].strip()
+                    parsed_json = json.loads(json_content)
+                    return MultiPageTableDetectionResult(
+                        status="success",
+                        multi_page_tables=parsed_json.get("multi_page_tables", []),
+                    )
+                else:
+                    raise ValueError(f"Failed to parse JSON: {e}") from e
+        except Exception as json_error:
+            return MultiPageTableDetectionResult(
+                status="error",
+                error=f"JSON parsing error: {str(json_error)}",
+            )
+
+    except Exception as e:
+        # Record failed usage
+        tracker.record_usage(key_name, success=False)
+        print(f"Error detecting multi-page tables: {str(e)}")
+        return MultiPageTableDetectionResult(
+            status="error",
+            error=str(e),
+        )
+
+
+def extract_multi_page_table(pdf_path: str, page_range: Tuple[int, int]) -> Dict:
+    """
+    Extract a table that spans across multiple pages using Gemini Vision API.
+
+    Args:
+        pdf_path: Path to the PDF file (already split to contain only relevant pages)
+        page_range: Tuple of (start_page, end_page) numbers
+
+    Returns:
+        Dictionary with extraction results:
+        {
+            "status": "success" | "error",
+            "content": List[Dict] | None,  # Table data in JSON format
+            "error": str | None  # Only present if status is "error"
+        }
+    """
+    model, key_name = init_gemini()
+    tracker = UsageTracker(service_name="gemini")
+    limiter = RateLimiter(requests_per_minute=10)
+
+    # Apply rate limiting
+    wait_time = limiter.wait_if_needed()
+    if wait_time > 0:
+        print(f"[Rate Limiter] Waiting {wait_time:.1f}s before API call")
+
+    print(f"[Gemini API] Using key {key_name} for multi-page table extraction")
+
+    try:
+        # Read the PDF data
+        with open(pdf_path, "rb") as f:
+            pdf_data = f.read()
+
+        # Prepare the prompt for multi-page table extraction
+        prompt = """
+            Extract the continuous table that spans across these pages. The table may have:
+            1. Headers that repeat on each page
+            2. Data that continues across page breaks
+            3. Merged cells that span multiple pages
+            4. Serial numbers or other indicators of continuity
+
+            Generate a JSON array representing the complete table data:
+            - Each object in the array should represent one data row
+            - Use the column headers as keys
+            - For hierarchical headers, create nested JSON objects
+            - Handle merged cells by associating values with all applicable rows
+            - Maintain the correct order of rows across pages
+            - Preserve any serial numbers or identifiers
+
+            Output only the final JSON array, no additional text.
+        """
+
+        # Call Gemini API
+        response = model.generate_content([prompt, {"mime_type": "application/pdf", "data": pdf_data}])
+
+        # Record successful usage
+        tracker.record_usage(key_name, success=True)
+
+        # Process response - handle potential JSON parsing issues carefully
+        try:
+            extracted_text = response.text.strip()
+
+            # Try to parse JSON from the response
+            try:
+                parsed_json = json.loads(extracted_text)
+                return {"status": "success", "content": parsed_json}
+            except json.JSONDecodeError as e:
+                # Try to clean up the response if it contains fence blocks
+                if "```json" in extracted_text:
+                    json_content = extracted_text.split("```json")[1].split("```")[0].strip()
+                    parsed_json = json.loads(json_content)
+                    return {"status": "success", "content": parsed_json}
+                elif "```" in extracted_text:
+                    json_content = extracted_text.split("```")[1].split("```")[0].strip()
+                    parsed_json = json.loads(json_content)
+                    return {"status": "success", "content": parsed_json}
+                else:
+                    raise ValueError(f"Failed to parse JSON: {e}") from e
+        except Exception as json_error:
+            return {"status": "error", "error": f"JSON parsing error: {str(json_error)}", "raw_response": response.text}
+
+    except Exception as e:
+        # Record failed usage
+        tracker.record_usage(key_name, success=False)
+        print(f"Error extracting multi-page table: {str(e)}")
         return {"status": "error", "error": str(e)}
