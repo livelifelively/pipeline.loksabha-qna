@@ -2,7 +2,19 @@ graph TD;
     Start((Start)) --> Init["Initialize PDFSelectedPagesTextTableExtractor<br/>with data_root"];
     Init --> ExtractAndSave["extract_and_save_content<br/>(Main entry point)"];
     
-    ExtractAndSave --> SplitPages["_split_specific_pages"];
+    ExtractAndSave --> DetectRanges["Detect Continuous Table Ranges"];
+    DetectRanges --> CheckMultiPage["Check for Multi-page Tables"];
+    
+    subgraph MultiPageProcessing["Multi-page Table Processing"]
+        CheckMultiPage --> MultiPageGroup["Group Multi-page Tables"];
+        MultiPageGroup --> ExtractMultiPage["Extract Multi-page Tables"];
+        ExtractMultiPage --> SaveMultiPage["Save Multi-page Results"];
+    end
+    
+    subgraph SinglePageProcessing["Single-page Table Processing"]
+        CheckMultiPage --> SinglePageGroup["Group Single-page Tables"];
+        SinglePageGroup --> SplitPages["_split_specific_pages"];
+    end
     
     subgraph SplitPDF["Split PDF Pages"]
         SplitPages --> CheckOutputFolder{"Output folder<br/>specified?"};
@@ -46,7 +58,9 @@ graph TD;
         CallTableAPI --> SaveTables["Save tables to .json file"];
     end
     
-    SaveResults --> End((End));
+    SaveResults --> CombineResults["Combine All Results"];
+    SaveMultiPage --> CombineResults;
+    CombineResults --> End((End));
     EndSplit --> CheckPageFile;
     ReuseText --> ExtractTables;
     ReuseTables --> SaveResults;
@@ -59,9 +73,11 @@ graph TD;
     classDef decision fill:#bbf,stroke:#333,stroke-width:2px;
     classDef start fill:#9f9,stroke:#333,stroke-width:2px;
     classDef endNode fill:#f99,stroke:#333,stroke-width:2px;
+    classDef multiPage fill:#ffd,stroke:#333,stroke-width:2px;
     
     %% Apply styles
     class Start,End start;
     class TextExists,TableExists,MorePages,CheckOutputFolder,CheckPageFile,NextPage decision;
     class CallTextAPI,CallTableAPI external;
+    class MultiPageProcessing multiPage;
     %% class ExtractAndSave external; 

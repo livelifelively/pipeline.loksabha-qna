@@ -1,0 +1,35 @@
+#!/bin/bash
+# Git pre-commit hook for automatically updating docs/diagrams.json
+# Install: npm run setup-hooks
+
+set -e
+
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+cd "$PROJECT_ROOT"
+
+# Check if any .mmd files are being committed
+if git diff --cached --name-only | grep -q '\.mmd$'; then
+    echo "🔍 Detected changes to .mmd files, updating documentation..."
+    
+    # Update the diagram catalog
+    if npm run docs:update --silent; then
+        echo "✅ Updated docs/diagrams.json"
+        
+        # Add the updated diagrams.json to the commit
+        git add docs/diagrams.json
+        
+        # Generate README
+        if npm run docs:generate --silent; then
+            echo "✅ Generated docs/README.md"
+            git add docs/README.md
+        fi
+        
+        # Validate links
+        if ! npm run docs:validate --silent; then
+            echo "⚠️  Diagram validation warnings (commit will still proceed)"
+        fi
+    else
+        echo "❌ Failed to update diagrams.json"
+        exit 1
+    fi
+fi 

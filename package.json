@@ -16,7 +16,14 @@
     "start:api-ts:dev": "nodemon --watch 'api/ts/**/*.ts' --exec ts-node api/ts/server.ts",
     "build:api-ts": "tsc -p api/ts/tsconfig.json",
     "start:api-py": "uvicorn api.py.main:app --reload --port 8001",
-    "start:cli": "source .venv/bin/activate && python -m cli.py.main"
+    "start:cli": "source .venv/bin/activate && python -m cli.py.main",
+    "docs:discover": "ts-node tools/diagram-manager.ts discover",
+    "docs:update": "ts-node tools/diagram-manager.ts update",
+    "docs:generate": "ts-node tools/diagram-manager.ts generate-readme",
+    "docs:validate": "ts-node tools/diagram-manager.ts validate",
+    "docs:reorganize": "ts-node tools/diagram-manager.ts reorganize",
+    "docs:all": "npm run docs:update && npm run docs:generate && npm run docs:validate",
+    "setup-hooks": "GIT_DIR=$(git rev-parse --git-dir) && mkdir -p \"$GIT_DIR/hooks\" && cp tools/git-hooks/pre-commit \"$GIT_DIR/hooks/pre-commit\" && chmod +x \"$GIT_DIR/hooks/pre-commit\" && echo '✅ Git hooks installed successfully'"
   },
   "keywords": [],
   "author": "",
@@ -32,7 +39,8 @@
     "express": "^5.1.0",
     "lodash": "^4.17.21",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "glob": "^10.3.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

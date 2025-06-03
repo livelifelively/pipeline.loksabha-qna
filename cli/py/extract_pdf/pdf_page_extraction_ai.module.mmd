@@ -1,0 +1,62 @@
+graph TD
+    %% Main Components
+    Orchestrator[PDFExtractionOrchestrator]
+    PageSplitter[PDFPageSplitter]
+    TextExtractor[TextExtractor]
+    TableExtractor[TableExtractor]
+    MultiPageHandler[MultiPageTableHandler]
+    RangeDetector[TableRangeDetector]
+    ResultCombiner[ExtractionResultCombiner]
+    ResultSaver[ExtractionResultSaver]
+
+    %% Data Flow
+    Input[Input PDF] --> Orchestrator
+    Orchestrator --> PageSplitter
+    Orchestrator --> RangeDetector
+    Orchestrator --> MultiPageHandler
+
+    %% Page Processing Flow
+    PageSplitter --> |Split Pages| SinglePages[Single Pages]
+    SinglePages --> TextExtractor
+    SinglePages --> TableExtractor
+
+    %% Multi-page Table Flow
+    RangeDetector --> |Detect Ranges| MultiPageRanges[Multi-page Ranges]
+    MultiPageRanges --> MultiPageHandler
+    MultiPageHandler --> |Extract Tables| MultiPageTables[Multi-page Tables]
+
+    %% Result Processing
+    TextExtractor --> |Text Results| ResultCombiner
+    TableExtractor --> |Table Results| ResultCombiner
+    MultiPageHandler --> |Multi-page Results| ResultCombiner
+    ResultCombiner --> |Combined Results| ResultSaver
+    ResultSaver --> |Save| Output[Output Files]
+
+    %% Subgraph for Components
+    subgraph Components
+        PageSplitter
+        TextExtractor
+        TableExtractor
+        MultiPageHandler
+        RangeDetector
+        ResultCombiner
+        ResultSaver
+    end
+
+    %% Subgraph for Data
+    subgraph Data
+        Input
+        SinglePages
+        MultiPageRanges
+        MultiPageTables
+        Output
+    end
+
+    %% Styling
+    classDef component fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef data fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef orchestrator fill:#bfb,stroke:#333,stroke-width:2px;
+
+    class PageSplitter,TextExtractor,TableExtractor,MultiPageHandler,RangeDetector,ResultCombiner,ResultSaver component;
+    class Input,SinglePages,MultiPageRanges,MultiPageTables,Output data;
+    class Orchestrator orchestrator; 

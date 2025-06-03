@@ -1,0 +1,340 @@
+{
+  "metadata": {
+    "generated_at": "2025-06-03T09:13:48.780Z",
+    "version": "1.0.0",
+    "description": "Auto-generated catalog of Mermaid diagrams in the Loksabha QNA pipeline project",
+    "project": "pipeline.loksabha-qna",
+    "total_diagrams": 8
+  },
+  "categories": {
+    "cli_workflows": {
+      "name": "CLI Workflows",
+      "description": "User-facing workflows and business processes",
+      "base_path": "cli/py/",
+      "icon": "🖥️"
+    },
+    "core_components": {
+      "name": "Core Components",
+      "description": "Internal component architecture and data flow",
+      "base_path": "apps/py/documents/extractors/",
+      "icon": "⚙️"
+    },
+    "domain_logic": {
+      "name": "Domain Logic",
+      "description": "Domain-specific processing workflows",
+      "base_path": "apps/py/parliament_questions/",
+      "icon": "📊"
+    },
+    "workflows": {
+      "name": "Temporal Workflows",
+      "description": "Temporal.io workflow definitions",
+      "base_path": "workflows/",
+      "icon": "🔄"
+    },
+    "api": {
+      "name": "API Documentation",
+      "description": "API endpoints and service architecture",
+      "base_path": "api/",
+      "icon": "🌐"
+    }
+  },
+  "diagrams": {
+    "menu": {
+      "file": "cli/py/extract_pdf/menu.mmd",
+      "title": "Menu",
+      "type": "other",
+      "category": "cli_workflows",
+      "description": "Entry point and navigation flow for PDF processing CLI",
+      "components": [
+        "Quit",
+        "Back"
+      ],
+      "links_to": [
+        "extract_pdf_workflow",
+        "fix_tables_workflow"
+      ],
+      "last_modified": "2025-05-31T13:41:31.016Z",
+      "file_size": 908,
+      "discovered": true
+    },
+    "extract_pdf_workflow": {
+      "file": "cli/py/extract_pdf/extract_pdf.workflow.mmd",
+      "title": "Extract PDF Workflow",
+      "type": "workflow",
+      "category": "cli_workflows",
+      "description": "Complete PDF text extraction workflow from user selection to results",
+      "links_to": [
+        "ministry_workflow",
+        "document_workflow",
+        "pdf_extraction_orchestrator"
+      ],
+      "components": [
+        "ExtractPDFWorkflow"
+      ],
+      "last_modified": "2025-01-03T10:00:00Z"
+    },
+    "fix_tables_workflow": {
+      "file": "cli/py/extract_pdf/fix_tables.workflow.mmd",
+      "title": "Fix Tables Workflow",
+      "type": "workflow",
+      "category": "cli_workflows",
+      "description": "AI-powered table detection and fixing workflow",
+      "links_to": [
+        "pdf_extraction_orchestrator"
+      ],
+      "components": [
+        "FixTablesWorkflow"
+      ],
+      "last_modified": "2025-01-03T10:00:00Z"
+    },
+    "ministry_workflow": {
+      "file": "cli/py/extract_pdf/ministry.extract_pdf.workflow.mmd",
+      "title": "Ministry Processing",
+      "type": "workflow",
+      "category": "cli_workflows",
+      "description": "Ministry-level document processing workflow",
+      "links_to": [
+        "document_workflow"
+      ],
+      "components": [
+        "process_ministry"
+      ],
+      "last_modified": "2025-01-03T10:00:00Z"
+    },
+    "document_workflow": {
+      "file": "cli/py/extract_pdf/documents.extract_pdf.workflow.mmd",
+      "title": "Document Processing",
+      "type": "workflow",
+      "category": "cli_workflows",
+      "description": "Individual document processing workflow",
+      "links_to": [
+        "pdf_extractor"
+      ],
+      "components": [
+        "extract_documents"
+      ],
+      "last_modified": "2025-01-03T10:00:00Z"
+    },
+    "pdf_extraction_orchestrator": {
+      "file": "cli/py/extract_pdf/pdf_page_extraction_ai.module.mmd",
+      "title": "PDF Extraction Orchestrator",
+      "type": "module",
+      "category": "core_components",
+      "description": "Core PDF processing engine architecture and component relationships",
+      "links_to": [
+        "pdf_extraction_sequence",
+        "page_extractor"
+      ],
+      "components": [
+        "PDFExtractionOrchestrator",
+        "PageSplitter",
+        "TextExtractor",
+        "TableExtractor"
+      ],
+      "target_location": "apps/py/documents/extractors/orchestrator.mmd",
+      "last_modified": "2025-01-03T10:00:00Z"
+    },
+    "pdf_extraction_sequence": {
+      "file": "cli/py/extract_pdf/pdf_page_extraction_ai.sequence.mmd",
+      "title": "PDF Extraction Sequence",
+      "type": "sequence",
+      "category": "core_components",
+      "description": "Sequence diagram showing interaction flow in PDF extraction process",
+      "related_to": [
+        "pdf_extraction_orchestrator"
+      ],
+      "components": [
+        "PDFExtractionOrchestrator"
+      ],
+      "target_location": "apps/py/documents/extractors/orchestrator.sequence.mmd",
+      "last_modified": "2025-01-03T10:00:00Z"
+    },
+    "page_extractor": {
+      "file": "cli/py/extract_pdf/pdf_selected_pages_extractor.module.mmd",
+      "title": "Page Extractor Module",
+      "type": "module",
+      "category": "core_components",
+      "description": "Page-level PDF extraction and processing components",
+      "components": [
+        "PDFSelectedPagesTextTableExtractor"
+      ],
+      "target_location": "apps/py/documents/extractors/page_extractor.mmd",
+      "last_modified": "2025-01-03T10:00:00Z"
+    },
+    "pdf_extractor": {
+      "file": "cli/py/extract_pdf/extract_pdf_contents.module.mmd",
+      "title": "PDF Content Extractor",
+      "type": "module",
+      "category": "domain_logic",
+      "description": "PDF content extraction orchestration and error handling",
+      "components": [
+        "PDFExtractor"
+      ],
+      "target_location": "apps/py/parliament_questions/pdf_extraction.mmd",
+      "last_modified": "2025-01-03T10:00:00Z"
+    },
+    "pdf_selected_pages_extractor": {
+      "file": "cli/py/extract_pdf/pdf_selected_pages_extractor.module.mmd",
+      "title": "Pdf Selected Pages Extractor",
+      "type": "module",
+      "category": "cli_workflows",
+      "description": "module diagram",
+      "components": [
+        "No",
+        "Yes"
+      ],
+      "links_to": [],
+      "last_modified": "2025-06-03T09:13:18.363Z",
+      "file_size": 3978,
+      "discovered": true
+    },
+    "pdf_page_extraction_ai": {
+      "file": "cli/py/extract_pdf/pdf_page_extraction_ai.module.mmd",
+      "title": "Pdf Page Extraction Ai",
+      "type": "module",
+      "category": "cli_workflows",
+      "description": "module diagram",
+      "components": [
+        "PDFExtractionOrchestrator",
+        "PDFPageSplitter",
+        "TextExtractor",
+        "TableExtractor",
+        "MultiPageTableHandler",
+        "TableRangeDetector",
+        "ExtractionResultCombiner",
+        "ExtractionResultSaver"
+      ],
+      "links_to": [],
+      "last_modified": "2025-06-01T15:17:56.939Z",
+      "file_size": 1986,
+      "discovered": true
+    },
+    "ministry_extract_pdf": {
+      "file": "cli/py/extract_pdf/ministry.extract_pdf.workflow.mmd",
+      "title": "Ministry.extract Pdf",
+      "type": "workflow",
+      "category": "cli_workflows",
+      "description": "workflow diagram",
+      "components": [
+        "No",
+        "Yes"
+      ],
+      "links_to": [],
+      "last_modified": "2025-05-31T14:42:15.005Z",
+      "file_size": 1104,
+      "discovered": true
+    },
+    "fix_tables": {
+      "file": "cli/py/extract_pdf/fix_tables.workflow.mmd",
+      "title": "Fix Tables",
+      "type": "workflow",
+      "category": "cli_workflows",
+      "description": "workflow diagram",
+      "components": [
+        "No",
+        "Yes",
+        "All",
+        "Ministry",
+        "Document"
+      ],
+      "links_to": [],
+      "last_modified": "2025-06-01T07:13:13.487Z",
+      "file_size": 3186,
+      "discovered": true
+    },
+    "extract_pdf_contents": {
+      "file": "cli/py/extract_pdf/extract_pdf_contents.module.mmd",
+      "title": "Extract Pdf Contents",
+      "type": "module",
+      "category": "cli_workflows",
+      "description": "module diagram",
+      "components": [
+        "Error"
+      ],
+      "links_to": [],
+      "last_modified": "2025-06-01T03:23:00.186Z",
+      "file_size": 2424,
+      "discovered": true
+    },
+    "extract_pdf": {
+      "file": "cli/py/extract_pdf/extract_pdf.workflow.mmd",
+      "title": "Extract Pdf",
+      "type": "workflow",
+      "category": "cli_workflows",
+      "description": "workflow diagram",
+      "components": [
+        "Rejected",
+        "Yes",
+        "No"
+      ],
+      "links_to": [
+        "select_sansad_workflow",
+        "select_session_workflow",
+        "select_ministry_workflow"
+      ],
+      "last_modified": "2025-06-01T05:56:24.220Z",
+      "file_size": 2529,
+      "discovered": true
+    },
+    "documents_extract_pdf": {
+      "file": "cli/py/extract_pdf/documents.extract_pdf.workflow.mmd",
+      "title": "Documents.extract Pdf",
+      "type": "workflow",
+      "category": "cli_workflows",
+      "description": "workflow diagram",
+      "components": [
+        "Yes",
+        "No"
+      ],
+      "links_to": [],
+      "last_modified": "2025-06-01T03:18:51.592Z",
+      "file_size": 965,
+      "discovered": true
+    }
+  },
+  "navigation": {
+    "entry_points": [],
+    "workflow_chains": [],
+    "component_hierarchy": {
+      "pdf_extraction_orchestrator": [
+        "pdf_extraction_sequence",
+        "page_extractor"
+      ],
+      "page_extractor": [
+        "pdf_extractor"
+      ]
+    }
+  },
+  "planned_reorganization": {
+    "enabled": true,
+    "moves": [
+      {
+        "from": "cli/py/extract_pdf/pdf_page_extraction_ai.module.mmd",
+        "to": "apps/py/documents/extractors/orchestrator.mmd",
+        "reason": "Component documentation should be with component code"
+      },
+      {
+        "from": "cli/py/extract_pdf/pdf_page_extraction_ai.sequence.mmd",
+        "to": "apps/py/documents/extractors/orchestrator.sequence.mmd",
+        "reason": "Sequence diagram belongs with component"
+      },
+      {
+        "from": "cli/py/extract_pdf/pdf_selected_pages_extractor.module.mmd",
+        "to": "apps/py/documents/extractors/page_extractor.mmd",
+        "reason": "Component documentation should be with component code"
+      },
+      {
+        "from": "cli/py/extract_pdf/extract_pdf_contents.module.mmd",
+        "to": "apps/py/parliament_questions/pdf_extraction.mmd",
+        "reason": "Domain logic documentation should be with domain code"
+      }
+    ]
+  },
+  "scripts": {
+    "discover": "Discover all .mmd files in the project",
+    "update": "Update this catalog with discovered files",
+    "validate": "Validate diagram links and references",
+    "generate-docs": "Generate documentation from catalog",
+    "reorganize": "Execute planned file reorganization"
+  }
+}

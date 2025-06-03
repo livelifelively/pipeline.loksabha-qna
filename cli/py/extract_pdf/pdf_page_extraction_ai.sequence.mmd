@@ -1,0 +1,46 @@
+sequenceDiagram
+    participant Client
+    participant Orchestrator as PDFExtractionOrchestrator
+    participant PageSplitter as PDFPageSplitter
+    participant RangeDetector as TableRangeDetector
+    participant TextExtractor as TextExtractor
+    participant TableExtractor as TableExtractor
+    participant MultiPageHandler as MultiPageTableHandler
+    participant ResultCombiner as ExtractionResultCombiner
+    participant ResultSaver as ExtractionResultSaver
+
+    Client->>Orchestrator: extract_and_save_content(pdf_path, page_numbers)
+    
+    %% Setup and Initial Processing
+    Orchestrator->>Orchestrator: _setup_output_folder()
+    Orchestrator->>RangeDetector: detect_ranges(page_numbers)
+    RangeDetector-->>Orchestrator: continuous_ranges
+    Orchestrator->>RangeDetector: check_multi_page_tables(ranges)
+    RangeDetector-->>Orchestrator: multi_page_ranges
+    
+    %% Process Single Pages
+    Orchestrator->>Orchestrator: _get_single_page_numbers()
+    Orchestrator->>PageSplitter: split_pages(pdf_path, single_pages)
+    PageSplitter-->>Orchestrator: pages_folder
+    
+    %% Extract Content from Single Pages
+    loop For each page
+        Orchestrator->>TextExtractor: extract_text(page_file)
+        TextExtractor-->>Orchestrator: text_result
+        Orchestrator->>TableExtractor: extract_tables(page_file)
+        TableExtractor-->>Orchestrator: table_result
+    end
+    
+    %% Process Multi-page Tables
+    loop For each range
+        Orchestrator->>MultiPageHandler: extract_multi_page_table(pdf_path, range)
+        MultiPageHandler-->>Orchestrator: extraction_result
+    end
+    
+    %% Combine and Save Results
+    Orchestrator->>ResultCombiner: combine_results(single_page_results, multi_page_results)
+    ResultCombiner-->>Orchestrator: combined_results
+    Orchestrator->>ResultSaver: save_results(output_folder, page_numbers, results)
+    ResultSaver-->>Orchestrator: success
+    
+    Orchestrator-->>Client: output_folder_path 
