@@ -16,7 +16,8 @@
     "start:api-ts:dev": "nodemon --watch 'api/ts/**/*.ts' --exec ts-node api/ts/server.ts",
     "build:api-ts": "tsc -p api/ts/tsconfig.json",
     "start:api-py": "uvicorn api.py.main:app --reload --port 8001",
-    "start:cli": "source .venv/bin/activate && python -m cli.py.main"
+    "start:cli": "source .venv/bin/activate && python -m cli.py.main",
+    "watch:module-graph": "ts-node scripts/watch-module-graph.ts"
   },
   "keywords": [],
   "author": "",
@@ -35,10 +36,12 @@
     "typescript": "^5.8.2"
   },
   "devDependencies": {
+    "@types/chokidar": "^1.7.5",
     "@types/cors": "^2.8.17",
     "@types/lodash": "^4.17.15",
     "@typescript-eslint/eslint-plugin": "^8.29.0",
     "@typescript-eslint/parser": "^8.29.0",
+    "chokidar": "^4.0.3",
     "concurrently": "^9.1.2",
     "nodemon": "^3.1.9",
     "wait-on": "^8.0.2"
