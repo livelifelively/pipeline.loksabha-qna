@@ -58,7 +58,7 @@ class CombinedResults(BaseModel):
     """Combined results from all extraction processes."""
 
     pages_processed: int = Field(description="Total number of pages processed")
-    results: Dict[PageIdentifier, TableResult] = Field(
+    table_results: Dict[PageIdentifier, TableResult] = Field(
         description="Raw results mapping page numbers (for single pages) or page ranges (for multi-page tables) to their extraction results"
     )
     summary: ExtractionSummary = Field(description="Summary statistics for the extraction process")
@@ -67,7 +67,7 @@ class CombinedResults(BaseModel):
     )
 
     # Structured view of results
-    multi_page_tables: List[MultiPageTableInfo] = Field(
+    multi_page_tables: List[MultiPageTableResult] = Field(
         default_factory=list, description="List of all multi-page tables found"
     )
     single_page_tables: List[SinglePageTableResult] = Field(
@@ -91,18 +91,11 @@ class CombinedResults(BaseModel):
         super().__init__(**data)
         # Process results into structured format
         table_counter = 1  # Counter for assigning table numbers
-        for key, result in self.results.items():
+        for key, result in self.table_results.items():
             if isinstance(key, tuple):  # Multi-page table
                 if isinstance(result, MultiPageTableResult) and result.status == "success":
                     result.table_number = table_counter
-                    self.multi_page_tables.append(
-                        MultiPageTableInfo(
-                            pages=result.pages,
-                            page_range=result.page_range,
-                            confidence=result.confidence,
-                            output_file=result.output_file,
-                        )
-                    )
+                    self.multi_page_tables.append(result)  # Add the full MultiPageTableResult
                     self.pages_with_multi_page_tables.update(result.pages)
                     self.pages_with_tables.update(result.pages)
                     table_counter += 1
@@ -165,7 +158,7 @@ class MultiPageTableExtractionResults(BaseModel):
     pages_processed: int = Field(description="Total number of pages processed")
 
     # Results mapping using the type aliases
-    results: Dict[PageIdentifier, TableResult] = Field(
+    table_results: Dict[PageIdentifier, TableResult] = Field(
         description="Raw results mapping page numbers (for single pages) or page ranges (for multi-page tables) to their extraction results"
     )
 
@@ -187,7 +180,7 @@ class MultiPageTableExtractionResults(BaseModel):
         super().__init__(**data)
         # Process results into structured format
         table_counter = 1  # Counter for assigning table numbers
-        for key, result in self.results.items():
+        for key, result in self.table_results.items():
             if isinstance(key, tuple):  # Multi-page table
                 if isinstance(result, MultiPageTableResult) and result.status == "success":
                     result.table_number = table_counter

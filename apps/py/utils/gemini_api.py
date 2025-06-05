@@ -430,17 +430,15 @@ def extract_multiple_tables_from_pdf_page(pdf_page_path: str, num_tables: int) -
                 if "```json" in extracted_text:
                     json_content = extracted_text.split("```json")[1].split("```")[0].strip()
                     parsed_json = json.loads(json_content)
-                    if not isinstance(parsed_json, dict) or "tables" not in parsed_json:
-                        parsed_json = {"tables": [parsed_json]}
-                    return {"status": "success", "content": parsed_json}
                 elif "```" in extracted_text:
                     json_content = extracted_text.split("```")[1].split("```")[0].strip()
                     parsed_json = json.loads(json_content)
-                    if not isinstance(parsed_json, dict) or "tables" not in parsed_json:
-                        parsed_json = {"tables": [parsed_json]}
-                    return {"status": "success", "content": parsed_json}
                 else:
                     raise ValueError(f"Failed to parse JSON: {e}") from e
+
+                if not isinstance(parsed_json, dict) or "tables" not in parsed_json:
+                    parsed_json = {"tables": [parsed_json]}
+                return {"status": "success", "content": parsed_json}
         except Exception as json_error:
             return {"status": "error", "error": f"JSON parsing error: {str(json_error)}", "raw_response": response.text}
 

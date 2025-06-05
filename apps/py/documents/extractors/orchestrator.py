@@ -1,13 +1,15 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 from apps.py.documents.models import (
     CombinedResults,
     ExtractionResult,
     ExtractionSummary,
+    PageIdentifier,
     SinglePageTableResult,
+    TableResult,
 )
 from apps.py.documents.utils.progress_handler import ProgressHandler
 from apps.py.utils.project_root import get_loksabha_data_root
@@ -45,9 +47,8 @@ class PDFExtractionOrchestrator(BaseExtractor):
 
     def _combine_extraction_results(
         self,
-        multi_page_results: Dict,
-        single_page_results: Dict,
-        multi_page_summary: Optional[ExtractionSummary] = None,
+        multi_page_results: Dict[PageIdentifier, TableResult],
+        single_page_results: Dict[PageIdentifier, TableResult],
         text_results: Optional[Dict[int, ExtractionResult]] = None,
     ) -> CombinedResults:
         """
@@ -56,7 +57,7 @@ class PDFExtractionOrchestrator(BaseExtractor):
         Args:
             multi_page_results: Dictionary of results from multi-page table processing
             single_page_results: Dictionary of results from single-page processing
-            multi_page_summary: Optional summary from multi-page table extraction
+            multi_page_summary: Optional summary from multi-page table extraction (deprecated)
             text_results: Optional dictionary of text extraction results
 
         Returns:
@@ -64,32 +65,16 @@ class PDFExtractionOrchestrator(BaseExtractor):
         """
         # Create CombinedResults object with all results
         combined_results = CombinedResults(
-            pages_processed=len(multi_page_results),
-            results=multi_page_results,
-            summary=multi_page_summary
-            or ExtractionSummary(
+            pages_processed=len(multi_page_results) + len(single_page_results),
+            table_results={**multi_page_results, **single_page_results},  # Merge both result dictionaries
+            summary=ExtractionSummary(
                 total_tables=0, successful_tables=0, failed_tables=0, multi_page_tables=0, single_page_tables=0
             ),
+            text_results=text_results or {},
         )
 
-        # Add single page results
-        for page_num, result in single_page_results.items():
-            if page_num not in combined_results.pages_with_multi_page_tables:
-                combined_results.results[page_num] = result
-                if result.status == "success":
-                    combined_results.single_page_tables.append(result)
-                    combined_results.pages_with_single_page_tables.add(page_num)
-                    combined_results.pages_with_tables.add(page_num)
-                elif result.status == "error":
-                    combined_results.errors[page_num] = result.error
-                    combined_results.pages_with_errors.add(page_num)
-
-        # Add text results
-        if text_results:
-            combined_results.text_results = text_results
-
         # Update summary
-        combined_results.summary = self.result_combiner.create_summary(combined_results.results, multi_page_summary)
+        combined_results.summary = self.result_combiner.create_summary(combined_results.table_results)
 
         return combined_results
 
@@ -260,12 +245,10 @@ class PDFExtractionOrchestrator(BaseExtractor):
                 pdf_path, continuous_ranges, output_folder_path
             )
             multi_page_results = multi_page_extraction_results.results
-            multi_page_summary = multi_page_extraction_results.summary
             # Get pages that need single-page processing
             pending_pages = list(multi_page_extraction_results.pages_without_multi_page_tables)
         else:
             multi_page_results = {}
-            multi_page_summary = {}
             pending_pages = []
 
         # Add pages that were never part of continuous ranges
@@ -284,15 +267,13 @@ class PDFExtractionOrchestrator(BaseExtractor):
         text_results = self._extract_text_for_all_pages(pdf_path, page_numbers, output_folder_path)
 
         # 7. Combine all results
-        combined_results = self._combine_extraction_results(
-            multi_page_results, single_page_results, multi_page_summary, text_results
-        )
+        combined_results = self._combine_extraction_results(multi_page_results, single_page_results, text_results)
 
         # 8. Prepare and save step data
         step_data = self._prepare_step_data(combined_results)
-        self.progress_handler.append_step(output_folder_path / "progress.json", step_data)
+        self.progress_handler.append_step(document_path / "progress.json", step_data)
 
-        return str(output_folder_path)
+        return str(document_path)
 
     def _setup_output_folder(self, document_path: str) -> Path:
         """
@@ -315,9 +296,9 @@ class PDFExtractionOrchestrator(BaseExtractor):
 
     def _process_single_page(
         self, pdf_path: str, page_num: int, output_folder_path: Path, num_tables: int
-    ) -> Union[SinglePageTableResult, CombinedResults]:
+    ) -> SinglePageTableResult:
         """
-        Process a single page for text and table extraction.
+        Process a single page for table extraction.
 
         Args:
             pdf_path: Path to the input PDF file
@@ -326,7 +307,7 @@ class PDFExtractionOrchestrator(BaseExtractor):
             num_tables: Number of tables on the page
 
         Returns:
-            Combined results from text and table extraction, or error result
+            SinglePageTableResult containing the table extraction results
         """
         temp_pdf = None
         try:
@@ -339,23 +320,16 @@ class PDFExtractionOrchestrator(BaseExtractor):
                     page_number=page_num,
                 )
 
-            # Extract text
-            text_result = self.text_extractor.extract_text(temp_pdf, page_num, output_folder_path)
             # Extract tables
             table_result = self.table_extractor.extract_tables(temp_pdf, page_num, output_folder_path, num_tables)
-
-            # Combine results
             if isinstance(table_result, SinglePageTableResult):
-                # If table extraction was successful, use its dimensions
-                if table_result.status == "success":
-                    return table_result
-                # If table extraction failed, return error result
                 return table_result
 
-            # If we got a different type of result, combine with text
-            text_results = {page_num: text_result} if text_result else {}
-            return self.result_combiner.combine_results(
-                single_page_results={page_num: table_result}, multi_page_results={}, text_results=text_results
+            # If we got a different type of result (which shouldn't happen), return an error
+            return SinglePageTableResult(
+                status="error",
+                error="Unexpected result type from table extraction",
+                page_number=page_num,
             )
 
         except Exception as e:
