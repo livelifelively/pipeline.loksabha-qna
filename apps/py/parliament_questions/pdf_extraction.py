@@ -1,7 +1,7 @@
 import json
 import shutil
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -108,15 +108,54 @@ class PDFExtractor:
         self.text_path = pdf_path.parent / "extracted_text.md"
         self.tables_path = pdf_path.parent / "extracted_tables.json"
 
+    def _process_extracted_text(self) -> Dict[str, Dict[str, Any]]:
+        """Process the extracted text file and split it by pages."""
+        pages = {}
+        try:
+            with open(self.text_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            # Split content by page markers
+            page_parts = content.split("------------------------------------------------")
+
+            for part in page_parts:
+                # Skip empty parts
+                if not part.strip():
+                    continue
+
+                # Find page number
+                page_match = part.strip().split("\n", 1)
+                if not page_match or len(page_match) < 2:
+                    continue
+
+                page_num = page_match[0].strip("{}")
+                if not page_num.isdigit():
+                    continue
+
+                # Convert page number to 1-based index (since file uses 0-based)
+                page_num = str(int(page_num) + 1)
+                text_content = page_match[1].strip() if len(page_match) > 1 else ""
+
+                pages[page_num] = {"status": "success", "text": text_content}
+
+        except Exception as e:
+            print(f"Warning: Error processing extracted text: {str(e)}")
+
+        return pages
+
     def _create_extraction_step(self, tables: List[Dict]) -> Dict[str, Any]:
         """Create extraction step data."""
+        # Process the extracted text file to get page-level data
+        pages_data = self._process_extracted_text()
+
         return {
             "step": "pdf_extraction",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "status": "success",
             "data": {
                 "extracted_text_path": str(self.text_path.name),
                 "tables_path": str(self.tables_path.name),
+                "pages": pages_data,
                 **self._create_table_summary(tables),
             },
         }
@@ -125,7 +164,7 @@ class PDFExtractor:
         """Create failure step data."""
         return {
             "step": "pdf_extraction",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "status": "failed",
             "error": str(error),
         }

@@ -123,58 +123,99 @@ class PDFExtractionOrchestrator(BaseExtractor):
         return text_results
 
     def _prepare_step_data(self, combined_results: CombinedResults) -> dict:
-        """
-        Prepare step data for progress tracking.
+        # Prepare pages data
+        pages = {}
+        for page_num in combined_results.pages_with_tables | combined_results.pages_with_errors:
+            # Get table results for this page
+            table_result = next((t for t in combined_results.single_page_tables if t.page_number == page_num), None)
 
-        Args:
-            combined_results: Combined results from extraction
+            # Get text result for this page
+            text_result = combined_results.text_results.get(page_num)
 
-        Returns:
-            Dictionary containing step data
-        """
+            # Determine page status
+            status = "success"
+            if page_num in combined_results.pages_with_errors:
+                status = "error"
+
+            # Build page data
+            page_data = {
+                "status": status,
+                "has_multi_page_tables": page_num in combined_results.pages_with_multi_page_tables,
+                "has_multiple_tables": table_result.tables_count > 1
+                if table_result and table_result.tables_count
+                else False,
+            }
+
+            # Add table information and content
+            if table_result and table_result.status == "success":
+                page_data["table_file_name"] = table_result.output_file
+                # Read table content from file
+                try:
+                    table_file = self.data_root / table_result.output_file
+                    with open(table_file, "r") as f:
+                        table_content = json.load(f)
+                    # For single table, content is the array directly
+                    # For multiple tables, content has a 'tables' key with array of tables
+                    if isinstance(table_content, list):
+                        page_data["tables"] = [table_content]
+                    else:
+                        page_data["tables"] = table_content.get("tables", [])
+                except Exception as e:
+                    print(f"Warning: Could not read table content for page {page_num}: {e}")
+
+            # Add text information and content
+            if text_result and text_result.status == "success":
+                page_data["text_file_name"] = text_result.output_file
+                # Read text content from file
+                try:
+                    text_file = self.data_root / text_result.output_file
+                    with open(text_file, "r") as f:
+                        page_data["text"] = f.read()
+                except Exception as e:
+                    print(f"Warning: Could not read text content for page {page_num}: {e}")
+
+            # Add error information if any
+            if status == "error":
+                page_data["error"] = combined_results.errors.get(page_num)
+
+            pages[str(page_num)] = page_data
+
+        # Add multi-page table information
+        for table in combined_results.multi_page_tables:
+            # Read multi-page table content
+            try:
+                table_file = self.data_root / table.output_file
+                with open(table_file, "r") as f:
+                    table_content = json.load(f)
+                table_data = table_content.get("tables", [])
+            except Exception as e:
+                print(f"Warning: Could not read multi-page table content: {e}")
+                table_data = []
+
+            for page_num in table.pages:
+                if str(page_num) not in pages:
+                    pages[str(page_num)] = {
+                        "status": "success",
+                        "has_multi_page_tables": True,
+                        "has_multiple_tables": False,
+                        "tables": table_data,
+                        "table_file_name": table.output_file,
+                    }
+                else:
+                    pages[str(page_num)]["table_file_name"] = table.output_file
+                    pages[str(page_num)]["tables"] = table_data
+
         return {
             "step": "tables_extraction",
             "timestamp": datetime.now().isoformat(),
             "status": "success" if not combined_results.pages_with_errors else "error",
-            "data": {
-                "multi_page_tables": [
-                    {
-                        "table_number": table.table_number,
-                        "pages": table.pages,
-                        "page_range": table.page_range,
-                        "confidence": table.confidence,
-                        "output_file": table.output_file,
-                        "table_dimensions": table.table_dimensions,
-                    }
-                    for table in combined_results.multi_page_tables
-                ],
-                "single_page_tables": [
-                    {
-                        "table_number": table.table_number,
-                        "page": table.page_number,
-                        "output_file": table.output_file,
-                        "table_dimensions": table.table_dimensions,
-                    }
-                    for table in combined_results.single_page_tables
-                ],
-                "text_results": [
-                    {
-                        "page": page_num,
-                        "output_file": result.output_file,
-                        "status": result.status,
-                        "error": result.error,
-                    }
-                    for page_num, result in combined_results.text_results.items()
-                ],
-                "summary": {
-                    "total_tables": combined_results.summary.total_tables,
-                    "successful_tables": combined_results.summary.successful_tables,
-                    "failed_tables": combined_results.summary.failed_tables,
-                    "multi_page_tables": combined_results.summary.multi_page_tables,
-                    "single_page_tables": combined_results.summary.single_page_tables,
-                },
-                "errors": combined_results.errors,
-            },
+            "pages": pages,
+            # Summary statistics
+            "total_tables": combined_results.summary.total_tables,
+            "successful_tables": combined_results.summary.successful_tables,
+            "failed_tables": combined_results.summary.failed_tables,
+            "multi_page_tables": combined_results.summary.multi_page_tables,
+            "single_page_tables": combined_results.summary.single_page_tables,
         }
 
     def _get_pages_with_multiple_tables(self, progress_file_path: Path) -> Dict[int, List[dict]]:
