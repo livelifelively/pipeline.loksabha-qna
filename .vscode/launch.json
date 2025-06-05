@@ -27,9 +27,12 @@
       "name": "Debug CLI Python",
       "type": "debugpy",
       "request": "launch",
-      "module": "cli.py.extract_pdf.menu",
+      "program": "${workspaceFolder}/cli/py/main.py",
+      "console": "integratedTerminal",
       "justMyCode": false,
-      "console": "integratedTerminal"
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      }
     },
     {
       "name": "TypeScript: Attach to Worker",
