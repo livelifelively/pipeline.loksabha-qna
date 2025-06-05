@@ -100,7 +100,7 @@ class ExtractPDFWorkflow(BaseWorkflow):
     def run(self):
         """Main entry point to run the workflow."""
         # Get selections using common workflow
-        self.selected_sansad, self.selected_session, self.selected_ministries = get_selection_workflow()
+        self.selected_sansad, _, self.selected_ministries = get_selection_workflow()
 
         if not self.selected_sansad:  # Selection was cancelled
             return
@@ -478,7 +478,7 @@ class FixTablesWorkflow(BaseWorkflow):
     def run(self):
         """Main entry point to run the workflow."""
         # Get selections using common workflow
-        self.selected_sansad, self.selected_ministries = get_selection_workflow()
+        self.selected_sansad, _, self.selected_ministries = get_selection_workflow()
 
         if not self.selected_sansad:  # Selection was cancelled
             return
@@ -671,12 +671,9 @@ class FixTablesWorkflow(BaseWorkflow):
                     if not doc_path.exists():
                         raise FileNotFoundError(f"PDF file not found at: {doc_path}")
 
-                    # Define output folder in the document directory
-                    output_folder = doc_path.parent / "pages"
-
                     # Call PDF extractor to process the pages
                     print("  Splitting PDF and processing pages with tables...")
-                    pdf_extractor.extract_and_save_content(str(doc_path), table_pages, str(output_folder))
+                    pdf_extractor.extract_and_save_content(str(doc_path), table_pages)
 
                     print("  ✓ Successfully processed pages with tables")
                 except Exception as e:

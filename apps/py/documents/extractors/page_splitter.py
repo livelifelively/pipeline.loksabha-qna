@@ -50,7 +50,7 @@ class PDFPageSplitter:
             print(f"  ✓ Saved page {page_number} to {output_path.name}")
 
         print(f"Successfully saved {len(valid_page_numbers)} pages to folder: '{output_folder}'")
-        return str(output_folder)
+        return str(output_path)
 
     def _validate_page_numbers(self, page_numbers: List[int], total_pages: int) -> List[int]:
         """

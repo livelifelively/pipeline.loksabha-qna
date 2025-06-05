@@ -55,3 +55,4 @@ class TableRangeDetector:
             pages_in_ranges.update(range(start, end + 1))
 
         # Return pages that are not in any range
+        return [page for page in all_pages if page not in pages_in_ranges]

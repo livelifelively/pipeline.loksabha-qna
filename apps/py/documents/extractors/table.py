@@ -4,14 +4,19 @@ from typing import Dict, List, Optional, Tuple, Union
 
 from apps.py.documents.models import (
     ExtractionResult,
-    ExtractionSummary,
     MultiPageTableExtractionResults,
     MultiPageTableInfo,
     MultiPageTableResult,
     SinglePageTableResult,
     TableDetectionResult,
+    TableSummary,
 )
-from apps.py.utils.gemini_api import detect_multi_page_tables, extract_multi_page_table, extract_tables_from_pdf_page
+from apps.py.utils.gemini_api import (
+    detect_multi_page_tables,
+    extract_multi_page_table,
+    extract_multiple_tables_from_pdf_page,
+    extract_tables_from_pdf_page,
+)
 
 from .base import BaseExtractor
 from .page_splitter import PDFPageSplitter
@@ -55,37 +60,55 @@ class BaseTableExtractor(BaseExtractor):
 class TableExtractor(BaseTableExtractor):
     """Extractor for tables from PDF pages."""
 
-    def extract_tables(self, page_file: Path, page_num: int, output_folder: Optional[Path] = None) -> ExtractionResult:
+    def extract_tables(
+        self, page_file: Path, page_num: int, output_folder: Optional[Path] = None, num_tables: int = 1
+    ) -> ExtractionResult:
         """
         Extract tables from a single-page PDF file and save as JSON.
         Args:
             page_file: Path to the single-page PDF file.
             page_num: Page number (for naming output).
             output_folder: Where to save the extracted tables file.
+            num_tables: Number of tables expected on this page (default: 1)
         Returns:
             ExtractionResult with status and output details
         """
         output_folder = output_folder or page_file.parent
         self._ensure_output_folder(output_folder)
-        table_result = extract_tables_from_pdf_page(str(page_file))
+
+        # Choose extraction strategy based on number of tables
+        if num_tables > 1:
+            # Use multi-table extraction for pages with multiple tables
+            table_result = extract_multiple_tables_from_pdf_page(str(page_file), num_tables)
+        else:
+            # Use single table extraction for pages with one table
+            table_result = extract_tables_from_pdf_page(str(page_file))
 
         if table_result["status"] == "success":
             output_json = output_folder / f"page_{page_num}_tables.json"
             content = table_result["content"]
             relative_path = self._save_table_result(content, output_json)
-            tables_count = self._get_tables_count(content)
+            tables_count = num_tables  # Use the known number of tables
 
-            # Get table dimensions from content
-            num_rows = len(content.get("tables", [{}])[0].get("rows", [])) if content.get("tables") else 0
-            num_columns = len(content.get("tables", [{}])[0].get("columns", [])) if content.get("tables") else 0
+            # Get dimensions for all tables
+            try:
+                if num_tables > 1:
+                    # Multiple tables: content has 'tables' key with array of tables
+                    tables = content.get("tables", [])
+                    table_dimensions = [{"num_rows": len(table)} for table in tables]
+                else:
+                    # Single table: content is the array of row objects
+                    table_dimensions = [{"num_rows": len(content)}]
+            except Exception as e:
+                print(f"Warning: Could not get table dimensions: {e}")
+                table_dimensions = [{"num_rows": 0} for _ in range(num_tables)]
 
             return SinglePageTableResult(
                 status="success",
                 output_file=relative_path,
                 tables_count=tables_count,
                 page_number=page_num,
-                num_rows=num_rows,
-                num_columns=num_columns,
+                table_dimensions=table_dimensions,
             )
         else:
             return SinglePageTableResult(
@@ -148,6 +171,8 @@ class MultiPageTableHandler(BaseTableExtractor):
         total_tables = 0
         successful_tables = 0
         failed_tables = 0
+        multi_page_tables = 0
+        single_page_tables = 0
 
         for start_page, end_page in continuous_ranges:
             print(f"\nProcessing potential multi-page table on pages {start_page}-{end_page}")
@@ -172,12 +197,17 @@ class MultiPageTableHandler(BaseTableExtractor):
                             successful_tables += result.tables_count or 0
                         else:
                             failed_tables += result.tables_count or 0
+                        if isinstance(result, MultiPageTableResult):
+                            multi_page_tables += result.tables_count or 0
+                        elif isinstance(result, SinglePageTableResult):
+                            single_page_tables += result.tables_count or 0
             finally:
                 # Clean up temporary file
                 if temp_pdf and Path(temp_pdf).exists():
                     Path(temp_pdf).unlink()
 
-        summary = ExtractionSummary(
+        # Create TableSummary for MultiPageTableExtractionResults
+        table_summary = TableSummary(
             total_tables=total_tables,
             successful_tables=successful_tables,
             failed_tables=failed_tables,
@@ -186,7 +216,7 @@ class MultiPageTableHandler(BaseTableExtractor):
         return MultiPageTableExtractionResults(
             pages_processed=len(results),
             results=results,
-            summary=summary,
+            summary=table_summary,
         )
 
     def _process_single_range(
@@ -312,8 +342,12 @@ class MultiPageTableHandler(BaseTableExtractor):
 
             # Get table dimensions from content
             content = extraction_result["content"]
-            num_rows = len(content.get("tables", [{}])[0].get("rows", [])) if content.get("tables") else 0
-            num_columns = len(content.get("tables", [{}])[0].get("columns", [])) if content.get("tables") else 0
+            try:
+                tables = content.get("tables", [{}])
+                table_dimensions = [{"num_rows": len(table.get("rows", []))} for table in tables]
+            except Exception as e:
+                print(f"Warning: Could not get table dimensions: {e}")
+                table_dimensions = [{"num_rows": 0}]
 
             # Store successful extraction result
             multi_page_result = MultiPageTableResult(
@@ -324,8 +358,7 @@ class MultiPageTableHandler(BaseTableExtractor):
                 tables_count=1,
                 pages=table_info.pages,
                 page_range=(start_page, end_page),
-                num_rows=num_rows,
-                num_columns=num_columns,
+                table_dimensions=table_dimensions,
             )
             return {(start_page, end_page): multi_page_result}
 

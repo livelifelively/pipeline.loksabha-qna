@@ -1,6 +1,7 @@
+import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 from apps.py.documents.models import (
     CombinedResults,
@@ -65,7 +66,10 @@ class PDFExtractionOrchestrator(BaseExtractor):
         combined_results = CombinedResults(
             pages_processed=len(multi_page_results),
             results=multi_page_results,
-            summary=multi_page_summary or ExtractionSummary(total_tables=0, successful_tables=0, failed_tables=0),
+            summary=multi_page_summary
+            or ExtractionSummary(
+                total_tables=0, successful_tables=0, failed_tables=0, multi_page_tables=0, single_page_tables=0
+            ),
         )
 
         # Add single page results
@@ -155,8 +159,7 @@ class PDFExtractionOrchestrator(BaseExtractor):
                         "page_range": table.page_range,
                         "confidence": table.confidence,
                         "output_file": table.output_file,
-                        "num_rows": table.num_rows,
-                        "num_columns": table.num_columns,
+                        "table_dimensions": table.table_dimensions,
                     }
                     for table in combined_results.multi_page_tables
                 ],
@@ -165,8 +168,7 @@ class PDFExtractionOrchestrator(BaseExtractor):
                         "table_number": table.table_number,
                         "page": table.page_number,
                         "output_file": table.output_file,
-                        "num_rows": table.num_rows,
-                        "num_columns": table.num_columns,
+                        "table_dimensions": table.table_dimensions,
                     }
                     for table in combined_results.single_page_tables
                 ],
@@ -190,9 +192,45 @@ class PDFExtractionOrchestrator(BaseExtractor):
             },
         }
 
-    def extract_and_save_content(
-        self, pdf_path: str, page_numbers: List[int], output_folder: Optional[str] = None
-    ) -> str:
+    def _get_pages_with_multiple_tables(self, progress_file_path: Path) -> Dict[int, List[dict]]:
+        """
+        Get information about pages that have multiple tables from progress.json.
+
+        Args:
+            progress_file: Path to the progress.json file
+
+        Returns:
+            Dictionary mapping page numbers to their table information, but only for pages with multiple tables
+        """
+        pages_with_multiple_tables = {}
+        if not progress_file_path.exists():
+            return pages_with_multiple_tables
+
+        try:
+            with open(progress_file_path) as f:
+                progress_data = json.load(f)
+                # Get tables info from pdf_extraction step
+                for step in progress_data.get("steps", []):
+                    if step["step"] == "pdf_extraction" and step["status"] == "success":
+                        tables_data = step["data"].get("tables_data", {})
+                        # Group tables by page
+                        page_tables = {}
+                        for table in tables_data.get("tables_summary", []):
+                            page = table["page"]
+                            if page not in page_tables:
+                                page_tables[page] = []
+                            page_tables[page].append(table)
+
+                        # Keep only pages with multiple tables
+                        pages_with_multiple_tables = {
+                            page: tables for page, tables in page_tables.items() if len(tables) > 1
+                        }
+        except Exception as e:
+            print(f"Warning: Could not load progress data: {e}")
+
+        return pages_with_multiple_tables
+
+    def extract_and_save_content(self, pdf_path: str, page_numbers: List[int]) -> str:
         """
         Main entry point to extract and save text and table content from selected pages of a PDF.
 
@@ -204,33 +242,43 @@ class PDFExtractionOrchestrator(BaseExtractor):
         Returns:
             Path to the folder containing the extracted content
         """
+        document_path = Path(pdf_path).parent
+
         # 1. Setup output folder
-        output_folder_path = self._setup_output_folder(pdf_path, output_folder)
+        output_folder_path = self._setup_output_folder(document_path)
+
+        # Load existing progress data if available
+        progress_file_path = document_path / "progress.json"
+        tables_info = self._get_pages_with_multiple_tables(progress_file_path)
 
         # 2. Analyze page ranges using TableRangeDetector
         continuous_ranges = self.range_detector.detect_ranges(page_numbers)
 
         # 3. Process multi-page tables
-        multi_page_results, multi_page_summary = self._process_multi_page_tables(
-            pdf_path, continuous_ranges, output_folder_path
-        )
+        if continuous_ranges:
+            multi_page_extraction_results = self.multi_page_handler.process_continuous_ranges(
+                pdf_path, continuous_ranges, output_folder_path
+            )
+            multi_page_results = multi_page_extraction_results.results
+            multi_page_summary = multi_page_extraction_results.summary
+            # Get pages that need single-page processing
+            pending_pages = list(multi_page_extraction_results.pages_without_multi_page_tables)
+        else:
+            multi_page_results = {}
+            multi_page_summary = {}
+            pending_pages = []
 
-        # 4. Get single pages using TableRangeDetector
-        single_pages = self.range_detector.get_single_pages(page_numbers, continuous_ranges)
+        # Add pages that were never part of continuous ranges
+        pending_pages.extend(self.range_detector.get_single_pages(page_numbers, continuous_ranges))
 
-        # 5. add single_page_results to pending pages from multi_page_results
+        # Process single pages
         single_page_results = {}
-        # Get pages marked as "pending" from multi-page results
-        pending_pages = [
-            page_num
-            for page_num, result in multi_page_results.items()
-            if isinstance(result, SinglePageTableResult) and result.status == "pending"
-        ]
-        # Add any pages that weren't part of continuous ranges
-        pending_pages.extend(single_pages)
-
         for page_num in pending_pages:
-            single_page_results[page_num] = self._process_single_page(pdf_path, page_num, output_folder_path)
+            # If page has multiple tables, pass the count, otherwise default to 1
+            num_tables = len(tables_info.get(page_num, [])) if page_num in tables_info else 1
+            single_page_results[page_num] = self._process_single_page(
+                pdf_path, page_num, output_folder_path, num_tables
+            )
 
         # 6. Extract text from all pages
         text_results = self._extract_text_for_all_pages(pdf_path, page_numbers, output_folder_path)
@@ -246,7 +294,7 @@ class PDFExtractionOrchestrator(BaseExtractor):
 
         return str(output_folder_path)
 
-    def _setup_output_folder(self, pdf_path: str, output_folder: Optional[str] = None) -> Path:
+    def _setup_output_folder(self, document_path: str) -> Path:
         """
         Creates and returns the output folder path.
 
@@ -257,53 +305,16 @@ class PDFExtractionOrchestrator(BaseExtractor):
         Returns:
             Path to the output folder
         """
-        pdf_path = Path(pdf_path)
+        document_path = Path(document_path)
 
         # If no output folder specified, create one next to the PDF
-        if output_folder is None:
-            output_folder = pdf_path.parent / "table_extraction"
-        else:
-            output_folder = Path(output_folder)
+        output_folder = document_path / "table_extraction"
 
         # Use base class method to ensure folder exists
         return self._ensure_output_folder(output_folder)
 
-    def _process_multi_page_tables(
-        self, pdf_path: str, continuous_ranges: List[Tuple[int, int]], output_folder_path: Path
-    ) -> Tuple[Dict, Optional[ExtractionSummary]]:
-        """
-        Process multi-page tables from continuous page ranges.
-
-        Args:
-            pdf_path: Path to the input PDF file
-            continuous_ranges: List of continuous page ranges to process
-            output_folder_path: Path to save extracted content
-
-        Returns:
-            Tuple of (multi_page_results dictionary, optional multi_page_summary)
-        """
-        multi_page_results = {}
-        multi_page_summary = None
-        try:
-            multi_page_extraction_results = self.multi_page_handler.process_continuous_ranges(
-                pdf_path, continuous_ranges, output_folder_path
-            )
-            multi_page_results = multi_page_extraction_results.results
-            multi_page_summary = multi_page_extraction_results.summary
-        except RuntimeError as e:
-            error_msg = f"Error processing multi-page tables: {str(e)}"
-            # Mark all pages in continuous ranges for single-page processing
-            for start_page, end_page in continuous_ranges:
-                for page_num in range(start_page, end_page + 1):
-                    multi_page_results[page_num] = SinglePageTableResult(
-                        status="error",
-                        error=error_msg,
-                        page_number=page_num,
-                    )
-        return multi_page_results, multi_page_summary
-
     def _process_single_page(
-        self, pdf_path: str, page_num: int, output_folder_path: Path
+        self, pdf_path: str, page_num: int, output_folder_path: Path, num_tables: int
     ) -> Union[SinglePageTableResult, CombinedResults]:
         """
         Process a single page for text and table extraction.
@@ -312,6 +323,7 @@ class PDFExtractionOrchestrator(BaseExtractor):
             pdf_path: Path to the input PDF file
             page_num: Page number to process
             output_folder_path: Path to save extracted content
+            num_tables: Number of tables on the page
 
         Returns:
             Combined results from text and table extraction, or error result
@@ -330,7 +342,7 @@ class PDFExtractionOrchestrator(BaseExtractor):
             # Extract text
             text_result = self.text_extractor.extract_text(temp_pdf, page_num, output_folder_path)
             # Extract tables
-            table_result = self.table_extractor.extract_tables(temp_pdf, page_num, output_folder_path)
+            table_result = self.table_extractor.extract_tables(temp_pdf, page_num, output_folder_path, num_tables)
 
             # Combine results
             if isinstance(table_result, SinglePageTableResult):

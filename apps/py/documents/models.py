@@ -3,7 +3,13 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 
 from pydantic import BaseModel, Field
 
-from apps.py.documents.extractors.table import MultiPageTableInfo
+
+class MultiPageTableInfo(BaseModel):
+    """Information about a single multi-page table."""
+
+    pages: List[int] = Field(description="List of page numbers that are part of this table")
+    confidence: float = Field(ge=0.0, le=1.0, description="Confidence score for this table detection")
+    reasoning: str = Field(description="Explanation of why these pages are connected")
 
 
 class ExtractionResult(BaseModel):
@@ -18,15 +24,17 @@ class MultiPageTableResult(ExtractionResult):
     pages: List[int]
     page_range: Tuple[int, int]
     table_number: Optional[int] = Field(None, description="Sequential number of the table")
-    num_rows: Optional[int] = Field(None, description="Number of rows in the table")
-    num_columns: Optional[int] = Field(None, description="Number of columns in the table")
+    table_dimensions: Optional[List[Dict[str, int]]] = Field(
+        None, description="Array of table dimensions, where each element contains num_rows for that table"
+    )
 
 
 class SinglePageTableResult(ExtractionResult):
     page_number: int
     table_number: Optional[int] = Field(None, description="Sequential number of the table")
-    num_rows: Optional[int] = Field(None, description="Number of rows in the table")
-    num_columns: Optional[int] = Field(None, description="Number of columns in the table")
+    table_dimensions: Optional[List[Dict[str, int]]] = Field(
+        None, description="Array of table dimensions, where each element contains num_rows for that table"
+    )
 
 
 class ExtractionSummary(BaseModel):
@@ -39,12 +47,19 @@ class ExtractionSummary(BaseModel):
     single_page_tables: int = Field(description="Number of single-page tables")
 
 
+# Type aliases for better readability
+PageNumber = int
+PageRange = Tuple[int, int]
+PageIdentifier = Union[PageNumber, PageRange]
+TableResult = Union[SinglePageTableResult, MultiPageTableResult]
+
+
 class CombinedResults(BaseModel):
     """Combined results from all extraction processes."""
 
     pages_processed: int = Field(description="Total number of pages processed")
-    results: Dict[Union[int, Tuple[int, int]], Union[SinglePageTableResult, MultiPageTableResult]] = Field(
-        description="Raw results mapping page numbers/ranges to their extraction results"
+    results: Dict[PageIdentifier, TableResult] = Field(
+        description="Raw results mapping page numbers (for single pages) or page ranges (for multi-page tables) to their extraction results"
     )
     summary: ExtractionSummary = Field(description="Summary statistics for the extraction process")
     text_results: Dict[int, ExtractionResult] = Field(
@@ -126,14 +141,6 @@ class TableDetectionResult(BaseModel):
     error: Optional[str] = None
 
 
-class MultiPageTableInfo(BaseModel):
-    """Information about a single multi-page table."""
-
-    pages: List[int] = Field(description="List of page numbers that are part of this table")
-    confidence: float = Field(ge=0.0, le=1.0, description="Confidence score for this table detection")
-    reasoning: str = Field(description="Explanation of why these pages are connected")
-
-
 class MultiPageTableDetectionResult(BaseModel):
     """Result of multi-page table detection."""
 
@@ -156,9 +163,12 @@ class MultiPageTableExtractionResults(BaseModel):
     """Structured results for table extraction process."""
 
     pages_processed: int = Field(description="Total number of pages processed")
-    results: Dict[Union[int, Tuple[int, int]], Union[SinglePageTableResult, MultiPageTableResult]] = Field(
-        description="Raw results mapping page numbers/ranges to their extraction results"
+
+    # Results mapping using the type aliases
+    results: Dict[PageIdentifier, TableResult] = Field(
+        description="Raw results mapping page numbers (for single pages) or page ranges (for multi-page tables) to their extraction results"
     )
+
     summary: TableSummary = Field(description="Summary statistics for the extraction process")
 
     # Structured view of results

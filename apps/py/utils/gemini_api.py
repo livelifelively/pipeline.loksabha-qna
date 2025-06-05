@@ -363,3 +363,90 @@ def extract_multi_page_table(pdf_path: str, page_range: Tuple[int, int]) -> Dict
         tracker.record_usage(key_name, success=False)
         print(f"Error extracting multi-page table: {str(e)}")
         return {"status": "error", "error": str(e)}
+
+
+def extract_multiple_tables_from_pdf_page(pdf_page_path: str, num_tables: int) -> Dict:
+    """
+    Extract multiple tables from a PDF page using Gemini Vision API with key rotation.
+
+    Args:
+        pdf_page_path: Path to the PDF page file
+        num_tables: Expected number of tables on the page
+
+    Returns:
+        Dictionary with extracted tables data in JSON format
+    """
+    model, key_name = init_gemini()
+    tracker = UsageTracker(service_name="gemini")
+    limiter = RateLimiter(requests_per_minute=10)
+
+    # Apply rate limiting
+    wait_time = limiter.wait_if_needed()
+    if wait_time > 0:
+        print(f"[Rate Limiter] Waiting {wait_time:.1f}s before API call")
+
+    print(f"[Gemini API] Using key {key_name} for multiple tables extraction")
+
+    try:
+        # Read the PDF file directly
+        with open(pdf_page_path, "rb") as f:
+            pdf_data = f.read()
+
+        # Prepare the prompt for multiple tables extraction
+        prompt = f"""
+            Analyze the document and identify {num_tables} distinct tables.
+            For each table:
+            1. Extract its rows as an array of objects
+            2. Use the column headers as keys for each row object
+            3. Preserve the exact header text for keys
+            4. Keep each table's data separate from other tables
+
+            Generate a JSON object with a "tables" key containing an array where:
+            - Each element is a complete table (array of row objects)
+            - Tables appear in the same order as in the document
+            - Tables remain separate and distinct from each other
+
+            Output only the final JSON object."""
+
+        # Call Gemini API
+        response = model.generate_content([prompt, {"mime_type": "application/pdf", "data": pdf_data}])
+
+        # Record successful usage
+        tracker.record_usage(key_name, success=True)
+
+        # Process response - handle potential JSON parsing issues carefully
+        try:
+            extracted_text = response.text.strip()
+
+            # Try to parse JSON from the response
+            try:
+                parsed_json = json.loads(extracted_text)
+                # Ensure the response has the expected structure
+                if not isinstance(parsed_json, dict) or "tables" not in parsed_json:
+                    parsed_json = {"tables": [parsed_json]}  # Wrap in correct structure if needed
+                return {"status": "success", "content": parsed_json}
+            except json.JSONDecodeError as e:
+                # Try to clean up the response if it contains fence blocks
+                if "```json" in extracted_text:
+                    json_content = extracted_text.split("```json")[1].split("```")[0].strip()
+                    parsed_json = json.loads(json_content)
+                    if not isinstance(parsed_json, dict) or "tables" not in parsed_json:
+                        parsed_json = {"tables": [parsed_json]}
+                    return {"status": "success", "content": parsed_json}
+                elif "```" in extracted_text:
+                    json_content = extracted_text.split("```")[1].split("```")[0].strip()
+                    parsed_json = json.loads(json_content)
+                    if not isinstance(parsed_json, dict) or "tables" not in parsed_json:
+                        parsed_json = {"tables": [parsed_json]}
+                    return {"status": "success", "content": parsed_json}
+                else:
+                    raise ValueError(f"Failed to parse JSON: {e}") from e
+        except Exception as json_error:
+            return {"status": "error", "error": f"JSON parsing error: {str(json_error)}", "raw_response": response.text}
+
+    except Exception as e:
+        # Record failed usage
+        tracker.record_usage(key_name, success=False)
+
+        print(f"Error extracting multiple tables from PDF page: {str(e)}")
+        return {"status": "error", "error": str(e)}
