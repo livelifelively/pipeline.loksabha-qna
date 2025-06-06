@@ -19,7 +19,7 @@ def find_documents_with_tables(ministries):
     data_root = get_loksabha_data_root()
 
     for ministry in ministries:
-        results_file = ministry / "extraction_results.json"
+        results_file = ministry / "ministry.progress.json"
 
         if not results_file.exists():
             print(f"No extraction results found for ministry: {ministry.name}")
@@ -170,7 +170,7 @@ def find_all_document_paths(ministries):
     return all_document_paths
 
 
-def save_ministry_extraction_results(results, session_path, ministry_name, filename="extraction_results.json"):
+def save_ministry_extraction_results(results, session_path, ministry_name, filename="ministry.progress.json"):
     """
     Save extraction results for a ministry to a file.
 
@@ -178,12 +178,15 @@ def save_ministry_extraction_results(results, session_path, ministry_name, filen
         results: Extraction results to save
         session_path: Path to the session directory
         ministry_name: Name of the ministry
-        filename: Name of the output file (default: extraction_results.json)
+        filename: Name of the output file (default: ministry.progress.json)
 
     Returns:
         Path to the saved file
     """
     try:
+        # Convert session_path to Path object if it's a string
+        session_path = Path(session_path)
+
         # Save in the session directory
         results_file = session_path / "ministries" / ministry_name / filename
 
