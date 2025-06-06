@@ -100,7 +100,7 @@ class ExtractPDFWorkflow(BaseWorkflow):
     def run(self):
         """Main entry point to run the workflow."""
         # Get selections using common workflow
-        self.selected_sansad, _, self.selected_ministries = get_selection_workflow()
+        self.selected_sansad, self.selected_session, self.selected_ministries = get_selection_workflow()
 
         if not self.selected_sansad:  # Selection was cancelled
             return
@@ -256,7 +256,9 @@ class ExtractPDFWorkflow(BaseWorkflow):
         result = asyncio.run(extractor.extract_contents(pdf_path))
         print(f"  ✓ Extraction successful: {pdf_path.name}")
 
-        return {"path": str(pdf_path), "result": result}
+        # Convert to relative path
+        relative_path = extractor._get_relative_path(pdf_path)
+        return {"path": relative_path, "result": result}
 
     def create_extraction_results(self, processed_documents, failed_extractions):
         """Create the final extraction results dictionary.
@@ -296,7 +298,11 @@ class ExtractPDFWorkflow(BaseWorkflow):
             results: Dictionary containing extraction results
             ministry: Path object representing the ministry directory
         """
-        save_ministry_extraction_results(results, self.selected_session, ministry.name)
+        if not self.selected_session:
+            print("Warning: No session selected, cannot save results")
+            return
+
+        save_ministry_extraction_results(results, str(self.selected_session), ministry.name)
 
     def display_overall_summary(self):
         """Display overall summary of the extraction process."""

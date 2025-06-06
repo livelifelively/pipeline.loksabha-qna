@@ -123,8 +123,21 @@ class PDFExtractionOrchestrator(BaseExtractor):
         return text_results
 
     def _prepare_step_data(self, combined_results: CombinedResults) -> dict:
-        # Prepare pages data
+        # Get base pages data from pdf_extraction step
         pages = {}
+        try:
+            progress_file = Path(self.data_root) / "progress.json"
+            with open(progress_file, "r") as f:
+                progress_data = json.load(f)
+                # Get pages data from pdf_extraction step
+                for step in progress_data.get("steps", []):
+                    if step["step"] == "pdf_extraction" and step["status"] == "success":
+                        pages = step["data"].get("pages", {})
+                        break
+        except Exception as e:
+            print(f"Warning: Could not load pdf_extraction data: {e}")
+
+        # Update pages that have tables
         for page_num in combined_results.pages_with_tables | combined_results.pages_with_errors:
             # Get table results for this page
             table_result = next((t for t in combined_results.single_page_tables if t.page_number == page_num), None)
@@ -178,6 +191,7 @@ class PDFExtractionOrchestrator(BaseExtractor):
             if status == "error":
                 page_data["error"] = combined_results.errors.get(page_num)
 
+            # Update the page data in the base pages dictionary
             pages[str(page_num)] = page_data
 
         # Add multi-page table information
@@ -193,8 +207,9 @@ class PDFExtractionOrchestrator(BaseExtractor):
                 table_data = []
 
             for page_num in table.pages:
-                if str(page_num) not in pages:
-                    pages[str(page_num)] = {
+                page_str = str(page_num)
+                if page_str not in pages:
+                    pages[page_str] = {
                         "status": "success",
                         "has_multi_page_tables": True,
                         "has_multiple_tables": False,
@@ -202,8 +217,9 @@ class PDFExtractionOrchestrator(BaseExtractor):
                         "table_file_name": table.output_file,
                     }
                 else:
-                    pages[str(page_num)]["table_file_name"] = table.output_file
-                    pages[str(page_num)]["tables"] = table_data
+                    pages[page_str]["table_file_name"] = table.output_file
+                    pages[page_str]["tables"] = table_data
+                    pages[page_str]["has_multi_page_tables"] = True
 
         return {
             "step": "tables_extraction",

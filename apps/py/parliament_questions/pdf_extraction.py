@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 import camelot
 
 from ..utils.pdf_extractors import get_pdf_extractor
+from ..utils.project_root import get_loksabha_data_root
 
 """
 PDF Extraction Module
@@ -41,6 +42,14 @@ class PDFExtractor:
         self.text_path = None
         self.tables_path = None
         self.progress_data = None
+        self.data_root = get_loksabha_data_root()
+
+    def _get_relative_path(self, path: Path) -> str:
+        """Convert path to relative path from data root."""
+        try:
+            return str(path.relative_to(self.data_root))
+        except ValueError:
+            return str(path)
 
     def _validate_pdf_file(self) -> None:
         """Validate if the given path is a valid PDF file."""
@@ -115,31 +124,40 @@ class PDFExtractor:
             with open(self.text_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Split content by page markers
-            page_parts = content.split("------------------------------------------------")
+            print(f"Processing extracted text content length: {len(content)}")
+            if not content.strip():
+                print("Warning: Extracted text content is empty")
+                return pages
 
-            for part in page_parts:
-                # Skip empty parts
-                if not part.strip():
+            import re
+
+            # Split using lookahead regex to match page markers
+            page_parts = re.split(r"(?=\{[\d]+\}------------------------------------------------)", content)
+            page_parts = [part for part in page_parts if part.strip()]
+            print(f"Found {len(page_parts)} page parts after splitting")
+
+            for index, part in enumerate(page_parts):
+                try:
+                    # Remove the page marker header and clean the text
+                    text_content = re.sub(
+                        r"^\{[\d]+\}------------------------------------------------\n?", "", part.strip()
+                    )
+
+                    # Use 1-based page numbers (index + 1)
+                    page_num = str(index + 1)
+
+                    pages[page_num] = {"status": "success", "text": text_content, "length": len(text_content)}
+                except Exception as page_error:
+                    print(f"Warning: Error processing page {index + 1}: {page_error}")
                     continue
 
-                # Find page number
-                page_match = part.strip().split("\n", 1)
-                if not page_match or len(page_match) < 2:
-                    continue
-
-                page_num = page_match[0].strip("{}")
-                if not page_num.isdigit():
-                    continue
-
-                # Convert page number to 1-based index (since file uses 0-based)
-                page_num = str(int(page_num) + 1)
-                text_content = page_match[1].strip() if len(page_match) > 1 else ""
-
-                pages[page_num] = {"status": "success", "text": text_content}
+            print(f"Successfully processed {len(pages)} pages")
 
         except Exception as e:
             print(f"Warning: Error processing extracted text: {str(e)}")
+            import traceback
+
+            print(f"Stack trace: {traceback.format_exc()}")
 
         return pages
 
