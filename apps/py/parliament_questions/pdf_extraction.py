@@ -7,6 +7,7 @@ from typing import Any, Dict, List
 
 import camelot
 
+from ..documents.utils.progress_handler import ProgressHandler
 from ..utils.pdf_extractors import get_pdf_extractor
 from ..utils.project_root import get_loksabha_data_root
 
@@ -34,15 +35,26 @@ Each function's purpose and dependencies are documented in its docstring.
 """
 
 
-class PDFExtractor:
+class QuestionPDFExtractor:
     def __init__(self, extractor_type: str = "marker"):
+        """Initialize the PDF extractor.
+
+        Args:
+            extractor_type: Type of extractor to use ('marker')
+        """
         self.extractor_type = extractor_type
         self.pdf_path = None
-        self.progress_path = None
         self.text_path = None
         self.tables_path = None
-        self.progress_data = None
         self.data_root = get_loksabha_data_root()
+        self.progress_handler = None
+
+    def _setup_paths(self, pdf_path: Path) -> None:
+        """Setup paths for extraction outputs."""
+        self.pdf_path = pdf_path
+        self.text_path = pdf_path.parent / "extracted_text.md"
+        self.tables_path = pdf_path.parent / "extracted_tables.json"
+        self.progress_handler = ProgressHandler(pdf_path.parent)
 
     def _get_relative_path(self, path: Path) -> str:
         """Convert path to relative path from data root."""
@@ -57,11 +69,6 @@ class PDFExtractor:
             raise FileNotFoundError(f"PDF file not found: {self.pdf_path}")
         if self.pdf_path.suffix.lower() != ".pdf":
             raise ValueError(f"File must be a PDF: {self.pdf_path}")
-
-    async def _load_progress_data(self) -> None:
-        """Load progress data from the progress.json file."""
-        with open(self.progress_path, "r", encoding="utf-8") as f:
-            self.progress_data = json.load(f)
 
     async def _save_file_safely(self, content: Any, file_path: Path, is_json: bool = False) -> None:
         """Safely save content to a file using a temporary file."""
@@ -95,27 +102,6 @@ class PDFExtractor:
                 else []
             },
         }
-
-    def _update_progress_step(self, step_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Update progress data with new step information."""
-        if "steps" not in self.progress_data:
-            self.progress_data["steps"] = []
-
-        # Remove existing step if present
-        self.progress_data["steps"] = [
-            step for step in self.progress_data["steps"] if step.get("step") != "pdf_extraction"
-        ]
-
-        # Add new step
-        self.progress_data["steps"].append(step_data)
-        return self.progress_data
-
-    def _setup_paths(self, pdf_path: Path) -> None:
-        """Setup all required file paths for PDF extraction."""
-        self.pdf_path = pdf_path
-        self.progress_path = pdf_path.parent / "progress.json"
-        self.text_path = pdf_path.parent / "extracted_text.md"
-        self.tables_path = pdf_path.parent / "extracted_tables.json"
 
     def _process_extracted_text(self) -> Dict[str, Dict[str, Any]]:
         """Process the extracted text file and split it by pages."""
@@ -223,14 +209,12 @@ class PDFExtractor:
             print(error_msg)
             return f"[{error_msg}]"
 
-    async def extract_contents(self, pdf_path: Path) -> str:
+    async def extract_contents(self, pdf_path: Path) -> Dict[str, Any]:
         """Main method to extract PDF contents."""
         self._setup_paths(pdf_path)
         self._validate_pdf_file()
 
         try:
-            await self._load_progress_data()
-
             # Extract and save text
             extracted_text = await self._extract_text_from_pdf()
             await self._save_file_safely(extracted_text, self.text_path)
@@ -239,19 +223,18 @@ class PDFExtractor:
             tables = await self._extract_tables_from_pdf()
             await self._save_file_safely(tables, self.tables_path, is_json=True)
 
-            # Update and save progress
+            # Create and append success step
             step_data = self._create_extraction_step(tables)
-            updated_progress = self._update_progress_step(step_data)
-            await self._save_file_safely(updated_progress, self.progress_path, is_json=True)
+            self.progress_handler.append_step(step_data)
 
-            return updated_progress
+            # Return the updated progress data
+            return self.progress_handler.read_progress_file()
 
         except Exception as e:
+            # Create and append failure step
+            step_data = self._create_failure_step(e)
             try:
-                step_data = self._create_failure_step(e)
-                updated_progress = self._update_progress_step(step_data)
-                await self._save_file_safely(updated_progress, self.progress_path, is_json=True)
-            except (IOError, json.JSONDecodeError):
-                pass
-
-            raise Exception(f"Failed to extract PDF contents: {str(e)}") from e
+                self.progress_handler.append_step(step_data)
+            except Exception as progress_error:
+                print(f"Warning: Failed to update progress file: {progress_error}")
+            raise

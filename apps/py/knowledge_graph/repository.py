@@ -5,12 +5,14 @@ from typing import Any, Dict
 
 from api.py.schemas.knowledge_graph import QuestionMetadata
 
+from ..documents.utils.progress_handler import ProgressHandler
 from .types import CleanedData, CleanedDataMetadata
 
 
 class CleanedDataRepository:
     def __init__(self, base_path: Path):
         self.base_path = base_path
+        self.progress_handler = ProgressHandler(base_path)
 
     def get_cleaned_data_path(self, metadata: QuestionMetadata) -> Path:
         """
@@ -80,7 +82,7 @@ class CleanedDataRepository:
 
     async def update_progress(self, metadata: QuestionMetadata, file_path: Path, data: CleanedData) -> None:
         """
-        Update progress.json with new data_cleaning step.
+        Update progress file with new data_cleaning step.
 
         Args:
             metadata: Question metadata
@@ -90,17 +92,8 @@ class CleanedDataRepository:
         Raises:
             IOError: If progress file cannot be updated
         """
-        progress_path = file_path.parent / "progress.json"
-
         try:
-            # Read existing progress
-            if progress_path.exists():
-                with open(progress_path, "r") as f:
-                    progress = json.load(f)
-            else:
-                progress = {"steps": []}
-
-            # Add or update data_cleaning step
+            # Create step data
             step_data = {
                 "step": "data_cleaning",
                 "timestamp": datetime.now(UTC).isoformat(),
@@ -115,17 +108,8 @@ class CleanedDataRepository:
                 },
             }
 
-            # Update or append step
-            for i, step in enumerate(progress["steps"]):
-                if step["step"] == "data_cleaning":
-                    progress["steps"][i] = step_data
-                    break
-            else:
-                progress["steps"].append(step_data)
-
-            # Save updated progress
-            with open(progress_path, "w") as f:
-                json.dump(progress, f, indent=2)
+            # Use ProgressHandler to append the step
+            self.progress_handler.append_step(step_data)
 
         except Exception as e:
             raise IOError(f"Error updating progress: {e}") from e
@@ -141,23 +125,13 @@ class CleanedDataRepository:
             Dictionary containing pdf_extraction step data
 
         Raises:
-            FileNotFoundError: If progress.json doesn't exist
             ValueError: If pdf_extraction step not found
         """
-        progress_path = Path(metadata.document_path) / "progress.json"
-
         try:
-            with open(progress_path, "r") as f:
-                progress = json.load(f)
+            step_data = self.progress_handler.get_step_data("pdf_extraction")
+            if not step_data:
+                raise ValueError("pdf_extraction step not found in progress file")
+            return step_data["data"]
 
-            # Find pdf_extraction step
-            for step in progress["steps"]:
-                if step["step"] == "pdf_extraction":
-                    return step["data"]
-
-            raise ValueError("pdf_extraction step not found in progress.json")
-
-        except FileNotFoundError as e:
-            raise FileNotFoundError(f"progress.json not found at {progress_path}") from e
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in progress.json: {e}") from e
+        except Exception as e:
+            raise ValueError(f"Error getting pdf_extraction data: {e}") from e

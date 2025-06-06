@@ -17,7 +17,6 @@ from apps.py.utils.project_root import get_loksabha_data_root
 from .base import BaseExtractor
 from .page_splitter import PDFPageSplitter
 from .result_combiner import ExtractionResultCombiner
-from .result_saver import ExtractionResultSaver
 from .table import MultiPageTableHandler, TableExtractor
 from .table_range_detector import TableRangeDetector
 from .text import TextExtractor
@@ -26,24 +25,25 @@ from .text import TextExtractor
 class PDFExtractionOrchestrator(BaseExtractor):
     """Orchestrates the extraction of text and tables from PDF pages."""
 
-    def __init__(self, data_root: Optional[Path] = None):
+    def __init__(self):
         """
         Initialize the PDF extraction orchestrator.
 
         Args:
             data_root: Root directory for data storage. If None, uses get_loksabha_data_root()
         """
-        self.data_root = data_root or get_loksabha_data_root()
+        self.data_root = get_loksabha_data_root()
+        self.document_path = None
+        self.progress_handler = None
 
         # Initialize components
-        self.text_extractor = TextExtractor(data_root)
-        self.table_extractor = TableExtractor(data_root)
-        self.multi_page_handler = MultiPageTableHandler(data_root)
+        self.text_extractor = TextExtractor(self.data_root)
+        self.table_extractor = TableExtractor(self.data_root)
+        self.multi_page_handler = MultiPageTableHandler(self.data_root)
         self.page_splitter = PDFPageSplitter()
         self.range_detector = TableRangeDetector()
         self.result_combiner = ExtractionResultCombiner()
-        self.result_saver = ExtractionResultSaver(data_root)
-        self.progress_handler = ProgressHandler(data_root)
+        self.progress_handler = ProgressHandler(self.data_root)
 
     def _combine_extraction_results(
         self,
@@ -126,14 +126,10 @@ class PDFExtractionOrchestrator(BaseExtractor):
         # Get base pages data from pdf_extraction step
         pages = {}
         try:
-            progress_file = Path(self.data_root) / "progress.json"
-            with open(progress_file, "r") as f:
-                progress_data = json.load(f)
-                # Get pages data from pdf_extraction step
-                for step in progress_data.get("steps", []):
-                    if step["step"] == "pdf_extraction" and step["status"] == "success":
-                        pages = step["data"].get("pages", {})
-                        break
+            # Get pages data from pdf_extraction step
+            pdf_extraction_step = self.progress_handler.get_step_data(self.document_path, "pdf_extraction")
+            if pdf_extraction_step and pdf_extraction_step["status"] == "success":
+                pages = pdf_extraction_step["data"].get("pages", {})
         except Exception as e:
             print(f"Warning: Could not load pdf_extraction data: {e}")
 
@@ -164,7 +160,9 @@ class PDFExtractionOrchestrator(BaseExtractor):
                 page_data["table_file_name"] = table_result.output_file
                 # Read table content from file
                 try:
-                    table_file = self.data_root / table_result.output_file
+                    table_file = Path(table_result.output_file)
+                    if not table_file.is_absolute():
+                        table_file = self.data_root / table_file
                     with open(table_file, "r") as f:
                         table_content = json.load(f)
                     # For single table, content is the array directly
@@ -181,7 +179,9 @@ class PDFExtractionOrchestrator(BaseExtractor):
                 page_data["text_file_name"] = text_result.output_file
                 # Read text content from file
                 try:
-                    text_file = self.data_root / text_result.output_file
+                    text_file = Path(text_result.output_file)
+                    if not text_file.is_absolute():
+                        text_file = self.data_root / text_file
                     with open(text_file, "r") as f:
                         page_data["text"] = f.read()
                 except Exception as e:
@@ -198,7 +198,9 @@ class PDFExtractionOrchestrator(BaseExtractor):
         for table in combined_results.multi_page_tables:
             # Read multi-page table content
             try:
-                table_file = self.data_root / table.output_file
+                table_file = Path(table.output_file)
+                if not table_file.is_absolute():
+                    table_file = self.data_root / table_file
                 with open(table_file, "r") as f:
                     table_content = json.load(f)
                 table_data = table_content.get("tables", [])
@@ -234,43 +236,52 @@ class PDFExtractionOrchestrator(BaseExtractor):
             "single_page_tables": combined_results.summary.single_page_tables,
         }
 
-    def _get_pages_with_multiple_tables(self, progress_file_path: Path) -> Dict[int, List[dict]]:
+    def _get_pages_with_multiple_tables(self, document_path: Path) -> Dict[int, List[dict]]:
         """
-        Get information about pages that have multiple tables from progress.json.
+        Get information about pages that have multiple tables from the progress file.
 
         Args:
-            progress_file: Path to the progress.json file
+            document_path: Path to the document directory
 
         Returns:
             Dictionary mapping page numbers to their table information, but only for pages with multiple tables
         """
         pages_with_multiple_tables = {}
-        if not progress_file_path.exists():
-            return pages_with_multiple_tables
 
         try:
-            with open(progress_file_path) as f:
-                progress_data = json.load(f)
-                # Get tables info from pdf_extraction step
-                for step in progress_data.get("steps", []):
-                    if step["step"] == "pdf_extraction" and step["status"] == "success":
-                        tables_data = step["data"].get("tables_data", {})
-                        # Group tables by page
-                        page_tables = {}
-                        for table in tables_data.get("tables_summary", []):
-                            page = table["page"]
-                            if page not in page_tables:
-                                page_tables[page] = []
-                            page_tables[page].append(table)
+            # Get tables info from pdf_extraction step
+            pdf_extraction_step = self.progress_handler.get_step_data(document_path, "pdf_extraction")
 
-                        # Keep only pages with multiple tables
-                        pages_with_multiple_tables = {
-                            page: tables for page, tables in page_tables.items() if len(tables) > 1
-                        }
+            if pdf_extraction_step and pdf_extraction_step["status"] == "success":
+                tables_data = pdf_extraction_step["data"].get("tables_data", {})
+                # Group tables by page
+                page_tables = {}
+                for table in tables_data.get("tables_summary", []):
+                    page = table["page"]
+                    if page not in page_tables:
+                        page_tables[page] = []
+                    page_tables[page].append(table)
+
+                # Keep only pages with multiple tables
+                pages_with_multiple_tables = {page: tables for page, tables in page_tables.items() if len(tables) > 1}
+
         except Exception as e:
             print(f"Warning: Could not load progress data: {e}")
 
         return pages_with_multiple_tables
+
+    def _setup_output_folder(self) -> Path:
+        """
+        Creates and returns the output folder path.
+
+        Returns:
+            Path to the output folder
+        """
+        # Create output folder next to the PDF
+        output_folder = self.document_path / "table_extraction"
+
+        # Use base class method to ensure folder exists
+        return self._ensure_output_folder(output_folder)
 
     def extract_and_save_content(self, pdf_path: str, page_numbers: List[int]) -> str:
         """
@@ -279,19 +290,17 @@ class PDFExtractionOrchestrator(BaseExtractor):
         Args:
             pdf_path: Path to the input PDF file
             page_numbers: List of page numbers to extract content from (1-based indexing)
-            output_folder: Folder to save extracted content (if None, creates a folder next to PDF)
 
         Returns:
             Path to the folder containing the extracted content
         """
-        document_path = Path(pdf_path).parent
+        self.document_path = Path(pdf_path).parent
 
         # 1. Setup output folder
-        output_folder_path = self._setup_output_folder(document_path)
+        output_folder_path = self._setup_output_folder()
 
         # Load existing progress data if available
-        progress_file_path = document_path / "progress.json"
-        tables_info = self._get_pages_with_multiple_tables(progress_file_path)
+        tables_info = self._get_pages_with_multiple_tables(self.document_path)
 
         # 2. Analyze page ranges using TableRangeDetector
         continuous_ranges = self.range_detector.detect_ranges(page_numbers)
@@ -328,28 +337,9 @@ class PDFExtractionOrchestrator(BaseExtractor):
 
         # 8. Prepare and save step data
         step_data = self._prepare_step_data(combined_results)
-        self.progress_handler.append_step(document_path / "progress.json", step_data)
+        self.progress_handler.append_step(step_data)
 
-        return str(document_path)
-
-    def _setup_output_folder(self, document_path: str) -> Path:
-        """
-        Creates and returns the output folder path.
-
-        Args:
-            pdf_path: Path to the input PDF file
-            output_folder: Optional output folder path
-
-        Returns:
-            Path to the output folder
-        """
-        document_path = Path(document_path)
-
-        # If no output folder specified, create one next to the PDF
-        output_folder = document_path / "table_extraction"
-
-        # Use base class method to ensure folder exists
-        return self._ensure_output_folder(output_folder)
+        return str(self.document_path)
 
     def _process_single_page(
         self, pdf_path: str, page_num: int, output_folder_path: Path, num_tables: int

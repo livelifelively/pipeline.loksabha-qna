@@ -20,7 +20,7 @@ from apps.py.parliament_questions.document_processing import (
     find_documents_with_tables,
     save_ministry_extraction_results,
 )
-from apps.py.parliament_questions.pdf_extraction import PDFExtractor
+from apps.py.parliament_questions.pdf_extraction import QuestionPDFExtractor
 from apps.py.utils.project_root import get_loksabha_data_root
 from cli.py.utils.table import print_table  # Import the table utility
 
@@ -207,7 +207,7 @@ class ExtractPDFWorkflow(BaseWorkflow):
             print(f"Starting extraction of {len(document_paths)} documents...")
 
             # Create PDFExtractor instance
-            extractor = PDFExtractor(extractor_type=self.extractor_type)
+            extractor = QuestionPDFExtractor(extractor_type=self.extractor_type)
             processed_documents = []
             failed_extractions = []
 
@@ -652,7 +652,6 @@ class FixTablesWorkflow(BaseWorkflow):
             batch_process = False
 
         # Initialize the PDF extractor
-        pdf_extractor = PDFExtractionOrchestrator(data_root)
 
         for i, doc in enumerate(documents, 1):
             doc_path_str = doc["path"]
@@ -662,6 +661,8 @@ class FixTablesWorkflow(BaseWorkflow):
             doc_path = Path(doc_path_str)
             if not doc_path.is_absolute():
                 doc_path = data_root / doc_path
+
+            pdf_extractor = PDFExtractionOrchestrator(doc_path)
 
             print(f"\n[{i}/{total_documents}] Processing document: {doc_path.name}")
             print(f"  Pages with tables: {', '.join(map(str, table_pages))}")

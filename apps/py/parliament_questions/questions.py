@@ -4,6 +4,8 @@ from itertools import groupby
 from operator import itemgetter
 from typing import Any, Dict
 
+from apps.py.documents.utils.progress_handler import ProgressHandler
+
 from ..pipeline.context import PipelineContext
 from ..utils.file_utils import filename_generator, kebab_case_names
 from ..utils.pdf import DownloadConfig, download_pdfs
@@ -37,7 +39,7 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
 
     context.log_step("init", params={"sansad": sansad, "session": session})
 
-    # Setup directories
+    # Setup directories and handlers
     sansad_session_directory = get_loksabha_data_root() / sansad / session
     sansad_session_directory.mkdir(parents=True, exist_ok=True)
 
@@ -89,12 +91,11 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
                 )
                 downloaded_questions.append(downloaded_question)
 
-                # Write progress to JSON file
-                progress_file_path = question_dir / "progress.json"
+                # Initialize progress file with metadata
                 data_to_write = {"meta": downloaded_question.model_dump()}
                 context.log_step("data_to_write", data=data_to_write)
-                with open(progress_file_path, "w") as progress_file:
-                    json.dump(data_to_write, progress_file, indent=4, cls=CustomJSONEncoder)
+                progress_handler = ProgressHandler(question_dir)
+                progress_handler.append_step(data_to_write)
 
                 context.log_step(
                     "question_processed",
