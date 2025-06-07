@@ -1,9 +1,7 @@
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
-
-from zoneinfo import UTC
 
 from apps.py.utils.project_root import get_loksabha_data_root
 
@@ -140,15 +138,9 @@ class ProgressHandler:
 
         Args:
             step_data: Complete step data to append
-
-        Raises:
-            ValueError: If progress file is empty or doesn't have required structure
         """
         with open(self.progress_file, "r+", encoding="utf-8") as f:
             data = json.load(f)
-
-            if not data or "steps" not in data:
-                raise ValueError("Progress file is empty or missing required 'steps' array")
 
             # Update or append step
             step_name = step_data.get("step")
