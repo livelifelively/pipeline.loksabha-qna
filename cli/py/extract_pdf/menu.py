@@ -109,6 +109,13 @@ class ExtractPDFWorkflow(BaseWorkflow):
         self.process_ministries()
         self.display_overall_summary()
 
+    def _get_relative_path(self, path: Path) -> str:
+        """Convert path to relative path from data root."""
+        try:
+            return str(path.relative_to(get_loksabha_data_root()))
+        except ValueError:
+            return str(path)
+
     def process_ministries(self):
         """Process each ministry separately."""
         for ministry in self.selected_ministries:
@@ -257,7 +264,7 @@ class ExtractPDFWorkflow(BaseWorkflow):
         print(f"  ✓ Extraction successful: {pdf_path.name}")
 
         # Convert to relative path
-        relative_path = extractor._get_relative_path(pdf_path)
+        relative_path = self._get_relative_path(pdf_path)
         return {"path": relative_path, "result": result}
 
     def create_extraction_results(self, processed_documents, failed_extractions):

@@ -1,4 +1,3 @@
-import json
 import shutil
 import tempfile
 from datetime import UTC, datetime
@@ -7,29 +6,33 @@ from typing import Any, Dict, List
 
 import camelot
 
-from ..documents.utils.progress_handler import ProgressHandler
+from ..documents.models import (
+    LocalExtractionData,
+    LocalExtractionPageData,
+    ProcessingMetadata,
+    ProcessingStatus,
+    TableMetadata,
+)
+from ..documents.utils.progress_handler import DocumentProgressHandler
 from ..utils.pdf_extractors import get_pdf_extractor
-from ..utils.project_root import get_loksabha_data_root
 
 """
 PDF Extraction Module
 
 Function Hierarchy:
 ------------------
-extract_pdf_contents (main entry point)
-├── extract_text_from_pdf
-├── extract_tables_from_pdf
-├── save_file_safely
-├── create_extraction_step
-│   └── create_table_summary
-├── update_progress_step
-└── create_failure_step
+extract_contents (main entry point)
+├── _extract_text_from_pdf
+├── _extract_table_metadata_from_pdf
+├── _save_file_safely
+├── _process_extracted_text
+├── _build_local_extraction_data
+└── _calculate_processing_metadata
 
 Usage Statistics:
 ----------------
-- extract_pdf_contents: Called from cli/py/extract_pdf/menu.py
-- save_file_safely: Called 4 times in extract_pdf_contents
-- Other functions: Called once in extract_pdf_contents
+- extract_contents: Called from cli/py/extract_pdf/menu.py
+- Transitions document to LOCAL_EXTRACTION state with typed data
 
 Each function's purpose and dependencies are documented in its docstring.
 """
@@ -45,23 +48,13 @@ class QuestionPDFExtractor:
         self.extractor_type = extractor_type
         self.pdf_path = None
         self.text_path = None
-        self.tables_path = None
-        self.data_root = get_loksabha_data_root()
         self.progress_handler = None
 
     def _setup_paths(self, pdf_path: Path) -> None:
         """Setup paths for extraction outputs."""
         self.pdf_path = pdf_path
         self.text_path = pdf_path.parent / "extracted_text.md"
-        self.tables_path = pdf_path.parent / "extracted_tables.json"
-        self.progress_handler = ProgressHandler(pdf_path.parent)
-
-    def _get_relative_path(self, path: Path) -> str:
-        """Convert path to relative path from data root."""
-        try:
-            return str(path.relative_to(self.data_root))
-        except ValueError:
-            return str(path)
+        self.progress_handler = DocumentProgressHandler(pdf_path.parent)
 
     def _validate_pdf_file(self) -> None:
         """Validate if the given path is a valid PDF file."""
@@ -70,38 +63,14 @@ class QuestionPDFExtractor:
         if self.pdf_path.suffix.lower() != ".pdf":
             raise ValueError(f"File must be a PDF: {self.pdf_path}")
 
-    async def _save_file_safely(self, content: Any, file_path: Path, is_json: bool = False) -> None:
-        """Safely save content to a file using a temporary file."""
+    async def _save_file_safely(self, content: str, file_path: Path) -> None:
+        """Safely save text content to a file using a temporary file."""
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
         with tempfile.NamedTemporaryFile(mode="w", delete=False, encoding="utf-8") as temp_file:
-            if is_json:
-                json.dump(content, temp_file, indent=2, ensure_ascii=False)
-            else:
-                temp_file.write(content)
+            temp_file.write(content)
 
         shutil.move(temp_file.name, file_path)
-
-    def _create_table_summary(self, tables: List[Dict]) -> Dict[str, Any]:
-        """Create summary of extracted tables."""
-        return {
-            "has_tables": len(tables) > 0,
-            "num_tables": len(tables),
-            "tables_data": {
-                "tables_summary": [
-                    {
-                        "table_number": table["table_number"],
-                        "page": table["page"],
-                        "accuracy": table["accuracy"],
-                        "num_rows": len(table["rows"]),
-                        "num_columns": len(table["headers"]),
-                    }
-                    for table in tables
-                ]
-                if tables
-                else []
-            },
-        }
 
     def _process_extracted_text(self) -> Dict[str, Dict[str, Any]]:
         """Process the extracted text file and split it by pages."""
@@ -147,57 +116,32 @@ class QuestionPDFExtractor:
 
         return pages
 
-    def _create_extraction_step(self, tables: List[Dict]) -> Dict[str, Any]:
-        """Create extraction step data."""
-        # Process the extracted text file to get page-level data
-        pages_data = self._process_extracted_text()
+    def _create_failure_extraction_data(
+        self, error: Exception, pages_data: Dict[int, LocalExtractionPageData] = None
+    ) -> LocalExtractionData:
+        """Create LocalExtractionData for failure case."""
+        if pages_data is None:
+            pages_data = {}
 
-        return {
-            "step": "pdf_extraction",
-            "timestamp": datetime.now(UTC).isoformat(),
-            "status": "success",
-            "data": {
-                "extracted_text_path": str(self.text_path.name),
-                "tables_path": str(self.tables_path.name),
-                "pages": pages_data,
-                **self._create_table_summary(tables),
-            },
-        }
+        # Create minimal ProcessingMetadata for failure case
+        processing_metadata = ProcessingMetadata(
+            processing_time_seconds=0.0,
+            pages_processed=len(pages_data),
+            pages_failed=len(pages_data),  # All processed pages are considered failed
+            llm_model_used=None,
+            reviewer=None,
+        )
 
-    def _create_failure_step(self, error: Exception) -> Dict[str, Any]:
-        """Create failure step data."""
-        return {
-            "step": "pdf_extraction",
-            "timestamp": datetime.now(UTC).isoformat(),
-            "status": "failed",
-            "error": str(error),
-        }
-
-    async def _extract_tables_from_pdf(self) -> List[Dict]:
-        """Extract tables from PDF using Camelot with lattice method."""
-        try:
-            tables = camelot.read_pdf(str(self.pdf_path), pages="all", flavor="lattice")
-            extracted_tables = []
-
-            for i, table in enumerate(tables):
-                df = table.df
-                headers = df.iloc[0].tolist()
-                rows = [dict(zip(headers, row.tolist())) for _, row in df.iloc[1:].iterrows()]
-
-                table_data = {
-                    "table_number": i + 1,
-                    "page": table.page,
-                    "headers": headers,
-                    "rows": rows,
-                    "accuracy": table.accuracy,
-                    **table.parsing_report,
-                }
-                extracted_tables.append(table_data)
-
-            return extracted_tables
-
-        except Exception as e:
-            raise Exception(f"Failed to extract tables from PDF: {str(e)}") from e
+        return LocalExtractionData(
+            status=ProcessingStatus.FAILED,
+            timestamp=datetime.now(UTC),
+            processing_metadata=processing_metadata,
+            pages=pages_data,
+            extracted_text_path=str(self.text_path.name) if self.text_path else "",
+            extracted_tables_path=None,  # We don't save table data
+            table_metadata=[],  # Empty list for failed case
+            error_message=str(error),
+        )
 
     async def _extract_text_from_pdf(self) -> str:
         """Extract text from PDF using the specified extractor."""
@@ -209,6 +153,73 @@ class QuestionPDFExtractor:
             print(error_msg)
             return f"[{error_msg}]"
 
+    async def _extract_table_metadata_from_pdf(self) -> List[TableMetadata]:
+        """Extract table metadata from PDF without saving unreliable table data."""
+        try:
+            tables = camelot.read_pdf(str(self.pdf_path), pages="all", flavor="lattice")
+            table_metadata = []
+
+            for i, table in enumerate(tables):
+                df = table.df
+                metadata = TableMetadata(
+                    table_number=i + 1,
+                    page=table.page,
+                    accuracy=table.accuracy,
+                    num_columns=len(df.columns),
+                    num_rows=len(df.index) - 1,  # Subtract header row
+                )
+                table_metadata.append(metadata)
+
+            return table_metadata
+
+        except Exception as e:
+            print(f"Warning: Failed to extract table metadata: {str(e)}")
+            return []
+
+    def _create_extraction_step(self, table_metadata: List[TableMetadata]) -> LocalExtractionData:
+        """Create extraction step data as LocalExtractionData object."""
+        # Process the extracted text file to get raw page data
+        raw_pages_data = self._process_extracted_text()
+
+        # Build typed LocalExtractionPageData for each page
+        typed_pages = {}
+        for page_num_str, page_info in raw_pages_data.items():
+            page_num = int(page_num_str)
+
+            # Find tables on this page from metadata
+            tables_on_page = [t for t in table_metadata if t.page == page_num]
+
+            # Create typed LocalExtractionPageData
+            page_data = LocalExtractionPageData(
+                has_tables=len(tables_on_page) > 0,
+                num_tables=len(tables_on_page),
+                text=page_info.get("text", ""),
+                errors=[],  # No errors in successful case
+            )
+
+            typed_pages[page_num] = page_data
+
+        # Create ProcessingMetadata
+        processing_metadata = ProcessingMetadata(
+            processing_time_seconds=0.0,  # TODO: Calculate actual time
+            pages_processed=len(typed_pages),
+            pages_failed=0,
+            llm_model_used=None,
+            reviewer=None,
+        )
+
+        # Return typed LocalExtractionData object
+        return LocalExtractionData(
+            status=ProcessingStatus.SUCCESS,
+            timestamp=datetime.now(UTC),
+            processing_metadata=processing_metadata,
+            pages=typed_pages,
+            extracted_text_path=str(self.text_path.name),
+            extracted_tables_path=None,  # We don't save unreliable table data
+            table_metadata=table_metadata,
+            error_message=None,
+        )
+
     async def extract_contents(self, pdf_path: Path) -> Dict[str, Any]:
         """Main method to extract PDF contents."""
         self._setup_paths(pdf_path)
@@ -219,22 +230,26 @@ class QuestionPDFExtractor:
             extracted_text = await self._extract_text_from_pdf()
             await self._save_file_safely(extracted_text, self.text_path)
 
-            # Extract and save tables
-            tables = await self._extract_tables_from_pdf()
-            await self._save_file_safely(tables, self.tables_path, is_json=True)
+            # Extract table metadata only (don't save unreliable table data)
+            table_metadata = await self._extract_table_metadata_from_pdf()
 
-            # Create and append success step
-            step_data = self._create_extraction_step(tables)
-            self.progress_handler.append_step(step_data)
+            # Create LocalExtractionData and transition to LOCAL_EXTRACTION state
+            local_extraction_data = self._create_extraction_step(table_metadata)
+            self.progress_handler.transition_to_local_extraction(local_extraction_data)
 
-            # Return the updated progress data
-            return self.progress_handler.read_progress_file()
+            # Return the updated progress data for CLI compatibility
+            return self.progress_handler.read_progress_file().model_dump()
 
         except Exception as e:
-            # Create and append failure step
-            step_data = self._create_failure_step(e)
+            # Create LocalExtractionData for failure case and transition state
+            print(f"Critical error during extraction: {str(e)}")
+
             try:
-                self.progress_handler.append_step(step_data)
+                # Try to create failure data even if extraction failed
+                failure_data = self._create_failure_extraction_data(e)
+                self.progress_handler.transition_to_local_extraction(failure_data)
+                print("Successfully transitioned to LOCAL_EXTRACTION state with FAILED status")
             except Exception as progress_error:
                 print(f"Warning: Failed to update progress file: {progress_error}")
+
             raise

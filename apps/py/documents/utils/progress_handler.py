@@ -1,189 +1,172 @@
-import json
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
-from apps.py.utils.project_root import get_loksabha_data_root
+from ...utils.state_manager import ProgressStateManager, StateData
+from ..models import (
+    STATE_ORDER,
+    ChunkingData,
+    LlmExtractionData,
+    LlmExtractionPageData,
+    LocalExtractionData,
+    LocalExtractionPageData,
+    ManualReviewData,
+    ManualReviewPageData,
+    PageProcessingData,
+    ProcessingMetadata,
+    ProcessingState,
+    ProcessingStatus,
+    ProgressFileStructure,
+)
 
-# HOW ABOUT IT being a state machine? on which step it is?
-# revert will delete the steps after that.
-# you can only get the state and update if it is in the particular step, for the next step.
 
+class DocumentProgressHandler:
+    """
+    Document-focused progress handler that uses ProgressStateManager
+    and provides document-specific typed operations.
+    """
 
-class ProgressHandler:
-    """Handles reading and writing progress data to JSON files."""
+    def __init__(self, document_path: Path):
+        """Initialize the document progress handler."""
+        self.document_path = Path(document_path)
+        progress_file = self.document_path / "progress.json"
+        self._state_manager = ProgressStateManager(file_path=progress_file, initial_state=ProcessingState.INITIALIZED)
 
-    PROGRESS_FILE_NAME = "question.progress.json"
+    # ===============================
+    # DOCUMENT-SPECIFIC TYPED METHODS
+    # ===============================
 
-    def __init__(self, document_path: Union[str, Path]):
-        """
-        Initialize the progress handler.
+    def read_progress_file(self) -> ProgressFileStructure:
+        """Read progress file with document-specific typing."""
+        generic_progress = self._state_manager.read_progress_file()
+        return ProgressFileStructure(**generic_progress.model_dump())
 
-        Args:
-            document_path: Path to the document directory or file. Required for initialization.
-            data_root: Root directory for data storage. If None, uses get_loksabha_data_root()
+    def get_current_state(self) -> ProcessingState:
+        """Get current state with document-specific typing."""
+        state_str = self._state_manager.get_current_state()
+        return ProcessingState(state_str)
 
-        Raises:
-            ValueError: If document_path is not provided
-            IOError: If progress file cannot be created
-        """
-        self.data_root = get_loksabha_data_root()
-        self.progress_file = None
+    # ===============================
+    # STATE-SPECIFIC FUNCTIONS
+    # ===============================
 
-        if not document_path:
-            raise ValueError("document_path is required for initialization")
+    def get_local_extraction_data(self) -> Optional[LocalExtractionData]:
+        """Get LOCAL_EXTRACTION state data with exact typing."""
+        return self._get_page_processing_data(
+            ProcessingState.LOCAL_EXTRACTION, LocalExtractionPageData, LocalExtractionData
+        )
 
-        self.set_document_path(document_path)
+    def get_llm_extraction_data(self) -> Optional[LlmExtractionData]:
+        """Get LLM_EXTRACTION state data with exact typing."""
+        return self._get_page_processing_data(ProcessingState.LLM_EXTRACTION, LlmExtractionPageData, LlmExtractionData)
 
-        # Ensure progress file exists or create it
-        if not self.progress_file.exists():
-            self._initialize_progress_file()
+    def get_manual_review_data(self) -> Optional[ManualReviewData]:
+        """Get MANUAL_REVIEW state data with exact typing."""
+        return self._get_page_processing_data(ProcessingState.MANUAL_REVIEW, ManualReviewPageData, ManualReviewData)
 
-    def set_document_path(self, document_path: Union[str, Path]) -> None:
-        """
-        Set the document path and initialize the progress file path.
-
-        Args:
-            document_path: Path to the document directory or file
-        """
-        document_path = Path(document_path)
-        # If path is absolute and outside data_root, make it relative
-        if document_path.is_absolute() and not str(document_path).startswith(str(self.data_root)):
-            try:
-                document_path = document_path.relative_to(self.data_root)
-            except ValueError:
-                pass
-        # If path is relative, make it absolute relative to data_root
-        elif not document_path.is_absolute():
-            document_path = self.data_root / document_path
-
-        if document_path.is_file():
-            document_path = document_path.parent
-
-        self.document_path = document_path
-        self.progress_file = document_path / self.PROGRESS_FILE_NAME
-
-    def _initialize_progress_file(self) -> None:
-        """
-        Initialize a new progress file with basic structure.
-
-        Args:
-            meta_data: Optional metadata to include in the progress file
-
-        Raises:
-            IOError: If file cannot be created
-        """
-        self.progress_file.parent.mkdir(parents=True, exist_ok=True)
-        initial_data = {
-            "meta": {},
-            "steps": [],
-            "created_at": datetime.now(UTC).isoformat(),
-            "updated_at": datetime.now(UTC).isoformat(),
-        }
-
-        try:
-            with open(self.progress_file, "w", encoding="utf-8") as f:
-                json.dump(initial_data, f, indent=2)
-        except Exception as e:
-            raise IOError(f"Failed to initialize progress file: {e}") from e
-
-    def read_progress_file(self) -> Dict[str, Any]:
-        """
-        Read and parse a progress file.
-
-        Returns:
-            Dict containing progress data
-
-        Raises:
-            ValueError: If progress file is invalid JSON
-        """
-        try:
-            with open(self.progress_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            if not isinstance(data, dict):
-                raise ValueError("Progress file must contain a JSON object")
-
-            return data
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in progress file: {e}") from e
-
-    def get_step_data(self, step_name: str) -> Optional[Dict[str, Any]]:
-        """
-        Get data for a specific step from the progress file.
-
-        Args:
-            step_name: Name of the step to get data for
-
-        Returns:
-            Step data if found, None otherwise
-
-        Raises:
-            ValueError: If progress file is invalid
-        """
-        data = self.read_progress_file()
-
-        if "steps" not in data:
+    def get_chunking_data(self) -> Optional[ChunkingData]:
+        """Get CHUNKING state data with exact typing."""
+        generic_state_data = self._state_manager.get_state_data(ProcessingState.CHUNKING)
+        if not generic_state_data:
             return None
+        return ChunkingData(**generic_state_data.data)
 
-        for step in data["steps"]:
-            if step.get("step") == step_name:
-                return step
+    def transition_to_local_extraction(self, state_data: LocalExtractionData) -> None:
+        """Transition to LOCAL_EXTRACTION state with type safety."""
+        self._validate_and_transition(ProcessingState.LOCAL_EXTRACTION, state_data)
 
-        return None
+    def transition_to_llm_extraction(self, state_data: LlmExtractionData) -> None:
+        """Transition to LLM_EXTRACTION state with type safety."""
+        self._validate_and_transition(ProcessingState.LLM_EXTRACTION, state_data)
 
-    def append_step(self, step_data: dict) -> None:
-        """
-        Read progress file and append new step data.
+    def transition_to_manual_review(self, state_data: ManualReviewData) -> None:
+        """Transition to MANUAL_REVIEW state with type safety."""
+        self._validate_and_transition(ProcessingState.MANUAL_REVIEW, state_data)
 
-        Args:
-            step_data: Complete step data to append
-        """
-        with open(self.progress_file, "r+", encoding="utf-8") as f:
-            data = json.load(f)
+    def transition_to_chunking(self, state_data: ChunkingData) -> None:
+        """Transition to CHUNKING state with type safety."""
+        self._validate_and_transition(ProcessingState.CHUNKING, state_data)
 
-            # Update or append step
-            step_name = step_data.get("step")
-            if step_name:
-                # Remove existing step with same name if present
-                data["steps"] = [step for step in data["steps"] if step.get("step") != step_name]
+    # ===============================
+    # GENERIC FALLBACK FUNCTIONS (for backward compatibility)
+    # ===============================
 
-            # Append new step
-            data["steps"].append(step_data)
+    def get_state_data(self, state: ProcessingState) -> Optional[Union[PageProcessingData, ChunkingData]]:
+        """Get state data with document-specific typing (generic fallback)."""
+        if state == ProcessingState.LOCAL_EXTRACTION:
+            return self.get_local_extraction_data()
+        elif state == ProcessingState.LLM_EXTRACTION:
+            return self.get_llm_extraction_data()
+        elif state == ProcessingState.MANUAL_REVIEW:
+            return self.get_manual_review_data()
+        elif state == ProcessingState.CHUNKING:
+            return self.get_chunking_data()
+        else:
+            raise ValueError(f"Unknown state: {state}")
 
-            # Update timestamp
-            data["updated_at"] = datetime.now(UTC).isoformat()
+    def transition_to_state(
+        self, target_state: ProcessingState, state_data: Union[PageProcessingData, ChunkingData]
+    ) -> None:
+        """Transition to state with document-specific validation (generic fallback)."""
+        self._validate_and_transition(target_state, state_data)
 
-            # Write back the updated data
-            f.seek(0)
-            json.dump(data, f, indent=2)
-            f.truncate()
+    def rollback_to_state(self, target_state: ProcessingState) -> None:
+        """Rollback to previous state."""
+        self._state_manager.rollback_to_state(target_state, STATE_ORDER)
 
     def update_meta(self, meta_data: Dict[str, Any]) -> None:
-        """
-        Update metadata in the progress file.
+        """Update global metadata."""
+        self._state_manager.update_meta(meta_data)
 
-        Args:
-            meta_data: New metadata to update/merge
+    # ===============================
+    # PRIVATE HELPER METHODS
+    # ===============================
 
-        Raises:
-            ValueError: If progress file is invalid
-        """
-        with open(self.progress_file, "r+", encoding="utf-8") as f:
-            data = json.load(f)
+    def _get_page_processing_data(self, state: ProcessingState, page_data_class, state_data_class):
+        """Generic helper for getting page processing state data."""
 
-            if not isinstance(data, dict):
-                raise ValueError("Progress file must contain a JSON object")
+        generic_state_data = self._state_manager.get_state_data(state)
+        if not generic_state_data:
+            return None
 
-            # Create or update meta section
-            if "meta" not in data:
-                data["meta"] = {}
-            data["meta"].update(meta_data)
+        data = generic_state_data.data
+        processing_metadata = ProcessingMetadata(**data["processing_metadata"])
 
-            # Update timestamp
-            data["updated_at"] = datetime.now(UTC).isoformat()
+        pages = {}
+        if "pages" in data:
+            for page_num_str, page_dict in data["pages"].items():
+                pages[int(page_num_str)] = page_data_class(**page_dict)
 
-            # Write back the updated data
-            f.seek(0)
-            json.dump(data, f, indent=2)
-            f.truncate()
+        return state_data_class(
+            status=ProcessingStatus(generic_state_data.status),
+            timestamp=datetime.fromisoformat(data["timestamp"]),
+            processing_metadata=processing_metadata,
+            pages=pages,
+            error_message=data.get("error_message"),
+        )
+
+    def _validate_and_transition(
+        self, target_state: ProcessingState, state_data: Union[PageProcessingData, ChunkingData]
+    ) -> None:
+        """Validate transition and delegate to state manager."""
+        # Validate transition using document-specific rules
+        progress = self.read_progress_file()
+        if not progress.can_transition_to(target_state):
+            details = progress.get_transition_details(target_state)
+            raise ValueError(f"Invalid transition: {details['error']}")
+
+        # Convert and delegate
+        generic_state_data = self._convert_to_generic_state_data(state_data)
+        self._state_manager.transition_to_state(target_state, generic_state_data)
+
+    def _convert_to_generic_state_data(self, state_data: Union[PageProcessingData, ChunkingData]) -> StateData:
+        """Convert document-specific state data to generic format."""
+
+        return StateData(
+            status=state_data.status.value,
+            data=state_data.model_dump(exclude={"status"}),
+        )
+
+
+# Legacy alias for backward compatibility
+ProgressHandler = DocumentProgressHandler
