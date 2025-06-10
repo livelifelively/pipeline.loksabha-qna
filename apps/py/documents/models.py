@@ -296,6 +296,12 @@ class LlmExtractionPageData(BaseModel):
     tables: List[Dict[str, Any]] = Field(default_factory=list)
     errors: Optional[List[str]] = Field(default_factory=list)
 
+    # Table metadata
+    has_multi_page_tables: bool = False
+    has_multiple_tables: bool = False
+    table_file_name: Optional[str] = None
+    text_file_name: Optional[str] = None
+
 
 class ManualReviewPageData(BaseModel):
     """Data structure for a single page during MANUAL_REVIEW state"""
@@ -326,6 +332,13 @@ class LlmExtractionData(BaseModel):
     extracted_text_path: str
     extracted_tables_path: Optional[str] = None
     error_message: Optional[str] = None
+
+    # Table statistics
+    total_tables: int = 0
+    successful_tables: int = 0
+    failed_tables: int = 0
+    multi_page_tables: int = 0
+    single_page_tables: int = 0
 
 
 class ManualReviewData(BaseModel):
