@@ -6,15 +6,15 @@ from typing import Any, Dict, List
 
 import camelot
 
-from ..documents.models import (
+from ...utils.pdf_extractors import get_pdf_extractor
+from ..models import (
     LocalExtractionData,
     LocalExtractionPageData,
     ProcessingMetadata,
     ProcessingStatus,
     TableMetadata,
 )
-from ..documents.utils.progress_handler import DocumentProgressHandler
-from ..utils.pdf_extractors import get_pdf_extractor
+from ..utils.progress_handler import DocumentProgressHandler
 
 """
 PDF Extraction Module

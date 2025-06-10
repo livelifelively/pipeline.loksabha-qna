@@ -4,7 +4,7 @@ from itertools import groupby
 from operator import itemgetter
 from typing import Any, Dict
 
-from apps.py.documents.utils.progress_handler import ProgressHandler
+from apps.py.documents.utils.progress_handler import DocumentProgressHandler
 
 from ..pipeline.context import PipelineContext
 from ..utils.file_utils import filename_generator, kebab_case_names
@@ -91,11 +91,11 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
                 )
                 downloaded_questions.append(downloaded_question)
 
-                # Initialize progress file with metadata
-                data_to_write = {"meta": downloaded_question.model_dump()}
-                context.log_step("data_to_write", data=data_to_write)
-                progress_handler = ProgressHandler(question_dir)
-                progress_handler.append_step(data_to_write)
+                # Initialize progress tracking with question metadata
+                question_metadata = downloaded_question.model_dump()
+                context.log_step("question_metadata", data=question_metadata)
+                progress_handler = DocumentProgressHandler(question_dir)
+                progress_handler.transition_to_initialized(question_metadata)
 
                 context.log_step(
                     "question_processed",

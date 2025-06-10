@@ -1,4 +1,5 @@
-from datetime import datetime
+import logging
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
@@ -6,6 +7,7 @@ from ...utils.state_manager import ProgressStateManager, StateData
 from ..models import (
     STATE_ORDER,
     ChunkingData,
+    InitializedData,
     LlmExtractionData,
     LlmExtractionPageData,
     LocalExtractionData,
@@ -19,6 +21,9 @@ from ..models import (
     ProgressFileStructure,
 )
 
+# Configure logger
+logger = logging.getLogger(__name__)
+
 
 class DocumentProgressHandler:
     """
@@ -29,7 +34,8 @@ class DocumentProgressHandler:
     def __init__(self, document_path: Path):
         """Initialize the document progress handler."""
         self.document_path = Path(document_path)
-        progress_file = self.document_path / "progress.json"
+        progress_file = self.document_path / "question.progress.json"
+        # File starts directly with INITIALIZED state
         self._state_manager = ProgressStateManager(file_path=progress_file, initial_state=ProcessingState.INITIALIZED)
 
     # ===============================
@@ -38,8 +44,22 @@ class DocumentProgressHandler:
 
     def read_progress_file(self) -> ProgressFileStructure:
         """Read progress file with document-specific typing."""
-        generic_progress = self._state_manager.read_progress_file()
-        return ProgressFileStructure(**generic_progress.model_dump())
+        raw_progress = self._state_manager.read_progress_file()
+
+        try:
+            return ProgressFileStructure(**raw_progress)
+        except Exception as e:
+            logger.warning(
+                "Progress file failed document-specific validation, falling back to initial state",
+                extra={"progress_file": str(self._state_manager.progress_file), "error": str(e)},
+            )
+            # Return initial structure with document-specific typing using the state manager's initial state
+            return ProgressFileStructure(
+                current_state=ProcessingState(self._state_manager.initial_state.value),
+                states={},
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            )
 
     def get_current_state(self) -> ProcessingState:
         """Get current state with document-specific typing."""
@@ -49,6 +69,10 @@ class DocumentProgressHandler:
     # ===============================
     # STATE-SPECIFIC FUNCTIONS
     # ===============================
+
+    def get_initialized_data(self) -> Optional[StateData]:
+        """Get INITIALIZED state data with exact typing."""
+        return self._state_manager.get_state_data(ProcessingState.INITIALIZED)
 
     def get_local_extraction_data(self) -> Optional[LocalExtractionData]:
         """Get LOCAL_EXTRACTION state data with exact typing."""
@@ -70,6 +94,39 @@ class DocumentProgressHandler:
         if not generic_state_data:
             return None
         return ChunkingData(**generic_state_data.data)
+
+    def transition_to_initialized(self, question_metadata: Dict[str, Any]) -> None:
+        """Transition to INITIALIZED state with question metadata."""
+        current_state = self._state_manager.get_current_state()
+
+        # Handle first-time initialization when current_state is None
+        if current_state is None:
+            logger.info(
+                "Starting document processing for the first time",
+                extra={"progress_file": str(self._state_manager.progress_file)},
+            )
+
+        state_data = InitializedData(
+            status=ProcessingStatus.SUCCESS,
+            timestamp=datetime.now(UTC),
+            question_number=question_metadata["question_number"],
+            subjects=question_metadata["subjects"],
+            loksabha_number=question_metadata["loksabha_number"],
+            member=question_metadata["member"],
+            ministry=question_metadata["ministry"],
+            type=question_metadata["type"],
+            date=question_metadata["date"],
+            questions_file_path_local=question_metadata["questions_file_path_local"],
+            questions_file_path_web=question_metadata["questions_file_path_web"],
+            questions_file_path_hindi_local=question_metadata.get("questions_file_path_hindi_local"),
+            questions_file_path_hindi_web=question_metadata.get("questions_file_path_hindi_web"),
+            question_text=question_metadata.get("question_text"),
+            answer_text=question_metadata.get("answer_text"),
+            session_number=question_metadata["session_number"],
+            started_by=question_metadata.get("started_by"),
+            notes=question_metadata.get("notes"),
+        )
+        self._validate_and_transition(ProcessingState.INITIALIZED, state_data)
 
     def transition_to_local_extraction(self, state_data: LocalExtractionData) -> None:
         """Transition to LOCAL_EXTRACTION state with type safety."""
@@ -113,10 +170,6 @@ class DocumentProgressHandler:
     def rollback_to_state(self, target_state: ProcessingState) -> None:
         """Rollback to previous state."""
         self._state_manager.rollback_to_state(target_state, STATE_ORDER)
-
-    def update_meta(self, meta_data: Dict[str, Any]) -> None:
-        """Update global metadata."""
-        self._state_manager.update_meta(meta_data)
 
     # ===============================
     # PRIVATE HELPER METHODS

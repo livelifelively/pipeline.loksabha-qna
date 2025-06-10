@@ -13,6 +13,7 @@ sys.path.append(str(Path(__file__).parents[4]))
 
 # Import but don't call directly - we'll handle async separately
 from apps.py.documents.extractors.orchestrator import PDFExtractionOrchestrator
+from apps.py.documents.extractors.pdf_extraction import QuestionPDFExtractor
 from apps.py.parliament_questions.document_processing import (
     calculate_table_statistics,
     find_all_document_paths,
@@ -20,7 +21,6 @@ from apps.py.parliament_questions.document_processing import (
     find_documents_with_tables,
     save_ministry_extraction_results,
 )
-from apps.py.parliament_questions.pdf_extraction import QuestionPDFExtractor
 from apps.py.utils.project_root import get_loksabha_data_root
 from cli.py.utils.table import print_table  # Import the table utility
 

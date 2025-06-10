@@ -23,14 +23,13 @@ class StateData(BaseModel):
     errors: List[str] = []
 
 
-class ProgressFileStructure(BaseModel):
-    """Generic structure for progress files"""
+class BaseProgressFileStructure(BaseModel):
+    """Generic base structure for progress files"""
 
-    meta: Dict[str, Any] = {}
     current_state: str  # Store as string to be enum-agnostic
-    states: Dict[str, StateData] = {}
     created_at: datetime
     updated_at: datetime
+    # Note: states field is defined in subclasses with specific typing
 
 
 class ProgressStateManager(Generic[StateEnum]):
@@ -47,7 +46,7 @@ class ProgressStateManager(Generic[StateEnum]):
 
         Args:
             file_path: Path to the progress file
-            initial_state: Initial state enum value
+            initial_state: Initial state for the domain
 
         Raises:
             ValueError: If file_path is not provided
@@ -62,30 +61,30 @@ class ProgressStateManager(Generic[StateEnum]):
 
     def _initialize_progress_file(self) -> None:
         """
-        Initialize a new progress file with state machine structure.
+        Initialize a new progress file with basic structure.
+        Domain will set the first state when ready.
 
         Raises:
             IOError: If file cannot be created
         """
         logger.info(
             "Initializing new progress file",
-            extra={"progress_file": str(self.progress_file), "initial_state": self.initial_state.value},
+            extra={"progress_file": str(self.progress_file)},
         )
 
         self.progress_file.parent.mkdir(parents=True, exist_ok=True)
 
-        # Use Pydantic model for type safety
-        initial_progress = ProgressFileStructure(
-            meta={},
-            current_state=self.initial_state.value,
-            states={},
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC),
-        )
+        # Create file with basic structure, no current_state set
+        initial_progress = {
+            "current_state": None,  # Will be set by first domain transition
+            "states": {},
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC),
+        }
 
         try:
             with open(self.progress_file, "w", encoding="utf-8") as f:
-                json.dump(initial_progress.model_dump(), f, indent=2, default=str)
+                json.dump(initial_progress, f, indent=2, default=str)
             logger.debug("Progress file initialized successfully", extra={"progress_file": str(self.progress_file)})
         except Exception as e:
             logger.error(
@@ -93,55 +92,81 @@ class ProgressStateManager(Generic[StateEnum]):
             )
             raise IOError(f"Failed to initialize progress file: {e}") from e
 
-    def read_progress_file(self) -> ProgressFileStructure:
+    def read_progress_file(self) -> Dict[str, Any]:
         """
-        Read and parse a progress file using Pydantic validation.
+        Read and parse a progress file as raw data.
+        Only validates core infrastructure fields, not domain-specific content.
 
         Returns:
-            ProgressFileStructure containing validated progress data
+            Dict containing progress data
 
         Raises:
-            ValueError: If progress file is invalid
+            ValueError: If progress file cannot be read or has invalid JSON
         """
         try:
             with open(self.progress_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-
-            # Use Pydantic for validation and parsing
-            progress = ProgressFileStructure(**data)
-            logger.debug(
-                "Progress file read successfully",
-                extra={
-                    "progress_file": str(self.progress_file),
-                    "current_state": progress.current_state,
-                    "states_count": len(progress.states),
-                },
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            logger.warning(
+                "Progress file is invalid or missing, falling back to initial structure",
+                extra={"progress_file": str(self.progress_file), "error": str(e)},
             )
-            return progress
-        except json.JSONDecodeError as e:
-            logger.error(
-                "Invalid JSON in progress file", extra={"progress_file": str(self.progress_file), "error": str(e)}
-            )
-            raise ValueError(f"Invalid JSON in progress file: {e}") from e
+            return self._get_initial_progress_data()
         except Exception as e:
             logger.error(
-                "Invalid progress file structure", extra={"progress_file": str(self.progress_file), "error": str(e)}
+                "Failed to read progress file", extra={"progress_file": str(self.progress_file), "error": str(e)}
             )
-            raise ValueError(f"Invalid progress file structure: {e}") from e
+            raise ValueError(f"Failed to read progress file: {e}") from e
 
-    def _write_validated_progress(self, validated_progress: ProgressFileStructure) -> None:
+        # Only handle core infrastructure fields
+        now = datetime.now(UTC)
+        fields_added = []
+
+        if "created_at" not in data:
+            data["created_at"] = now
+            fields_added.append("created_at")
+        if "updated_at" not in data:
+            data["updated_at"] = now
+            fields_added.append("updated_at")
+
+        if fields_added:
+            logger.warning(
+                "Progress file missing core infrastructure fields, adding defaults",
+                extra={"progress_file": str(self.progress_file), "missing_fields": fields_added},
+            )
+
+        logger.debug(
+            "Progress file read successfully",
+            extra={"progress_file": str(self.progress_file)},
+        )
+        return data
+
+    def _get_initial_progress_data(self) -> Dict[str, Any]:
         """
-        Write validated progress data to file.
+        Get minimal initial progress data structure.
+        Only includes core infrastructure fields.
+
+        Returns:
+            Dict with minimal progress structure
+        """
+        return {
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC),
+        }
+
+    def _write_validated_progress(self, progress_data: Dict[str, Any]) -> None:
+        """
+        Write progress data to file.
 
         Args:
-            validated_progress: Validated ProgressFileStructure to write
+            progress_data: Progress data dictionary to write
 
         Raises:
             IOError: If file cannot be written
         """
         try:
             with open(self.progress_file, "w", encoding="utf-8") as f:
-                json.dump(validated_progress.model_dump(), f, indent=2, default=str)
+                json.dump(progress_data, f, indent=2, default=str)
         except Exception as e:
             raise IOError(f"Failed to write progress file: {e}") from e
 
@@ -156,7 +181,7 @@ class ProgressStateManager(Generic[StateEnum]):
             ValueError: If progress file is invalid
         """
         progress = self.read_progress_file()
-        return progress.current_state
+        return progress["current_state"]
 
     def get_state_data(self, state: Union[StateEnum, str]) -> Optional[StateData]:
         """
@@ -173,7 +198,7 @@ class ProgressStateManager(Generic[StateEnum]):
         """
         progress = self.read_progress_file()
         state_key = state.value if isinstance(state, Enum) else state
-        return progress.states.get(state_key)
+        return progress["states"].get(state_key)
 
     def transition_to_state(self, new_state: Union[StateEnum, str], state_data: StateData) -> None:
         """
@@ -188,7 +213,7 @@ class ProgressStateManager(Generic[StateEnum]):
         """
         # Read current progress
         progress = self.read_progress_file()
-        old_state = progress.current_state
+        old_state = progress["current_state"]
 
         # Convert state to string if it's an enum
         new_state_str = new_state.value if isinstance(new_state, Enum) else new_state
@@ -204,14 +229,14 @@ class ProgressStateManager(Generic[StateEnum]):
         )
 
         # Update the progress structure
-        progress.current_state = new_state_str
-        progress.states[new_state_str] = state_data
-        progress.updated_at = datetime.now(UTC)
+        progress["current_state"] = new_state_str
+        progress["states"][new_state_str] = state_data
+        progress["updated_at"] = datetime.now(UTC)
 
         # Validate the entire structure before writing
         try:
             # This will trigger all Pydantic validators
-            validated_progress = ProgressFileStructure(**progress.model_dump())
+            validated_progress = BaseProgressFileStructure(**progress)
         except Exception as e:
             logger.error(
                 "State transition failed validation",
@@ -225,37 +250,12 @@ class ProgressStateManager(Generic[StateEnum]):
             raise ValueError(f"State transition failed validation: {e}") from e
 
         # Write the validated data back to file
-        self._write_validated_progress(validated_progress)
+        self._write_validated_progress(validated_progress.model_dump())
 
         logger.info(
             "State transition completed successfully",
             extra={"progress_file": str(self.progress_file), "from_state": old_state, "to_state": new_state_str},
         )
-
-    def update_meta(self, meta_data: Dict[str, Any]) -> None:
-        """
-        Update global metadata in the progress file.
-
-        Args:
-            meta_data: New metadata to update/merge
-
-        Raises:
-            ValueError: If progress file is invalid or validation fails
-        """
-        progress = self.read_progress_file()
-
-        # Update the metadata
-        progress.meta.update(meta_data)
-        progress.updated_at = datetime.now(UTC)
-
-        # Validate the entire structure before writing
-        try:
-            validated_progress = ProgressFileStructure(**progress.model_dump())
-        except Exception as e:
-            raise ValueError(f"Updated metadata failed validation: {e}") from e
-
-        # Write the validated data back to file
-        self._write_validated_progress(validated_progress)
 
     def rollback_to_state(self, target_state: Union[StateEnum, str], state_order: List[Union[StateEnum, str]]) -> None:
         """
@@ -288,7 +288,7 @@ class ProgressStateManager(Generic[StateEnum]):
 
         # Read current progress
         progress = self.read_progress_file()
-        current_state = progress.current_state
+        current_state = progress["current_state"]
         current_index = state_order_str.index(current_state)
 
         if target_index > current_index:
@@ -308,19 +308,19 @@ class ProgressStateManager(Generic[StateEnum]):
         )
 
         # Update current state
-        progress.current_state = target_state_str
+        progress["current_state"] = target_state_str
 
         # Remove all states after the target state
         states_to_remove = []
         for i in range(target_index + 1, len(state_order_str)):
             state_to_remove = state_order_str[i]
-            if state_to_remove in progress.states:
+            if state_to_remove in progress["states"]:
                 states_to_remove.append(state_to_remove)
 
         for state in states_to_remove:
-            del progress.states[state]
+            del progress["states"][state]
 
-        progress.updated_at = datetime.now(UTC)
+        progress["updated_at"] = datetime.now(UTC)
 
         logger.debug(
             "Removed states during rollback",
@@ -329,7 +329,7 @@ class ProgressStateManager(Generic[StateEnum]):
 
         # Validate and write
         try:
-            validated_progress = ProgressFileStructure(**progress.model_dump())
+            validated_progress = BaseProgressFileStructure(**progress)
         except Exception as e:
             logger.error(
                 "Rollback failed validation",
@@ -337,7 +337,7 @@ class ProgressStateManager(Generic[StateEnum]):
             )
             raise ValueError(f"Rollback failed validation: {e}") from e
 
-        self._write_validated_progress(validated_progress)
+        self._write_validated_progress(validated_progress.model_dump())
 
         logger.info(
             "Rollback completed successfully",

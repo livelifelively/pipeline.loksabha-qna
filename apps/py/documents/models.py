@@ -3,7 +3,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
+
+from ..utils.state_manager import BaseProgressFileStructure
 
 
 class MultiPageTableInfo(BaseModel):
@@ -265,6 +267,33 @@ class ProcessingMetadata(BaseModel):
     reviewer: Optional[str] = None  # For manual review step
 
 
+class InitializedData(BaseModel):
+    """Data structure for INITIALIZED state"""
+
+    status: ProcessingStatus
+    timestamp: datetime
+
+    # Question metadata
+    question_number: int
+    subjects: str
+    loksabha_number: str
+    member: List[str]
+    ministry: str
+    type: str  # "STARRED" or "UNSTARRED"
+    date: str
+    questions_file_path_local: str
+    questions_file_path_web: str
+    questions_file_path_hindi_local: Optional[str] = None
+    questions_file_path_hindi_web: Optional[str] = None
+    question_text: Optional[str] = None
+    answer_text: Optional[str] = None
+    session_number: str
+
+    # Processing metadata
+    started_by: Optional[str] = None
+    notes: Optional[str] = None
+
+
 class LocalExtractionPageData(BaseModel):
     """Data structure for a single page during LOCAL_EXTRACTION state"""
 
@@ -352,7 +381,7 @@ class ManualReviewData(BaseModel):
 
 
 # Type alias for backward compatibility and state-specific type unions
-PageProcessingData = Union[LocalExtractionData, LlmExtractionData, ManualReviewData]
+PageProcessingData = Union[InitializedData, LocalExtractionData, LlmExtractionData, ManualReviewData]
 
 
 class ChunkingData(BaseModel):
@@ -365,42 +394,65 @@ class ChunkingData(BaseModel):
     chunking_strategy: str
 
 
-class ProgressFileStructure(BaseModel):
+class ProgressFileStructure(BaseProgressFileStructure):
     """Complete structure of the progress file"""
 
-    meta: Dict[str, Any]
-    current_state: ProcessingState
+    current_state: ProcessingState  # Override to use enum instead of string
     states: Dict[
         ProcessingState, Union[PageProcessingData, ChunkingData]
     ]  # Most states use PageProcessingData, chunking uses ChunkingData
-    created_at: datetime
-    updated_at: datetime
 
     @field_validator("current_state")
-    def validate_current_state(cls, v, values):
+    def validate_current_state(cls, v, info: ValidationInfo):
         """Validate that current_state exists in the available states"""
-        states = values.get("states", {})
+        states = info.data.get("states", {})
         if states and v not in states:
             raise ValueError(f"Current state {v} must exist in states dictionary")
         return v
 
     @model_validator(mode="before")
+    @classmethod
     def validate_state_consistency(cls, values):
         """Validate overall state consistency"""
         current_state = values.get("current_state")
         states = values.get("states", {})
 
         if current_state and states:
+            # Convert string to enum if necessary
+            if isinstance(current_state, str):
+                try:
+                    current_state = ProcessingState(current_state)
+                except ValueError:
+                    raise ValueError(f"Invalid current_state: {current_state}")
+
             # Ensure current state data exists
-            if current_state not in states:
+            # Check both string and enum keys in states dict
+            state_found = False
+            if current_state in states:
+                state_found = True
+            elif current_state.value in states:
+                state_found = True
+
+            if not state_found:
                 raise ValueError(f"Current state {current_state} not found in states")
 
             # Validate state ordering (no future states should exist)
             current_index = STATE_ORDER.index(current_state)
-            for state in states:
-                state_index = STATE_ORDER.index(state)
+            for state_key in states:
+                # Convert state key to enum if it's a string
+                if isinstance(state_key, str):
+                    try:
+                        state_enum = ProcessingState(state_key)
+                    except ValueError:
+                        raise ValueError(f"Invalid state in states dict: {state_key}")
+                else:
+                    state_enum = state_key
+
+                state_index = STATE_ORDER.index(state_enum)
                 if state_index > current_index:
-                    raise ValueError(f"Future state {state} should not exist when current state is {current_state}")
+                    raise ValueError(
+                        f"Future state {state_enum} should not exist when current state is {current_state}"
+                    )
 
         return values
 
