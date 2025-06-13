@@ -51,6 +51,7 @@ def find_documents_with_tables(ministries):
                     if step.get("step") == "pdf_extraction" and step.get("status") == "success":
                         data = step.get("data", {})
                         has_tables = data.get("has_tables", False)
+                        total_tables = data.get("total_tables", 0)
 
                         if has_tables:
                             # Get table information
@@ -74,6 +75,8 @@ def find_documents_with_tables(ministries):
                                     "table_pages": sorted(table_pages),
                                     "num_tables": data.get("num_tables", 0),
                                     "potential_multi_page_ranges": potential_ranges,
+                                    "has_tables": has_tables,
+                                    "total_tables": total_tables,
                                 }
                             )
 

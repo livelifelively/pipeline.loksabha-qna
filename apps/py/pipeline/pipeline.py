@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from ..utils.project_root import find_project_root
+from ..utils.project_root import get_loksabha_data_root
 from .context import PipelineContext
 from .exceptions import PipelineError, PipelineStepError
 from .progress import create_new_iteration, get_last_iteration, log_progress
@@ -55,7 +55,7 @@ async def orchestrate_pipeline(
 
     progress_file = Path(outputs["progress_file"])
     previous_iteration = await get_last_iteration(progress_file)
-    project_root = Path(find_project_root())
+    project_root = Path(get_loksabha_data_root())
 
     if previous_iteration:
         context.log_pipeline("previous_iteration_found", step_count=len(previous_iteration.steps))

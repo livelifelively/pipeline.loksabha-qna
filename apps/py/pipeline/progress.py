@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from apps.py.utils.project_root import get_data_root
+from apps.py.utils.project_root import get_loksabha_data_root
 
 from .exceptions import FileOperationError, ProgressError
 from .types import ProgressData, ProgressIteration, ProgressStep, StepStatus
@@ -80,7 +80,7 @@ async def log_progress(
         log_file = progress_dir / f"{iteration.iteration}.{progress_data.key}.log.json"
 
         # Get data root and make path relative to it
-        data_root = get_data_root()
+        data_root = get_loksabha_data_root()
         relative_log_file = log_file.relative_to(data_root)
 
         # Store the data-relative path

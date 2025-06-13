@@ -23,15 +23,6 @@ class StateData(BaseModel):
     errors: List[str] = []
 
 
-class BaseProgressFileStructure(BaseModel):
-    """Generic base structure for progress files"""
-
-    current_state: str  # Store as string to be enum-agnostic
-    created_at: datetime
-    updated_at: datetime
-    # Note: states field is defined in subclasses with specific typing
-
-
 class ProgressStateManager(Generic[StateEnum]):
     """
     Generic state machine manager that persists state to JSON files.
@@ -74,17 +65,23 @@ class ProgressStateManager(Generic[StateEnum]):
 
         self.progress_file.parent.mkdir(parents=True, exist_ok=True)
 
-        # Create file with basic structure, no current_state set
+        # Create file with basic structure, set to initial state
         initial_progress = {
-            "current_state": None,  # Will be set by first domain transition
+            "current_state": self.initial_state.value,  # Set to the initial state
             "states": {},
             "created_at": datetime.now(UTC),
             "updated_at": datetime.now(UTC),
         }
 
+        def json_serializer(obj):
+            """Custom JSON serializer that handles enums and other types"""
+            if isinstance(obj, Enum):
+                return obj.value  # Convert enum to its value
+            return str(obj)  # Fallback to string for other types
+
         try:
             with open(self.progress_file, "w", encoding="utf-8") as f:
-                json.dump(initial_progress, f, indent=2, default=str)
+                json.dump(initial_progress, f, indent=2, default=json_serializer)
             logger.debug("Progress file initialized successfully", extra={"progress_file": str(self.progress_file)})
         except Exception as e:
             logger.error(
@@ -164,9 +161,16 @@ class ProgressStateManager(Generic[StateEnum]):
         Raises:
             IOError: If file cannot be written
         """
+
+        def json_serializer(obj):
+            """Custom JSON serializer that handles enums and other types"""
+            if isinstance(obj, Enum):
+                return obj.value  # Convert enum to its value
+            return str(obj)  # Fallback to string for other types
+
         try:
             with open(self.progress_file, "w", encoding="utf-8") as f:
-                json.dump(progress_data, f, indent=2, default=str)
+                json.dump(progress_data, f, indent=2, default=json_serializer)
         except Exception as e:
             raise IOError(f"Failed to write progress file: {e}") from e
 
@@ -236,6 +240,8 @@ class ProgressStateManager(Generic[StateEnum]):
         # Validate the entire structure before writing
         try:
             # This will trigger all Pydantic validators
+            from ..types import BaseProgressFileStructure
+
             validated_progress = BaseProgressFileStructure(**progress)
         except Exception as e:
             logger.error(
@@ -329,6 +335,8 @@ class ProgressStateManager(Generic[StateEnum]):
 
         # Validate and write
         try:
+            from ..types import BaseProgressFileStructure
+
             validated_progress = BaseProgressFileStructure(**progress)
         except Exception as e:
             logger.error(

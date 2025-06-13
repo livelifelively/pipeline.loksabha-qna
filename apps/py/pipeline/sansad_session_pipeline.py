@@ -1,8 +1,9 @@
 from typing import Any
 
+from apps.py.types import ParliamentQuestionsPipelineState
+
 from ..parliament_questions import fetch_and_categorize_questions_pdfs
 from ..parliament_questions.adapt_input_data import adapt_source_questions_list_to_parliament_questions
-from ..parliament_questions.types import ParliamentQuestionsPipelineState
 from ..utils.project_root import get_loksabha_data_root
 from .context import PipelineContext
 from .pipeline import run_pipeline
