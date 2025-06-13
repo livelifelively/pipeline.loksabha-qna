@@ -4,9 +4,9 @@ from typing import Any, Dict, Tuple
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-from apps.py.documents.models import MultiPageTableDetectionResult
 from apps.py.llm_api_key.rate_limiter import RateLimiter
 from apps.py.llm_api_key.usage_tracker import UsageTracker
+from apps.py.types import MultiPageTableDetectionResult
 
 # Load environment variables
 load_dotenv()

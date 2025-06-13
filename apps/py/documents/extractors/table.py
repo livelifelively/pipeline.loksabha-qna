@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
-from apps.py.documents.models import (
+from apps.py.types import (
     ExtractionResult,
     MultiPageTableExtractionResults,
     MultiPageTableInfo,

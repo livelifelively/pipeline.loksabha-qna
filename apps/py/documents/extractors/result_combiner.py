@@ -1,6 +1,6 @@
 from typing import Dict, Optional
 
-from apps.py.documents.models import (
+from apps.py.types import (
     CombinedResults,
     ExtractionResult,
     ExtractionSummary,

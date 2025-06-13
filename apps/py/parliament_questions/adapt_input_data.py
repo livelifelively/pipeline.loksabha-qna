@@ -3,9 +3,10 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from apps.py.types import ParliamentQuestion
+
 from ..pipeline.context import PipelineContext
 from ..utils.project_root import get_loksabha_data_root
-from .types import ParliamentQuestion
 
 
 class SourceParliamentQuestion(BaseModel):
@@ -22,7 +23,7 @@ class SourceParliamentQuestion(BaseModel):
     answerText: Optional[str] = Field(None, description="Answer text")
     answerTextHindi: Optional[str] = Field(None, description="Hindi answer text")
     questionsFilePath: str = Field(..., description="Path to questions file")
-    questionsFilePathHindi: str = Field(..., description="Path to Hindi questions file")
+    questionsFilePathHindi: Optional[str] = Field(None, description="Path to Hindi questions file")
     sessionNo: str = Field(..., description="Session number")
     supplementaryQuestionResDtoList: Optional[List[Any]] = Field(
         default_factory=list, description="List of supplementary questions"

@@ -4,23 +4,21 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from apps.py.documents.models import (
+from apps.py.types import (
     CombinedResults,
     ExtractionResult,
     ExtractionSummary,
+    LlmExtractionData,
+    LlmExtractionPageData,
     LocalExtractionData,
     PageIdentifier,
+    ProcessingMetadata,
+    ProcessingStatus,
     SinglePageTableResult,
     TableResult,
 )
 from apps.py.utils.project_root import get_loksabha_data_root
 
-from ..models import (
-    LlmExtractionData,
-    LlmExtractionPageData,
-    ProcessingMetadata,
-    ProcessingStatus,
-)
 from ..utils.progress_handler import DocumentProgressHandler
 from .base import BaseExtractor
 from .page_splitter import PDFPageSplitter

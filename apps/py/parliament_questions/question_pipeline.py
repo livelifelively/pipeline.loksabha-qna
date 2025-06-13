@@ -1,11 +1,12 @@
 from pathlib import Path
 from typing import Any, Dict
 
+from apps.py.types import QuestionPipelineState
+
 from ..pipeline.context import PipelineContext
 from ..pipeline.pipeline import run_pipeline
 from ..pipeline.types import PipelineStep
 from ..utils.project_root import get_loksabha_data_root
-from .types import QuestionPipelineState
 
 
 async def analyze_single_question(outputs: Dict[str, Any], context: PipelineContext) -> Dict[str, Any]:

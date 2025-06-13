@@ -5,12 +5,12 @@ from operator import itemgetter
 from typing import Any, Dict
 
 from apps.py.documents.utils.progress_handler import DocumentProgressHandler
+from apps.py.types import ParliamentQuestion, QuestionType
 
 from ..pipeline.context import PipelineContext
 from ..utils.file_utils import filename_generator, kebab_case_names
 from ..utils.pdf import DownloadConfig, download_pdfs
 from ..utils.project_root import get_loksabha_data_root
-from .types import ParliamentQuestion, QuestionType
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,17 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
     for ministry, ministry_questions in grouped_questions.items():
         for question in ministry_questions:
             ministry_dir = sansad_session_directory / "ministries" / kebab_case_names(ministry)
-            question_dir = ministry_dir / kebab_case_names(str(question["question_number"]).strip())
+
+            # Include question type (S for STARRED, U for UNSTARRED) to ensure unique directory names
+            # Handle both string and enum values for type
+            question_type = question["type"]
+            if isinstance(question_type, QuestionType):
+                question_type_prefix = "S" if question_type == QuestionType.STARRED else "U"
+            else:
+                question_type_prefix = "S" if str(question_type).strip() == "STARRED" else "U"
+
+            question_dir_name = f"{question_type_prefix}-{str(question['question_number']).strip()}"
+            question_dir = ministry_dir / kebab_case_names(question_dir_name)
             question_dir.mkdir(parents=True, exist_ok=True)
 
             pdf_url = question["questions_file_path_web"]

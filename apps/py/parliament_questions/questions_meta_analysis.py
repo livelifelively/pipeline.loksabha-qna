@@ -1,8 +1,9 @@
 import logging
 from typing import Any, Dict
 
+from apps.py.types import ParliamentQuestion
+
 from ..pipeline.context import PipelineContext
-from .types import ParliamentQuestion
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ async def analyze_questions_batch_metadata(outputs: Dict[str, Any], context: Pip
                 context.log_step(
                     "question_analyzed",
                     question_id=question["question_number"],
-                    progress=f"{i+1}/{len(downloaded_questions)}",
+                    progress=f"{i + 1}/{len(downloaded_questions)}",
                 )
 
             except Exception as e:

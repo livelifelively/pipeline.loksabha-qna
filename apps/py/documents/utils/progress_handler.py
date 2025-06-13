@@ -3,9 +3,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
-from ...utils.state_manager import ProgressStateManager, StateData
-from ..models import (
-    STATE_ORDER,
+from apps.py.types import (
     ChunkingData,
     InitializedData,
     LlmExtractionData,
@@ -20,6 +18,8 @@ from ..models import (
     ProcessingStatus,
     ProgressFileStructure,
 )
+
+from ...utils.state_manager import ProgressStateManager, StateData
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class DocumentProgressHandler:
         self.document_path = Path(document_path)
         progress_file = self.document_path / "question.progress.json"
         # File starts directly with INITIALIZED state
-        self._state_manager = ProgressStateManager(file_path=progress_file, initial_state=ProcessingState.INITIALIZED)
+        self._state_manager = ProgressStateManager(file_path=progress_file, initial_state=ProcessingState.NOT_STARTED)
 
     # ===============================
     # DOCUMENT-SPECIFIC TYPED METHODS
@@ -49,17 +49,20 @@ class DocumentProgressHandler:
         try:
             return ProgressFileStructure(**raw_progress)
         except Exception as e:
-            logger.warning(
-                "Progress file failed document-specific validation, falling back to initial state",
-                extra={"progress_file": str(self._state_manager.progress_file), "error": str(e)},
+            logger.error(
+                "Progress file failed validation - this indicates a format mismatch or corrupted data",
+                extra={
+                    "progress_file": str(self._state_manager.progress_file),
+                    "error": str(e),
+                    "raw_data": raw_progress,
+                },
             )
-            # Return initial structure with document-specific typing using the state manager's initial state
-            return ProgressFileStructure(
-                current_state=ProcessingState(self._state_manager.initial_state.value),
-                states={},
-                created_at=datetime.now(UTC),
-                updated_at=datetime.now(UTC),
-            )
+            # Don't fail silently - raise the validation error with context
+            raise ValueError(
+                f"Progress file validation failed for {self._state_manager.progress_file}. "
+                f"This usually indicates a format mismatch between expected and actual JSON structure. "
+                f"Error: {str(e)}"
+            ) from e
 
     def get_current_state(self) -> ProcessingState:
         """Get current state with document-specific typing."""
@@ -169,6 +172,9 @@ class DocumentProgressHandler:
 
     def rollback_to_state(self, target_state: ProcessingState) -> None:
         """Rollback to previous state."""
+        # Use import from centralized types module
+        from ...types import STATE_ORDER
+
         self._state_manager.rollback_to_state(target_state, STATE_ORDER)
 
     # ===============================
