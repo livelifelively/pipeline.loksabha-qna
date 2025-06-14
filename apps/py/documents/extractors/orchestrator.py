@@ -10,7 +10,6 @@ from apps.py.types import (
     ExtractionSummary,
     LlmExtractionData,
     LlmExtractionPageData,
-    LocalExtractionData,
     PageIdentifier,
     ProcessingMetadata,
     ProcessingStatus,
@@ -18,6 +17,7 @@ from apps.py.types import (
     TableResult,
 )
 from apps.py.utils.project_root import get_loksabha_data_root
+from apps.py.utils.state_manager import StateData
 
 from ..utils.progress_handler import DocumentProgressHandler
 from .base import BaseExtractor
@@ -174,14 +174,20 @@ class PDFExtractionOrchestrator(BaseExtractor):
             # Get tables info from LOCAL_EXTRACTION state
             local_extraction_data = self.progress_handler.get_local_extraction_data()
 
-            if local_extraction_data and local_extraction_data.table_metadata:
+            if (
+                local_extraction_data
+                and local_extraction_data["data"]
+                and local_extraction_data["data"]["table_metadata"]
+            ):
                 # Group tables by page from metadata
                 page_tables: Dict[int, List[dict]] = {}
-                for table in local_extraction_data.table_metadata:
-                    page = table.page
+                for table in local_extraction_data["data"]["table_metadata"]:
+                    page = table["page"]
                     if page not in page_tables:
                         page_tables[page] = []
-                    page_tables[page].append(table.model_dump())
+                    # Handle both Pydantic models and dictionaries
+                    table_dict = table.model_dump() if hasattr(table, "model_dump") else table
+                    page_tables[page].append(table_dict)
 
                 # Keep only pages with multiple tables
                 pages_with_multiple_tables = {page: tables for page, tables in page_tables.items() if len(tables) > 1}
@@ -254,7 +260,7 @@ class PDFExtractionOrchestrator(BaseExtractor):
             if ExtractionConfig.TEMP_FILE_CLEANUP_ENABLED and temp_pdf and Path(temp_pdf).exists():
                 Path(temp_pdf).unlink()
 
-    def _get_local_extraction_reference(self) -> Optional[LocalExtractionData]:
+    def _get_local_extraction_reference(self) -> Optional[StateData]:
         """Get existing local extraction data for reference (but don't copy incompatible types)."""
         local_extraction_data = None
         try:
@@ -310,7 +316,20 @@ class PDFExtractionOrchestrator(BaseExtractor):
             errors.extend(file_errors)
 
             if content is not None:
-                tables = content if isinstance(content, list) else content.get("tables", [])
+                if isinstance(content, list):
+                    # Content is directly a list of dictionaries (single table)
+                    tables = content
+                else:
+                    # Content has 'tables' key with multiple tables
+                    raw_tables = content.get("tables", [])
+                    # Flatten nested table structure
+                    for table in raw_tables:
+                        if isinstance(table, list):
+                            # Table is a list of rows (dictionaries)
+                            tables.extend(table)
+                        else:
+                            # Table is a single dictionary
+                            tables.append(table)
 
         elif table_result:
             errors.append(ExtractionConfig.TABLE_EXTRACTION_FAILED_ERROR.format(error=table_result.error))
@@ -338,7 +357,7 @@ class PDFExtractionOrchestrator(BaseExtractor):
 
     def _create_single_page_data(self, page_num: int, combined_results: CombinedResults) -> LlmExtractionPageData:
         """Create LlmExtractionPageData for a single page with tables or errors."""
-        # Get table results for this page
+        # Get table results for this page (single-page only)
         table_result = next((t for t in combined_results.single_page_tables if t.page_number == page_num), None)
 
         # Get text result for this page
@@ -353,14 +372,17 @@ class PDFExtractionOrchestrator(BaseExtractor):
         # Combine all errors
         all_errors = table_errors + text_errors
 
+        # Get table count from the table result
+        num_tables = table_result.tables_count or 0 if table_result else 0
+
         return LlmExtractionPageData(
-            has_tables=len(tables) > 0,
-            num_tables=len(tables),
+            has_tables=page_num in combined_results.pages_with_tables,
+            num_tables=num_tables,
             text=text,
             tables=tables,
             errors=all_errors,
             has_multi_page_tables=page_num in combined_results.pages_with_multi_page_tables,
-            has_multiple_tables=(table_result.tables_count or 0) > 1,  # Handle Optional[int] safely
+            has_multiple_tables=page_num in combined_results.pages_with_single_page_tables and len(tables) > 1,
             table_file_name=table_file_name,
             text_file_name=text_file_name,
         )
@@ -373,12 +395,26 @@ class PDFExtractionOrchestrator(BaseExtractor):
         multi_page_table_files: Dict[str, List[int]] = {}
 
         for table in combined_results.multi_page_tables:
-            # Read multi-page table content
+            # Read multi-page table content using the same logic as _process_table_content
             table_data: List[Dict[str, Any]] = []
             content, file_errors = self._read_extraction_file(table.output_file, read_as_json=True)
 
             if content is not None:
-                table_data = content.get("tables", [])
+                # Use the same flattening logic as _process_table_content
+                if isinstance(content, list):
+                    # Content is directly a list of dictionaries (single table)
+                    table_data = content
+                else:
+                    # Content has 'tables' key with multiple tables
+                    raw_tables = content.get("tables", [])
+                    # Flatten nested table structure
+                    for table_item in raw_tables:
+                        if isinstance(table_item, list):
+                            # Table is a list of rows (dictionaries)
+                            table_data.extend(table_item)
+                        else:
+                            # Table is a single dictionary
+                            table_data.append(table_item)
                 # Track multi-page table files
                 multi_page_table_files[table.output_file] = table.pages
             elif file_errors:
@@ -386,22 +422,31 @@ class PDFExtractionOrchestrator(BaseExtractor):
                 print(ExtractionConfig.MULTIPAGE_TABLE_READ_WARNING.format(error=file_errors[0]))
 
             for page_num in table.pages:
-                # Get text from local extraction data if available
+                # Get text from combined_results.text_results
                 page_text = ""
-                if local_extraction_data and page_num in local_extraction_data.pages:
-                    page_text = local_extraction_data.pages[page_num].text
+                text_file_name = None
+                if page_num in combined_results.text_results:
+                    text_result = combined_results.text_results[page_num]
+                    if text_result.status == "success" and text_result.output_file:
+                        text_file_name = text_result.output_file
+                        # Read the text content from the file
+                        try:
+                            with open(text_result.output_file, "r", encoding="utf-8") as f:
+                                page_text = f.read()
+                        except Exception as e:
+                            print(f"Warning: Could not read text file {text_result.output_file}: {e}")
 
                 # Create page data for pages with multi-page tables
                 typed_pages[page_num] = LlmExtractionPageData(
                     has_tables=True,
                     num_tables=len(table_data),
-                    text=page_text,  # Use text from local extraction if available
+                    text=page_text,
                     tables=table_data,
                     errors=[],  # Empty list, not None
                     has_multi_page_tables=True,
                     has_multiple_tables=False,  # Multi-page table is one table across pages
                     table_file_name=table.output_file,
-                    text_file_name=None,
+                    text_file_name=text_file_name,
                 )
 
         return typed_pages, multi_page_table_files
@@ -446,7 +491,9 @@ class PDFExtractionOrchestrator(BaseExtractor):
 
         # Process pages with tables or errors
         for page_num in combined_results.pages_with_tables | combined_results.pages_with_errors:
-            typed_pages[page_num] = self._create_single_page_data(page_num, combined_results)
+            # Only process pages that are NOT part of multi-page tables
+            if page_num not in combined_results.pages_with_multi_page_tables:
+                typed_pages[page_num] = self._create_single_page_data(page_num, combined_results)
 
         # Process multi-page table information
         multipage_pages, multi_page_table_files = self._process_multipage_tables(
@@ -516,7 +563,7 @@ class PDFExtractionOrchestrator(BaseExtractor):
             multi_page_extraction_results = self.multi_page_handler.process_continuous_ranges(
                 self.pdf_path, continuous_ranges, output_folder_path
             )
-            multi_page_results = multi_page_extraction_results.results
+            multi_page_results = multi_page_extraction_results.table_results
             # Get pages that need single-page processing
             pending_pages = list(multi_page_extraction_results.pages_without_multi_page_tables)
         else:
@@ -524,6 +571,7 @@ class PDFExtractionOrchestrator(BaseExtractor):
             pending_pages = []
 
         # Add pages that were never part of continuous ranges
+        # TODO add pages at start and end of the continuous ranges, they may have single page tables as well.
         pending_pages.extend(self.range_detector.get_single_pages(page_numbers, continuous_ranges))
 
         # Process single pages

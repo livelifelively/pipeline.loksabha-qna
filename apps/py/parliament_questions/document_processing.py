@@ -19,69 +19,78 @@ def find_documents_with_tables(ministries):
     data_root = get_loksabha_data_root()
 
     for ministry in ministries:
-        results_file = ministry / "ministry.progress.json"
-
-        if not results_file.exists():
-            print(f"No extraction results found for ministry: {ministry.name}")
-            continue
-
         try:
-            with open(results_file, "r", encoding="utf-8") as f:
-                results = json.load(f)
+            # Find all question directories in the ministry
+            question_dirs = [d for d in ministry.iterdir() if d.is_dir()]
 
-            for doc in results.get("extracted_documents", []):
-                doc_path = doc.get("path")
+            for question_dir in question_dirs:
+                progress_file = question_dir / "question.progress.json"
 
-                # Convert to relative path if it's absolute
-                if doc_path:
-                    doc_path_obj = Path(doc_path)
-                    if doc_path_obj.is_absolute():
-                        try:
-                            # Try to make the path relative to data root
-                            rel_path = doc_path_obj.relative_to(data_root)
-                            doc_path = str(rel_path)
-                        except ValueError:
-                            # Keep as is if not under data root
-                            pass
+                if not progress_file.exists():
+                    continue
 
-                result = doc.get("result", {})
+                try:
+                    with open(progress_file, "r", encoding="utf-8") as f:
+                        progress_data = json.load(f)
 
-                # Check for tables in the extraction steps
-                for step in result.get("steps", []):
-                    if step.get("step") == "pdf_extraction" and step.get("status") == "success":
-                        data = step.get("data", {})
-                        has_tables = data.get("has_tables", False)
-                        total_tables = data.get("total_tables", 0)
+                    # Check if LOCAL_EXTRACTION state exists and was successful
+                    local_extraction = progress_data.get("states", {}).get("LOCAL_EXTRACTION", {})
+                    if local_extraction.get("status") != "SUCCESS":
+                        continue
 
-                        if has_tables:
-                            # Get table information
-                            tables_data = data.get("tables_data", {})
-                            tables_summary = tables_data.get("tables_summary", [])
+                    extraction_data = local_extraction.get("data", {})
+                    has_tables = extraction_data.get("has_tables", False)
+                    total_tables = extraction_data.get("total_tables", 0)
 
-                            # Collect page numbers with tables
-                            table_pages = []
-                            for table in tables_summary:
-                                page_num = table.get("page")
-                                if page_num and page_num not in table_pages:
-                                    table_pages.append(page_num)
+                    if has_tables:
+                        # Get table information from pages
+                        pages = extraction_data.get("pages", {})
+                        table_pages = []
+                        tables_summary = []
 
-                            # Find potential multi-page tables
-                            potential_ranges = find_potential_continuous_table_pages(tables_summary)
+                        # Convert pages data to tables_summary format for potential ranges
+                        for page_num, page_data in pages.items():
+                            if page_data.get("has_tables", False):
+                                page_num_int = int(page_num)
+                                table_pages.append(page_num_int)
+                                # Add to tables_summary for potential ranges calculation
+                                tables_summary.append({"page": page_num_int})
+
+                        # Find potential multi-page tables
+                        potential_ranges = find_potential_continuous_table_pages(tables_summary)
+
+                        # Get the document path from INITIALIZED state
+                        initialized_data = progress_data.get("states", {}).get("INITIALIZED", {}).get("data", {})
+                        doc_path = initialized_data.get("questions_file_path_local")
+
+                        if doc_path:
+                            # Convert to relative path if it's absolute
+                            doc_path_obj = Path(doc_path)
+                            if doc_path_obj.is_absolute():
+                                try:
+                                    rel_path = doc_path_obj.relative_to(data_root)
+                                    doc_path = str(rel_path)
+                                except ValueError:
+                                    pass
 
                             documents_with_tables.append(
                                 {
                                     "path": doc_path,
                                     "ministry": ministry.name,
                                     "table_pages": sorted(table_pages),
-                                    "num_tables": data.get("num_tables", 0),
+                                    "num_tables": total_tables,
                                     "potential_multi_page_ranges": potential_ranges,
                                     "has_tables": has_tables,
                                     "total_tables": total_tables,
                                 }
                             )
 
+                except Exception as e:
+                    print(f"Error processing question progress file {progress_file}: {str(e)}")
+                    continue
+
         except Exception as e:
-            print(f"Error processing results for ministry {ministry.name}: {str(e)}")
+            print(f"Error processing ministry {ministry.name}: {str(e)}")
 
     return documents_with_tables
 

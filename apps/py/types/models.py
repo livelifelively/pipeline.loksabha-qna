@@ -24,6 +24,7 @@ class MultiPageTableInfo(BaseModel):
     pages: List[int] = Field(description="List of page numbers that are part of this table")
     confidence: float = Field(ge=0.0, le=1.0, description="Confidence score for this table detection")
     reasoning: str = Field(description="Explanation of why these pages are connected")
+    output_file: Optional[str] = None
 
 
 class ExtractionResult(BaseModel):
@@ -37,10 +38,13 @@ class ExtractionResult(BaseModel):
 class MultiPageTableResult(ExtractionResult):
     pages: List[int]
     page_range: Tuple[int, int]
+    confidence: float = Field(ge=0.0, le=1.0, description="Confidence score for this table detection")
+    detection_reasoning: Optional[str] = Field(None, description="Reasoning for this table detection")
     table_number: Optional[int] = Field(None, description="Sequential number of the table")
     table_dimensions: Optional[List[Dict[str, int]]] = Field(
         None, description="Array of table dimensions, where each element contains num_rows for that table"
     )
+    raw_response: Optional[str] = Field(None, description="Raw response from the model in case of error")
 
 
 class SinglePageTableResult(ExtractionResult):
@@ -179,8 +183,8 @@ class MultiPageTableExtractionResults(BaseModel):
     summary: TableSummary = Field(description="Summary statistics for the extraction process")
 
     # Structured view of results
-    multi_page_tables: List[MultiPageTableInfo] = Field(
-        default_factory=list, description="List of all multi-page tables found"
+    multi_page_tables: List[MultiPageTableResult] = Field(
+        default_factory=list, description="List of all multi-page table results"
     )
     pages_with_multi_page_tables: Set[int] = Field(
         default_factory=set, description="Set of all pages that are part of multi-page tables"
@@ -198,14 +202,7 @@ class MultiPageTableExtractionResults(BaseModel):
             if isinstance(key, tuple):  # Multi-page table
                 if isinstance(result, MultiPageTableResult) and result.status == "success":
                     result.table_number = table_counter
-                    self.multi_page_tables.append(
-                        MultiPageTableInfo(
-                            pages=result.pages,
-                            page_range=result.page_range,
-                            confidence=result.confidence,
-                            output_file=result.output_file,
-                        )
-                    )
+                    self.multi_page_tables.append(result)  # Use the result directly
                     self.pages_with_multi_page_tables.update(result.pages)
                     table_counter += 1
             else:  # Single page

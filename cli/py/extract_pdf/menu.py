@@ -229,7 +229,7 @@ class ExtractPDFWorkflow(BaseWorkflow):
 
             results = self.create_extraction_results(processed_documents, failed_extractions)
             self.display_extraction_results(ministry, results)
-            self.save_extraction_results(results, ministry)
+            # self.save_extraction_results(results, ministry)
 
             return results
 
@@ -669,7 +669,7 @@ class FixTablesWorkflow(BaseWorkflow):
             if not doc_path.is_absolute():
                 doc_path = data_root / doc_path
 
-            pdf_extractor = PDFExtractionOrchestrator(doc_path)
+            pdf_extractor = PDFExtractionOrchestrator()
 
             print(f"\n[{i}/{total_documents}] Processing document: {doc_path.name}")
             print(f"  Pages with tables: {', '.join(map(str, table_pages))}")

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from PyPDF2 import PdfReader, PdfWriter
 
@@ -70,3 +70,60 @@ class PDFPageSplitter:
             else:
                 print(f"  ⚠ Warning: Page {page_num} is out of range (1-{total_pages})")
         return valid_pages
+
+    def split_range(
+        self,
+        pdf_path: str,
+        start_page: int,
+        end_page: int,
+        output_folder: Optional[Path] = None,
+        range_base: Optional[int] = None,
+    ) -> Optional[str]:
+        """
+        Split a range of pages from a PDF into a single PDF file.
+
+        Args:
+            pdf_path: Path to the source PDF file
+            start_page: Start page number (1-based)
+            end_page: End page number (1-based)
+            output_folder: Where to save the output PDF. If None, uses the same directory as the input.
+
+        Returns:
+            Path to the created PDF file, or None if splitting failed
+        """
+        new_start_page = start_page
+        new_end_page = end_page
+
+        if range_base is not None:
+            new_start_page = start_page - range_base + 1
+            new_end_page = end_page - range_base + 1
+
+        try:
+            # Create output folder if needed
+            if output_folder:
+                output_folder.mkdir(parents=True, exist_ok=True)
+            else:
+                output_folder = Path(pdf_path).parent
+
+            # Create output filename
+            output_file = output_folder / f"range_{start_page}_to_{end_page}.pdf"
+
+            # Use PyPDF2 to extract the range
+            with open(pdf_path, "rb") as file:
+                reader = PdfReader(file)
+                writer = PdfWriter()
+
+                # Add all pages in the range
+                for page_num in range(new_start_page - 1, new_end_page):  # Convert to 0-based index
+                    if page_num < len(reader.pages):
+                        writer.add_page(reader.pages[page_num])
+
+                # Write the output file
+                with open(output_file, "wb") as output:
+                    writer.write(output)
+
+            return str(output_file)
+
+        except Exception as e:
+            print(f"Error splitting range {start_page}-{end_page}: {str(e)}")
+            return None

@@ -1,9 +1,11 @@
 import json
+import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from apps.py.types import (
     ExtractionResult,
+    MultiPageTableDetectionResult,
     MultiPageTableExtractionResults,
     MultiPageTableInfo,
     MultiPageTableResult,
@@ -150,6 +152,19 @@ class MultiPageTableHandler(BaseTableExtractor):
         self.table_extractor = TableExtractor(data_root)
         self.page_splitter = PDFPageSplitter()
 
+    def _adjust_page_numbers(self, pages: List[int], start_page: int) -> List[int]:
+        """
+        Adjust page numbers to match original range.
+
+        Args:
+            pages: List of page numbers to adjust (1-based)
+            start_page: Start page number of the range
+
+        Returns:
+            List of adjusted page numbers
+        """
+        return [page + (start_page - 1) for page in pages]
+
     def process_continuous_ranges(
         self, pdf_path: str, continuous_ranges: List[Tuple[int, int]], output_folder: Optional[Path] = None
     ) -> MultiPageTableExtractionResults:
@@ -177,15 +192,16 @@ class MultiPageTableHandler(BaseTableExtractor):
         for start_page, end_page in continuous_ranges:
             print(f"\nProcessing potential multi-page table on pages {start_page}-{end_page}")
 
-            # Create temporary PDF for this range
-            temp_pdf = self.page_splitter.split_pages(pdf_path, list(range(start_page, end_page + 1)), output_folder)
-            if not temp_pdf:
+            # Create a single PDF containing just this range
+            range_pdf = self.page_splitter.split_range(pdf_path, start_page, end_page, output_folder)
+            if not range_pdf:
                 error_msg = f"Failed to create temporary PDF for range {start_page}-{end_page}"
                 print(f"Error: {error_msg}")
                 raise RuntimeError(error_msg)
 
             try:
-                range_results = self._process_single_range(temp_pdf, start_page, end_page, output_folder)
+                # Process the entire range as one unit
+                range_results = self._process_single_range(range_pdf, start_page, end_page, output_folder)
                 results.update(range_results)
 
                 # Update summary statistics
@@ -203,8 +219,8 @@ class MultiPageTableHandler(BaseTableExtractor):
                             single_page_tables += result.tables_count or 0
             finally:
                 # Clean up temporary file
-                if temp_pdf and Path(temp_pdf).exists():
-                    Path(temp_pdf).unlink()
+                if range_pdf and Path(range_pdf).exists():
+                    Path(range_pdf).unlink()
 
         # Create TableSummary for MultiPageTableExtractionResults
         table_summary = TableSummary(
@@ -215,7 +231,7 @@ class MultiPageTableHandler(BaseTableExtractor):
 
         return MultiPageTableExtractionResults(
             pages_processed=len(results),
-            results=results,
+            table_results=results,
             summary=table_summary,
         )
 
@@ -226,17 +242,24 @@ class MultiPageTableHandler(BaseTableExtractor):
         Process a single continuous range of pages.
 
         Args:
-            pdf_path: Path to the PDF file
+            pdf_path: Path to the PDF file containing the range
             start_page: Start page number
             end_page: End page number
             output_folder: Where to save the extracted table files
 
         Returns:
-            Dictionary mapping page numbers to their extraction results. Pages without multi-page tables
-            are marked as "pending" for single-page processing.
+            Dictionary mapping page numbers to their extraction results
         """
         # First detect if this range contains any multi-page tables
-        table_detection = detect_multi_page_tables(pdf_path)
+        table_detection = self.with_page_range_adjustment(
+            detect_multi_page_tables,
+            {"pdf_path": pdf_path},
+            start_page,
+            end_page,
+            "multi_page_tables[*].pages",  # Direct path to pages in MultiPageTableInfo
+        )
+
+        # table_detection = detect_multi_page_tables(pdf_path)
 
         if table_detection.status == "error":
             return self._mark_range_for_single_page(start_page, end_page, table_detection)
@@ -252,34 +275,32 @@ class MultiPageTableHandler(BaseTableExtractor):
                 if not table_pages:  # Skip if no pages in this table
                     continue
 
-                # Create a temporary PDF for this specific table
-                temp_pdf = self.page_splitter.split_pages(pdf_path, table_pages, output_folder)
-                if not temp_pdf:
-                    error_msg = f"Failed to create temporary PDF for table on pages {table_pages}"
+                # split the pdf again for the detected multi-page table page range
+                range_pdf = self.page_splitter.split_range(
+                    pdf_path, min(table_pages), max(table_pages), output_folder, range_base=start_page
+                )
+                if not range_pdf:
+                    error_msg = f"Failed to create temporary PDF for range {min(table_pages)}-{max(table_pages)}"
+                    print(f"Error: {error_msg}")
                     raise RuntimeError(error_msg)
 
-                try:
-                    # Extract and save this multi-page table
-                    table_result = self._extract_and_save_multi_page_table(
-                        temp_pdf,
-                        min(table_pages),
-                        max(table_pages),
-                        output_folder,
-                        table_info,
-                    )
-                    results.update(table_result)
-                    processed_pages.update(table_pages)
-                finally:
-                    # Clean up temporary file
-                    if temp_pdf and Path(temp_pdf).exists():
-                        Path(temp_pdf).unlink()
+                # Extract and save this multi-page table
+                table_result = self._extract_and_save_multi_page_table(
+                    range_pdf,
+                    output_folder,
+                    table_info,
+                )
+                # TODO will need to adjust the page numbers in the result
+                results.update(table_result)
+                processed_pages.update(table_pages)
 
         # Mark remaining pages for single-page processing
         remaining_pages = set(range(start_page, end_page + 1)) - processed_pages
         if remaining_pages:
             for page_num in sorted(remaining_pages):
                 results[page_num] = SinglePageTableResult(
-                    status="pending",
+                    status="error",
+                    error="Page needs single-page processing",
                     page_number=page_num,
                 )
 
@@ -311,58 +332,151 @@ class MultiPageTableHandler(BaseTableExtractor):
     def _extract_and_save_multi_page_table(
         self,
         pdf_path: str,
-        start_page: int,
-        end_page: int,
         output_folder: Optional[Path],
         table_info: MultiPageTableInfo,
     ) -> Dict[Union[int, Tuple[int, int]], Union[SinglePageTableResult, MultiPageTableResult]]:
         """
-        Extract and save a multi-page table.
+        Extract and save a multi-page table from a range of pages.
 
         Args:
             pdf_path: Path to the PDF file
-            start_page: Start page number
-            end_page: End page number
             output_folder: Where to save the extracted table files
             table_info: Information about the multi-page table
 
         Returns:
-            Dictionary mapping page numbers to their extraction results
-
-        Raises:
-            RuntimeError: If table extraction fails
+            Dictionary mapping page range to extraction result
         """
-        extraction_result = extract_multi_page_table(pdf_path, (start_page, end_page))
-        result = ExtractionResult(**extraction_result)
+        # Set page range variables
+        start_page = min(table_info.pages)
+        end_page = max(table_info.pages)
+        page_range = (start_page, end_page)
+        output_filename = f"multi_page_table_{start_page}_{end_page}.json"
 
-        if result.status == "success":
-            # Create output file
-            output_file = output_folder / f"multi_page_table_{start_page}_to_{end_page}.json"
-            relative_path = self._save_table_result(extraction_result["content"], output_file)
+        try:
+            # For the range PDF, pages are numbered 1 to (end_page - start_page + 1)
+            # So we need to adjust the page numbers in the extraction result
+            extraction_result = extract_multi_page_table(pdf_path)
 
-            # Get table dimensions from content
-            content = extraction_result["content"]
-            try:
-                tables = content.get("tables", [{}])
-                table_dimensions = [{"num_rows": len(table.get("rows", []))} for table in tables]
-            except Exception as e:
-                print(f"Warning: Could not get table dimensions: {e}")
-                table_dimensions = [{"num_rows": 0}]
+            if extraction_result["status"] == "success":
+                # Create output file
+                output_file = output_folder / output_filename
+                relative_path = self._save_table_result(extraction_result["content"], output_file)
 
-            # Store successful extraction result
-            multi_page_result = MultiPageTableResult(
-                status="success",
-                is_multi_page_table=True,
-                confidence=table_info.confidence,
-                output_file=relative_path,
-                tables_count=1,
-                pages=table_info.pages,
-                page_range=(start_page, end_page),
-                table_dimensions=table_dimensions,
-            )
-            return {(start_page, end_page): multi_page_result}
+                # Get table dimensions from content
+                content = extraction_result["content"]
+                try:
+                    # Handle both single table and multiple tables cases
+                    if isinstance(content, list):
+                        # Content is a list of dictionaries (rows)
+                        table_dimensions = [{"num_rows": len(content)}]
+                        tables_count = 1
+                    elif "tables" in content:
+                        # Multiple tables case
+                        tables = content.get("tables", [])
+                        table_dimensions = [{"num_rows": len(table)} for table in tables]
+                        tables_count = len(tables)
+                    else:
+                        # Single table case
+                        table_dimensions = [{"num_rows": 1}]  # Single row
+                        tables_count = 1
+                except Exception as e:
+                    print(f"Warning: Could not get table dimensions: {e}")
+                    table_dimensions = [{"num_rows": 0}]
+                    tables_count = 1
 
-        # If extraction failed, raise an error
-        error_msg = f"Failed to extract multi-page table from pages {start_page}-{end_page}: {result.error}"
-        print(f"Error: {error_msg}")
-        raise RuntimeError(error_msg)
+                # Store successful extraction result
+                multi_page_result = MultiPageTableResult(
+                    status="success",
+                    is_multi_page_table=True,
+                    confidence=table_info.confidence,
+                    detection_reasoning=table_info.reasoning,
+                    output_file=relative_path,
+                    tables_count=tables_count,
+                    pages=table_info.pages,  # Will be adjusted later
+                    page_range=page_range,
+                    table_dimensions=table_dimensions,
+                )
+                return {page_range: multi_page_result}
+
+            # If extraction failed, raise an error
+            error_msg = f"Failed to extract multi-page table from pages {start_page}-{end_page}: {extraction_result.get('error', 'Unknown error')}"
+            print(f"Error: {error_msg}")
+
+            # Create output file with error info
+            output_file = output_folder / output_filename
+            error_content = {
+                "status": "error",
+                "error": error_msg,
+                "raw_response": extraction_result.get("raw_response", ""),
+            }
+            relative_path = self._save_table_result(error_content, output_file)
+
+            # Return error result
+            return {
+                page_range: MultiPageTableResult(
+                    status="error",
+                    error=error_msg,
+                    raw_response=extraction_result.get("raw_response", ""),
+                    is_multi_page_table=True,
+                    confidence=table_info.confidence,
+                    detection_reasoning=table_info.reasoning,
+                    output_file=relative_path,
+                    tables_count=0,
+                    pages=table_info.pages,  # Will be adjusted later
+                    page_range=page_range,
+                    table_dimensions=[],
+                )
+            }
+        finally:
+            # Clean up the temporary range PDF
+            if os.path.exists(pdf_path):
+                os.remove(pdf_path)
+
+    def _adjust_pages_in_result(self, result: Any, jsonpath: str, start_page: int, end_page: int) -> Any:
+        """
+        Adjust page numbers in MultiPageTableDetectionResult.
+
+        Args:
+            result: The MultiPageTableDetectionResult to adjust
+            jsonpath: Not used, kept for interface compatibility
+            start_page: Original start page number
+            end_page: Original end page number
+
+        Returns:
+            MultiPageTableDetectionResult with adjusted page numbers
+        """
+        if not isinstance(result, MultiPageTableDetectionResult):
+            return result
+
+        # Adjust pages in each MultiPageTableInfo
+        for table_info in result.multi_page_tables:
+            table_info.pages = [page + start_page - 1 for page in table_info.pages]
+
+        return result
+
+    def with_page_range_adjustment(
+        self,
+        func: Callable,
+        params: Dict[str, Any],
+        start_page: int,
+        end_page: int,
+        jsonpath: str,
+    ) -> Any:
+        """
+        Run a function and adjust page numbers in its result.
+
+        Args:
+            func: Function to run
+            params: Parameters to pass to the function
+            start_page: Start page number to adjust from
+            end_page: End page number (for validation)
+            jsonpath: JSONPath expression to locate pages to adjust
+
+        Returns:
+            Result from the function with adjusted page numbers
+        """
+        # Run the original function
+        result = func(**params)
+
+        # Adjust page numbers in the result
+        return self._adjust_pages_in_result(result, jsonpath, start_page, end_page)

@@ -9,7 +9,6 @@ from apps.py.types import (
     LlmExtractionData,
     LlmExtractionPageData,
     LocalExtractionData,
-    LocalExtractionPageData,
     ManualReviewData,
     ManualReviewPageData,
     PageProcessingData,
@@ -77,11 +76,9 @@ class DocumentProgressHandler:
         """Get INITIALIZED state data with exact typing."""
         return self._state_manager.get_state_data(ProcessingState.INITIALIZED)
 
-    def get_local_extraction_data(self) -> Optional[LocalExtractionData]:
+    def get_local_extraction_data(self) -> Optional[StateData]:
         """Get LOCAL_EXTRACTION state data with exact typing."""
-        return self._get_page_processing_data(
-            ProcessingState.LOCAL_EXTRACTION, LocalExtractionPageData, LocalExtractionData
-        )
+        return self._state_manager.get_state_data(ProcessingState.LOCAL_EXTRACTION)
 
     def get_llm_extraction_data(self) -> Optional[LlmExtractionData]:
         """Get LLM_EXTRACTION state data with exact typing."""
@@ -189,16 +186,35 @@ class DocumentProgressHandler:
             return None
 
         data = generic_state_data.data
-        processing_metadata = ProcessingMetadata(**data["processing_metadata"])
+        if not isinstance(data, dict):
+            logger.warning(f"Expected dict for state data, got {type(data)}")
+            return None
+
+        # Create default processing metadata if not present
+        processing_metadata = ProcessingMetadata(
+            processing_time_seconds=0.0,
+            pages_processed=0,
+            pages_failed=0,
+            llm_model_used=None,
+            reviewer=None,
+        )
+        if "processing_metadata" in data:
+            try:
+                processing_metadata = ProcessingMetadata(**data["processing_metadata"])
+            except Exception as e:
+                logger.warning(f"Failed to parse processing metadata: {e}")
 
         pages = {}
         if "pages" in data:
-            for page_num_str, page_dict in data["pages"].items():
-                pages[int(page_num_str)] = page_data_class(**page_dict)
+            try:
+                for page_num_str, page_dict in data["pages"].items():
+                    pages[int(page_num_str)] = page_data_class(**page_dict)
+            except Exception as e:
+                logger.warning(f"Failed to parse page data: {e}")
 
         return state_data_class(
             status=ProcessingStatus(generic_state_data.status),
-            timestamp=datetime.fromisoformat(data["timestamp"]),
+            timestamp=datetime.fromisoformat(data.get("timestamp", datetime.now(UTC).isoformat())),
             processing_metadata=processing_metadata,
             pages=pages,
             error_message=data.get("error_message"),
