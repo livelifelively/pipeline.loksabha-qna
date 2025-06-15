@@ -350,7 +350,11 @@ class LlmExtractionPageData(BaseModel):
     has_tables: bool
     num_tables: int
     text: str
-    tables: List[Dict[str, Any]] = Field(default_factory=list)
+
+    # Separate fields for different table types
+    single_page_tables: List[Dict[str, Any]] = Field(default_factory=list)
+    multi_page_table_file_path: Optional[str] = None  # Key for multi_page_table_files lookup
+
     errors: Optional[List[str]] = Field(default_factory=list)
 
     # Table metadata
@@ -405,6 +409,7 @@ class LlmExtractionData(BaseModel):
     failed_tables: int = 0
     multi_page_tables: int = 0
     single_page_tables: int = 0
+    multi_page_table_files: Optional[Dict[str, Dict[str, Any]]] = None
 
 
 class ManualReviewData(BaseModel):

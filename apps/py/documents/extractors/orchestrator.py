@@ -379,7 +379,8 @@ class PDFExtractionOrchestrator(BaseExtractor):
             has_tables=page_num in combined_results.pages_with_tables,
             num_tables=num_tables,
             text=text,
-            tables=tables,
+            single_page_tables=tables,
+            multi_page_table_file_path=None,  # Single-page tables don't have multi-page references
             errors=all_errors,
             has_multi_page_tables=page_num in combined_results.pages_with_multi_page_tables,
             has_multiple_tables=page_num in combined_results.pages_with_single_page_tables and len(tables) > 1,
@@ -389,10 +390,10 @@ class PDFExtractionOrchestrator(BaseExtractor):
 
     def _process_multipage_tables(
         self, combined_results: CombinedResults, local_extraction_data
-    ) -> tuple[Dict[int, LlmExtractionPageData], Dict[str, List[int]]]:
+    ) -> tuple[Dict[int, LlmExtractionPageData], Dict[str, Dict[str, Any]]]:
         """Process multi-page table information and return updated pages and file tracking."""
         typed_pages: Dict[int, LlmExtractionPageData] = {}
-        multi_page_table_files: Dict[str, List[int]] = {}
+        multi_page_table_files: Dict[str, Dict[str, Any]] = {}
 
         for table in combined_results.multi_page_tables:
             # Read multi-page table content using the same logic as _process_table_content
@@ -415,8 +416,8 @@ class PDFExtractionOrchestrator(BaseExtractor):
                         else:
                             # Table is a single dictionary
                             table_data.append(table_item)
-                # Track multi-page table files
-                multi_page_table_files[table.output_file] = table.pages
+                # Track multi-page table files with both pages and data contents
+                multi_page_table_files[table.output_file] = {"pages": table.pages, "data": table_data}
             elif file_errors:
                 # Print the first error message (our helper returns standardized error messages)
                 print(ExtractionConfig.MULTIPAGE_TABLE_READ_WARNING.format(error=file_errors[0]))
@@ -429,19 +430,21 @@ class PDFExtractionOrchestrator(BaseExtractor):
                     text_result = combined_results.text_results[page_num]
                     if text_result.status == "success" and text_result.output_file:
                         text_file_name = text_result.output_file
-                        # Read the text content from the file
+                        # Read the text content from the file (construct full path)
+                        full_text_path = self.data_root / text_result.output_file
                         try:
-                            with open(text_result.output_file, "r", encoding="utf-8") as f:
+                            with open(full_text_path, "r", encoding="utf-8") as f:
                                 page_text = f.read()
                         except Exception as e:
-                            print(f"Warning: Could not read text file {text_result.output_file}: {e}")
+                            print(f"Warning: Could not read text file {full_text_path}: {e}")
 
                 # Create page data for pages with multi-page tables
                 typed_pages[page_num] = LlmExtractionPageData(
                     has_tables=True,
                     num_tables=len(table_data),
                     text=page_text,
-                    tables=table_data,
+                    single_page_tables=[],  # Empty for multi-page tables
+                    multi_page_table_file_path=table.output_file,  # Reference to multi_page_table_files
                     errors=[],  # Empty list, not None
                     has_multi_page_tables=True,
                     has_multiple_tables=False,  # Multi-page table is one table across pages
