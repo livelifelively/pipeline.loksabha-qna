@@ -13,8 +13,8 @@ from InquirerPy.base.control import Choice
 # Add parent directory to path to import from other modules
 sys.path.append(str(Path(__file__).parents[3]))
 
-# Import the PDF extraction menu
-from cli.py.extract_pdf.menu import pdf_menu
+# Import the PDF extraction menu and reports menu
+from cli.py.extract_pdf.menu import pdf_menu, reports_menu
 
 
 def main():
@@ -30,12 +30,18 @@ def main():
         # Main menu selection using dropdown
         action = inquirer.select(
             message="Select an operation:",
-            choices=[Choice(value="pdf", name="PDF Tools"), Choice(value="quit", name="Quit")],
+            choices=[
+                Choice(value="pdf", name="PDF Tools"),
+                Choice(value="reports", name="Reports"),
+                Choice(value="quit", name="Quit"),
+            ],
             default="pdf",
         ).execute()
 
         if action == "pdf":
             pdf_menu()
+        elif action == "reports":
+            reports_menu()
         elif action == "quit":
             print("Exiting Loksabha CLI. Goodbye!")
             break

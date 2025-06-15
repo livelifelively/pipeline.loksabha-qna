@@ -1,12 +1,15 @@
 import json
 from pathlib import Path
 
+from apps.py.documents.utils.progress_handler import DocumentProgressHandler
+from apps.py.types import ProcessingState, ProcessingStatus
 from apps.py.utils.project_root import get_loksabha_data_root
 
 
-def find_documents_with_tables(ministries):
+def find_documents_ready_for_llm_extraction(ministries):
     """
-    Find documents with tables across all selected ministries.
+    Find documents that are ready for LLM_EXTRACTION transition.
+    Uses DocumentProgressHandler for proper state management and validation.
 
     Args:
         ministries: List of ministry paths
@@ -14,9 +17,144 @@ def find_documents_with_tables(ministries):
     Returns:
         List of dictionaries with document paths and table page information
     """
-
-    documents_with_tables = []
     data_root = get_loksabha_data_root()
+
+    def validate_document_readiness(question_dir):
+        """
+        Validate that document is ready for LLM_EXTRACTION using progress handler.
+
+        Returns:
+            tuple: (handler, initialized_data, local_extraction_data) if valid, (None, None, None) if invalid
+        """
+        try:
+            handler = DocumentProgressHandler(question_dir)
+
+            # Check if document can transition to LLM_EXTRACTION
+            progress = handler.read_progress_file()
+            if not progress.can_transition_to(ProcessingState.LLM_EXTRACTION):
+                return None, None, None
+
+            # Get typed initialized data
+            initialized_state_data = handler.get_initialized_data()
+            if not initialized_state_data or initialized_state_data.status != ProcessingStatus.SUCCESS.value:
+                return None, None, None
+
+            # Get typed local extraction data
+            local_extraction_state_data = handler.get_local_extraction_data()
+            if not local_extraction_state_data or local_extraction_state_data.status != ProcessingStatus.SUCCESS.value:
+                return None, None, None
+
+            return handler, initialized_state_data, local_extraction_state_data
+
+        except Exception:
+            # Progress handler will log detailed errors, we just skip this document
+            return None, None, None
+
+    def extract_table_information(local_extraction_data):
+        """
+        Extract table pages and summary information from typed local extraction data.
+
+        Returns:
+            tuple: (table_pages, potential_ranges) or (None, None) if no tables
+        """
+        # Access the data from StateData object
+        extraction_data = local_extraction_data.data
+
+        has_tables = extraction_data.get("has_tables", False)
+        if not has_tables:
+            return None, None
+
+        # Get table information from pages
+        pages = extraction_data.get("pages", {})
+        table_pages = []
+        tables_summary = []
+
+        # Convert pages data to tables_summary format for potential ranges
+        for page_num, page_data in pages.items():
+            if page_data.get("has_tables", False):
+                page_num_int = int(page_num)
+                table_pages.append(page_num_int)
+                # Add to tables_summary for potential ranges calculation
+                tables_summary.append({"page": page_num_int})
+
+        # Find potential multi-page tables
+        potential_ranges = find_potential_continuous_table_pages(tables_summary)
+
+        return sorted(table_pages), potential_ranges
+
+    def get_document_path(initialized_state_data):
+        """
+        Get and normalize the document path from typed initialized state data.
+
+        Returns:
+            str: Relative path to document or None if not found
+        """
+        # Access the data from StateData object
+        initialized_data = initialized_state_data.data
+        doc_path = initialized_data.get("questions_file_path_local")
+
+        if not doc_path:
+            return None
+
+        # Convert to relative path if it's absolute
+        doc_path_obj = Path(doc_path)
+        if doc_path_obj.is_absolute():
+            try:
+                rel_path = doc_path_obj.relative_to(data_root)
+                return str(rel_path)
+            except ValueError:
+                pass
+
+        return doc_path
+
+    def create_document_entry(doc_path, ministry_name, table_pages, total_tables, potential_ranges, has_tables):
+        """
+        Create a document entry for the results list.
+
+        Returns:
+            dict: Document information dictionary
+        """
+        return {
+            "path": doc_path,
+            "ministry": ministry_name,
+            "table_pages": table_pages,
+            "num_tables": total_tables,
+            "potential_multi_page_ranges": potential_ranges,
+            "has_tables": has_tables,
+            "total_tables": total_tables,
+        }
+
+    def process_question_directory(question_dir, ministry_name):
+        """
+        Process a single question directory and return document info if ready for LLM extraction.
+
+        Returns:
+            dict or None: Document information if valid and ready for LLM extraction, None otherwise
+        """
+        # Validate document readiness using progress handler
+        handler, initialized_state_data, local_extraction_state_data = validate_document_readiness(question_dir)
+        if not handler or not initialized_state_data or not local_extraction_state_data:
+            return None
+
+        # Extract table information from typed data
+        table_pages, potential_ranges = extract_table_information(local_extraction_state_data)
+        if not table_pages:
+            return None
+
+        # Get document path from typed data
+        doc_path = get_document_path(initialized_state_data)
+        if not doc_path:
+            return None
+
+        # Create document entry
+        extraction_data = local_extraction_state_data.data
+        has_tables = extraction_data.get("has_tables", False)
+        total_tables = extraction_data.get("total_tables", 0)
+
+        return create_document_entry(doc_path, ministry_name, table_pages, total_tables, potential_ranges, has_tables)
+
+    # Main processing logic
+    documents_ready_for_llm_extraction = []
 
     for ministry in ministries:
         try:
@@ -24,75 +162,14 @@ def find_documents_with_tables(ministries):
             question_dirs = [d for d in ministry.iterdir() if d.is_dir()]
 
             for question_dir in question_dirs:
-                progress_file = question_dir / "question.progress.json"
-
-                if not progress_file.exists():
-                    continue
-
-                try:
-                    with open(progress_file, "r", encoding="utf-8") as f:
-                        progress_data = json.load(f)
-
-                    # Check if LOCAL_EXTRACTION state exists and was successful
-                    local_extraction = progress_data.get("states", {}).get("LOCAL_EXTRACTION", {})
-                    if local_extraction.get("status") != "SUCCESS":
-                        continue
-
-                    extraction_data = local_extraction.get("data", {})
-                    has_tables = extraction_data.get("has_tables", False)
-                    total_tables = extraction_data.get("total_tables", 0)
-
-                    if has_tables:
-                        # Get table information from pages
-                        pages = extraction_data.get("pages", {})
-                        table_pages = []
-                        tables_summary = []
-
-                        # Convert pages data to tables_summary format for potential ranges
-                        for page_num, page_data in pages.items():
-                            if page_data.get("has_tables", False):
-                                page_num_int = int(page_num)
-                                table_pages.append(page_num_int)
-                                # Add to tables_summary for potential ranges calculation
-                                tables_summary.append({"page": page_num_int})
-
-                        # Find potential multi-page tables
-                        potential_ranges = find_potential_continuous_table_pages(tables_summary)
-
-                        # Get the document path from INITIALIZED state
-                        initialized_data = progress_data.get("states", {}).get("INITIALIZED", {}).get("data", {})
-                        doc_path = initialized_data.get("questions_file_path_local")
-
-                        if doc_path:
-                            # Convert to relative path if it's absolute
-                            doc_path_obj = Path(doc_path)
-                            if doc_path_obj.is_absolute():
-                                try:
-                                    rel_path = doc_path_obj.relative_to(data_root)
-                                    doc_path = str(rel_path)
-                                except ValueError:
-                                    pass
-
-                            documents_with_tables.append(
-                                {
-                                    "path": doc_path,
-                                    "ministry": ministry.name,
-                                    "table_pages": sorted(table_pages),
-                                    "num_tables": total_tables,
-                                    "potential_multi_page_ranges": potential_ranges,
-                                    "has_tables": has_tables,
-                                    "total_tables": total_tables,
-                                }
-                            )
-
-                except Exception as e:
-                    print(f"Error processing question progress file {progress_file}: {str(e)}")
-                    continue
+                document_info = process_question_directory(question_dir, ministry.name)
+                if document_info:
+                    documents_ready_for_llm_extraction.append(document_info)
 
         except Exception as e:
             print(f"Error processing ministry {ministry.name}: {str(e)}")
 
-    return documents_with_tables
+    return documents_ready_for_llm_extraction
 
 
 def calculate_table_statistics(documents_with_tables):

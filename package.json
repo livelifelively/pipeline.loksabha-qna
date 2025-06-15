@@ -16,7 +16,8 @@
     "start:api-ts:dev": "nodemon --watch 'api/ts/**/*.ts' --exec ts-node api/ts/server.ts",
     "build:api-ts": "tsc -p api/ts/tsconfig.json",
     "start:api-py": "uvicorn api.py.main:app --reload --port 8001",
-    "start:cli": "source .venv/bin/activate && python -m cli.py.main"
+    "start:cli": "source .venv/bin/activate && python -m cli.py.main",
+    "move-timestamps": "ts-node scripts/move-timestamps.ts"
   },
   "keywords": [],
   "author": "",

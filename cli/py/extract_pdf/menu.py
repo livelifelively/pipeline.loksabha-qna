@@ -18,11 +18,18 @@ from apps.py.parliament_questions.document_processing import (
     calculate_table_statistics,
     find_all_document_paths,
     find_document_paths,
-    find_documents_with_tables,
+    find_documents_ready_for_llm_extraction,
     save_ministry_extraction_results,
 )
 from apps.py.utils.project_root import get_loksabha_data_root
 from cli.py.utils.table import print_table  # Import the table utility
+
+# Import document reports workflows
+from .document_reports import (
+    document_details_workflow,
+    ministry_breakdown_workflow,
+    overview_report_workflow,
+)
 
 
 def pdf_menu():
@@ -49,6 +56,37 @@ def pdf_menu():
             extract_pdf_workflow()
         elif action == "fix_tables":
             fix_tables_workflow()
+        elif action == "back":
+            break
+
+
+def reports_menu():
+    """Menu for document processing reports."""
+    while True:
+        # Clear the screen for better UI experience
+        print("\033c", end="")
+
+        print("Document Processing Reports")
+        print("--------------------------\n")
+
+        # Reports submenu selection
+        action = inquirer.select(
+            message="Select a report type:",
+            choices=[
+                Choice(value="overview", name="Processing Status Overview"),
+                Choice(value="ministry", name="Ministry Breakdown Report"),
+                Choice(value="document", name="Document Details Report"),
+                Choice(value="back", name="Back to Main Menu"),
+            ],
+            default="overview",
+        ).execute()
+
+        if action == "overview":
+            overview_report_workflow()
+        elif action == "ministry":
+            ministry_breakdown_workflow()
+        elif action == "document":
+            document_details_workflow()
         elif action == "back":
             break
 
@@ -425,19 +463,34 @@ class SelectionWorkflow:
             inquirer.text(message="Press Enter to continue...").execute()
             return
 
-        # Create choices for the ministry selection
-        ministry_choices = [Choice(value=str(d), name=d.name) for d in ministry_dirs]
-
-        # Ask user to select multiple ministries using checkbox
-        selected_ministry_paths = inquirer.checkbox(
-            message=f"Select Ministry/Ministries from {self.selected_session.name}:",
-            choices=ministry_choices,
-            instruction="(Use space to select, enter to confirm)",
-            validate=lambda result: len(result) >= 1 or "Please select at least one ministry",
+        # Show quick selection option first
+        quick_select = inquirer.select(
+            message=f"Ministry selection for {self.selected_session.name}:",
+            choices=[
+                Choice(value="all", name=f"Select All Ministries ({len(ministry_dirs)} ministries)"),
+                Choice(value="custom", name="Select Specific Ministries"),
+            ],
+            default="all",
         ).execute()
 
-        # Convert string paths to Path objects
-        self.selected_ministries = [Path(path) for path in selected_ministry_paths]
+        if quick_select == "all":
+            # Select all ministries
+            self.selected_ministries = ministry_dirs
+            print(f"\nSelected all {len(ministry_dirs)} ministries")
+        else:
+            # Create choices for the ministry selection
+            ministry_choices = [Choice(value=str(d), name=d.name) for d in ministry_dirs]
+
+            # Ask user to select multiple ministries using checkbox
+            selected_ministry_paths = inquirer.checkbox(
+                message=f"Select Ministry/Ministries from {self.selected_session.name}:",
+                choices=ministry_choices,
+                instruction="(Use space to select, enter to confirm)",
+                validate=lambda result: len(result) >= 1 or "Please select at least one ministry",
+            ).execute()
+
+            # Convert string paths to Path objects
+            self.selected_ministries = [Path(path) for path in selected_ministry_paths]
 
     def count_documents(self):
         """Count documents across all selected ministries."""
@@ -509,7 +562,7 @@ class FixTablesWorkflow(BaseWorkflow):
     def find_documents_with_tables(self):
         """Find and process documents with tables."""
         # Find documents with tables using the shared function
-        self.documents_with_tables = find_documents_with_tables(self.selected_ministries)
+        self.documents_with_tables = find_documents_ready_for_llm_extraction(self.selected_ministries)
 
         if not self.documents_with_tables:
             print("No documents with tables found in the selected ministries.")
