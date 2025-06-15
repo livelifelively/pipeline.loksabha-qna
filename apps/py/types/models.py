@@ -279,7 +279,6 @@ class InitializedData(BaseModel):
     """Data structure for INITIALIZED state"""
 
     status: ProcessingStatus
-    timestamp: datetime
 
     # Question metadata
     question_number: int
@@ -315,7 +314,6 @@ class LocalExtractionData(BaseModel):
     """Data structure for LOCAL_EXTRACTION state"""
 
     status: ProcessingStatus
-    timestamp: datetime
     processing_metadata: ProcessingMetadata
     pages: Dict[int, LocalExtractionPageData]
     extracted_text_path: str
@@ -396,7 +394,6 @@ class LlmExtractionData(BaseModel):
     """Data structure for LLM_EXTRACTION state"""
 
     status: ProcessingStatus
-    timestamp: datetime
     processing_metadata: ProcessingMetadata
     pages: Dict[int, LlmExtractionPageData]
     extracted_text_path: str
@@ -416,7 +413,6 @@ class ManualReviewData(BaseModel):
     """Data structure for MANUAL_REVIEW state"""
 
     status: ProcessingStatus
-    timestamp: datetime
     processing_metadata: ProcessingMetadata
     pages: Dict[int, ManualReviewPageData]  # page_number -> ManualReviewPageData
     error_message: Optional[str] = None

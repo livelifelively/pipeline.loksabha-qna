@@ -1,6 +1,5 @@
 import shutil
 import tempfile
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -135,7 +134,6 @@ class QuestionPDFExtractor:
 
         return LocalExtractionData(
             status=ProcessingStatus.FAILED,
-            timestamp=datetime.now(UTC),
             processing_metadata=processing_metadata,
             pages=pages_data,
             extracted_text_path=str(self.text_path.name) if self.text_path else "",
@@ -212,7 +210,6 @@ class QuestionPDFExtractor:
         # Return typed LocalExtractionData object
         return LocalExtractionData(
             status=ProcessingStatus.SUCCESS,
-            timestamp=datetime.now(UTC),
             processing_metadata=processing_metadata,
             pages=typed_pages,
             extracted_text_path=str(self.text_path.name),

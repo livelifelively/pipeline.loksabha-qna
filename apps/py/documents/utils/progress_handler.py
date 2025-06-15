@@ -108,7 +108,6 @@ class DocumentProgressHandler:
 
         state_data = InitializedData(
             status=ProcessingStatus.SUCCESS,
-            timestamp=datetime.now(UTC),
             question_number=question_metadata["question_number"],
             subjects=question_metadata["subjects"],
             loksabha_number=question_metadata["loksabha_number"],

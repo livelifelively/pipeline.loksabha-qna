@@ -1,6 +1,5 @@
 import json
 import time
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -512,7 +511,6 @@ class PDFExtractionOrchestrator(BaseExtractor):
         # Create and return LlmExtractionData
         return LlmExtractionData(
             status=ProcessingStatus.SUCCESS if not combined_results.pages_with_errors else ProcessingStatus.FAILED,
-            timestamp=datetime.now(UTC),
             processing_metadata=processing_metadata,
             pages=typed_pages,
             extracted_text_path=str(self.document_path / ExtractionConfig.EXTRACTED_TEXT_FILENAME),

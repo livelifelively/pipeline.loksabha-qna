@@ -18,6 +18,7 @@ class StateData(BaseModel):
     """Generic state data structure"""
 
     status: str
+    timestamp: datetime
     data: Dict[str, Any] = {}
     meta: Dict[str, Any] = {}
     errors: List[str] = []
