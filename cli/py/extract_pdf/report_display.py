@@ -7,13 +7,16 @@ All functions are focused on presentation and formatting.
 """
 
 import datetime
+import sys
 from pathlib import Path
 from typing import Dict, List
 
+# Add parent directory to path to import from other modules
+sys.path.append(str(Path(__file__).parents[4]))
+
+from apps.py.documents.utils import get_ministry_document_counts, get_states_with_data
 from apps.py.types import ProcessingState, ProcessingStatus
 from cli.py.utils.table import print_table
-
-from ....apps.py.documents.utils.document_progress_analysis import get_ministry_document_counts, get_states_with_data
 
 
 def display_overview_table(status_counters: Dict, total_documents: int, session_info: Dict, ministries: List[Path]):
