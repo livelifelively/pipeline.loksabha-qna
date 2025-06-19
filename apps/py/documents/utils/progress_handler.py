@@ -7,12 +7,9 @@ from apps.py.types import (
     ChunkingData,
     InitializedData,
     LlmExtractionData,
-    LlmExtractionPageData,
     LocalExtractionData,
     ManualReviewData,
-    ManualReviewPageData,
     PageProcessingData,
-    ProcessingMetadata,
     ProcessingState,
     ProcessingStatus,
     ProgressFileStructure,
@@ -80,20 +77,17 @@ class DocumentProgressHandler:
         """Get LOCAL_EXTRACTION state data with exact typing."""
         return self._state_manager.get_state_data(ProcessingState.LOCAL_EXTRACTION)
 
-    def get_llm_extraction_data(self) -> Optional[LlmExtractionData]:
+    def get_llm_extraction_data(self) -> Optional[StateData]:
         """Get LLM_EXTRACTION state data with exact typing."""
-        return self._get_page_processing_data(ProcessingState.LLM_EXTRACTION, LlmExtractionPageData, LlmExtractionData)
+        return self._state_manager.get_state_data(ProcessingState.LLM_EXTRACTION)
 
-    def get_manual_review_data(self) -> Optional[ManualReviewData]:
+    def get_manual_review_data(self) -> Optional[StateData]:
         """Get MANUAL_REVIEW state data with exact typing."""
-        return self._get_page_processing_data(ProcessingState.MANUAL_REVIEW, ManualReviewPageData, ManualReviewData)
+        return self._state_manager.get_state_data(ProcessingState.MANUAL_REVIEW)
 
-    def get_chunking_data(self) -> Optional[ChunkingData]:
+    def get_chunking_data(self) -> Optional[StateData]:
         """Get CHUNKING state data with exact typing."""
-        generic_state_data = self._state_manager.get_state_data(ProcessingState.CHUNKING)
-        if not generic_state_data:
-            return None
-        return ChunkingData(**generic_state_data.data)
+        return self._state_manager.get_state_data(ProcessingState.CHUNKING)
 
     def transition_to_initialized(self, question_metadata: Dict[str, Any]) -> None:
         """Transition to INITIALIZED state with question metadata."""
@@ -177,48 +171,6 @@ class DocumentProgressHandler:
     # PRIVATE HELPER METHODS
     # ===============================
 
-    def _get_page_processing_data(self, state: ProcessingState, page_data_class, state_data_class):
-        """Generic helper for getting page processing state data."""
-
-        generic_state_data = self._state_manager.get_state_data(state)
-        if not generic_state_data:
-            return None
-
-        data = generic_state_data.data
-        if not isinstance(data, dict):
-            logger.warning(f"Expected dict for state data, got {type(data)}")
-            return None
-
-        # Create default processing metadata if not present
-        processing_metadata = ProcessingMetadata(
-            processing_time_seconds=0.0,
-            pages_processed=0,
-            pages_failed=0,
-            llm_model_used=None,
-            reviewer=None,
-        )
-        if "processing_metadata" in data:
-            try:
-                processing_metadata = ProcessingMetadata(**data["processing_metadata"])
-            except Exception as e:
-                logger.warning(f"Failed to parse processing metadata: {e}")
-
-        pages = {}
-        if "pages" in data:
-            try:
-                for page_num_str, page_dict in data["pages"].items():
-                    pages[int(page_num_str)] = page_data_class(**page_dict)
-            except Exception as e:
-                logger.warning(f"Failed to parse page data: {e}")
-
-        return state_data_class(
-            status=ProcessingStatus(generic_state_data.status),
-            timestamp=datetime.fromisoformat(data.get("timestamp", datetime.now(UTC).isoformat())),
-            processing_metadata=processing_metadata,
-            pages=pages,
-            error_message=data.get("error_message"),
-        )
-
     def _validate_and_transition(
         self, target_state: ProcessingState, state_data: Union[PageProcessingData, ChunkingData]
     ) -> None:
@@ -238,6 +190,7 @@ class DocumentProgressHandler:
 
         return StateData(
             status=state_data.status.value,
+            timestamp=datetime.now(UTC).isoformat(),
             data=state_data.model_dump(exclude={"status"}),
         )
 

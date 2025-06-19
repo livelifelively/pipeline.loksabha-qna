@@ -1,9 +1,12 @@
 import json
+import logging
 from pathlib import Path
 
 from apps.py.documents.utils.progress_handler import DocumentProgressHandler
 from apps.py.types import ProcessingState, ProcessingStatus
 from apps.py.utils.project_root import get_loksabha_data_root
+
+logger = logging.getLogger(__name__)
 
 
 def find_documents_ready_for_llm_extraction(ministries):
@@ -18,6 +21,30 @@ def find_documents_ready_for_llm_extraction(ministries):
         List of dictionaries with document paths and table page information
     """
     data_root = get_loksabha_data_root()
+
+    def get_status_from_state_data(state_data):
+        """
+        Extract status from state data, handling both dictionary and typed object formats.
+
+        Args:
+            state_data: State data object or dictionary
+
+        Returns:
+            str: Status value or None if not found
+        """
+        if not state_data:
+            return None
+
+        # Handle typed object with status attribute
+        if hasattr(state_data, "status"):
+            status = state_data.status
+            return status.value if hasattr(status, "value") else str(status)
+
+        # Handle dictionary with status key
+        elif isinstance(state_data, dict) and "status" in state_data:
+            return state_data["status"]
+
+        return None
 
     def validate_document_readiness(question_dir):
         """
@@ -34,31 +61,47 @@ def find_documents_ready_for_llm_extraction(ministries):
             if not progress.can_transition_to(ProcessingState.LLM_EXTRACTION):
                 return None, None, None
 
-            # Get typed initialized data
+            # Get initialized data (could be typed object or dictionary)
             initialized_state_data = handler.get_initialized_data()
-            if not initialized_state_data or initialized_state_data.status != ProcessingStatus.SUCCESS.value:
+            initialized_status = get_status_from_state_data(initialized_state_data)
+            if not initialized_state_data or initialized_status != ProcessingStatus.SUCCESS.value:
                 return None, None, None
 
-            # Get typed local extraction data
+            # Get local extraction data (could be typed object or dictionary)
             local_extraction_state_data = handler.get_local_extraction_data()
-            if not local_extraction_state_data or local_extraction_state_data.status != ProcessingStatus.SUCCESS.value:
+            local_extraction_status = get_status_from_state_data(local_extraction_state_data)
+            if not local_extraction_state_data or local_extraction_status != ProcessingStatus.SUCCESS.value:
                 return None, None, None
 
             return handler, initialized_state_data, local_extraction_state_data
 
-        except Exception:
-            # Progress handler will log detailed errors, we just skip this document
+        except Exception as e:
+            # Log the error with context about which document failed
+            logger.error(f"Error validating document readiness for {question_dir}: {str(e)}", exc_info=True)
             return None, None, None
 
     def extract_table_information(local_extraction_data):
         """
-        Extract table pages and summary information from typed local extraction data.
+        Extract table pages and summary information from local extraction data.
+        Handles both typed objects and dictionary formats.
 
         Returns:
             tuple: (table_pages, potential_ranges) or (None, None) if no tables
         """
-        # Access the data from StateData object
-        extraction_data = local_extraction_data.data
+        # Extract data from either typed object or dictionary
+        # Check for dictionary first to avoid hasattr() issues
+        if isinstance(local_extraction_data, dict):
+            if "data" in local_extraction_data:
+                # Dictionary format with nested "data" key
+                extraction_data = local_extraction_data["data"]
+            else:
+                # Dictionary format where the dict itself is the data
+                extraction_data = local_extraction_data
+        elif hasattr(local_extraction_data, "data"):
+            # Typed object with data attribute
+            extraction_data = local_extraction_data.data
+        else:
+            return None, None
 
         has_tables = extraction_data.get("has_tables", False)
         if not has_tables:
@@ -84,13 +127,27 @@ def find_documents_ready_for_llm_extraction(ministries):
 
     def get_document_path(initialized_state_data):
         """
-        Get and normalize the document path from typed initialized state data.
+        Get and normalize the document path from initialized state data.
+        Handles both typed objects and dictionary formats.
 
         Returns:
             str: Relative path to document or None if not found
         """
-        # Access the data from StateData object
-        initialized_data = initialized_state_data.data
+        # Extract data from either typed object or dictionary
+        # Check for dictionary first to avoid hasattr() issues
+        if isinstance(initialized_state_data, dict):
+            if "data" in initialized_state_data:
+                # Dictionary format with nested "data" key
+                initialized_data = initialized_state_data["data"]
+            else:
+                # Dictionary format where the dict itself is the data
+                initialized_data = initialized_state_data
+        elif hasattr(initialized_state_data, "data"):
+            # Typed object with data attribute
+            initialized_data = initialized_state_data.data
+        else:
+            return None
+
         doc_path = initialized_data.get("questions_file_path_local")
 
         if not doc_path:
@@ -146,8 +203,19 @@ def find_documents_ready_for_llm_extraction(ministries):
         if not doc_path:
             return None
 
-        # Create document entry
-        extraction_data = local_extraction_state_data.data
+        # Create document entry - extract data handling both formats
+        if isinstance(local_extraction_state_data, dict):
+            if "data" in local_extraction_state_data:
+                # Dictionary format with nested "data" key
+                extraction_data = local_extraction_state_data["data"]
+            else:
+                # Dictionary format where the dict itself is the data
+                extraction_data = local_extraction_state_data
+        elif hasattr(local_extraction_state_data, "data"):
+            extraction_data = local_extraction_state_data.data
+        else:
+            extraction_data = {}
+
         has_tables = extraction_data.get("has_tables", False)
         total_tables = extraction_data.get("total_tables", 0)
 

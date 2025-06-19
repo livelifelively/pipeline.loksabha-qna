@@ -63,20 +63,28 @@ def get_document_table_info(progress_handler: DocumentProgressHandler) -> Dict[s
         # Extract table information
         result["table_info_available"] = True
 
-        if hasattr(local_extraction_data, "has_tables"):
-            result["has_tables"] = local_extraction_data.has_tables
-            if hasattr(local_extraction_data, "total_tables"):
-                result["table_count"] = (
-                    str(local_extraction_data.total_tables) if local_extraction_data.has_tables else "0"
-                )
-            else:
-                result["table_count"] = "0"
-        elif isinstance(local_extraction_data, dict) and "has_tables" in local_extraction_data:
-            result["has_tables"] = local_extraction_data["has_tables"]
-            if "total_tables" in local_extraction_data:
-                result["table_count"] = (
-                    str(local_extraction_data["total_tables"]) if local_extraction_data["has_tables"] else "0"
-                )
+        # Extract the actual data from the nested structure
+        extraction_data = None
+        if hasattr(local_extraction_data, "data"):
+            # Typed object with data attribute
+            extraction_data = local_extraction_data.data
+        elif isinstance(local_extraction_data, dict) and "data" in local_extraction_data:
+            # Dictionary format with nested "data" key
+            extraction_data = local_extraction_data["data"]
+        elif isinstance(local_extraction_data, dict):
+            # Dictionary format where the dict itself is the data
+            extraction_data = local_extraction_data
+        else:
+            return result
+
+        # Now extract table information from the actual data
+        if isinstance(extraction_data, dict):
+            result["has_tables"] = extraction_data.get("has_tables", False)
+            result["table_count"] = str(extraction_data.get("total_tables", 0)) if result["has_tables"] else "0"
+        elif hasattr(extraction_data, "has_tables"):
+            result["has_tables"] = extraction_data.has_tables
+            if hasattr(extraction_data, "total_tables"):
+                result["table_count"] = str(extraction_data.total_tables) if extraction_data.has_tables else "0"
             else:
                 result["table_count"] = "0"
 
@@ -235,7 +243,17 @@ def analyze_documents_status(document_paths: List[Path]) -> Dict:
             # Extract status from state data - handle both typed objects and dictionaries
             if hasattr(state_data, "status"):
                 # Typed object with status attribute
-                status = state_data.status
+                status_value = state_data.status
+                if isinstance(status_value, ProcessingStatus):
+                    status = status_value
+                else:
+                    # Status is a string, convert to enum
+                    try:
+                        status = ProcessingStatus(str(status_value))
+                    except ValueError:
+                        # Invalid status value - treat as unprocessed
+                        status_counters["UNPROCESSED"][ProcessingStatus.SUCCESS] += 1
+                        continue
             elif isinstance(state_data, dict) and "status" in state_data:
                 # Dictionary with status key - convert to ProcessingStatus enum
                 status_str = state_data["status"]
