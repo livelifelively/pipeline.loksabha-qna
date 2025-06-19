@@ -12,7 +12,6 @@ from InquirerPy.base.control import Choice
 sys.path.append(str(Path(__file__).parents[4]))
 
 # Import but don't call directly - we'll handle async separately
-from apps.py.documents.extractors.orchestrator import PDFExtractionOrchestrator
 from apps.py.documents.extractors.pdf_extraction import QuestionPDFExtractor
 from apps.py.parliament_questions.document_processing import (
     calculate_table_statistics,
@@ -711,8 +710,6 @@ class FixTablesWorkflow(BaseWorkflow):
         else:
             batch_process = False
 
-        # Initialize the PDF extractor
-
         for i, doc in enumerate(documents, 1):
             doc_path_str = doc["path"]
             table_pages = doc["table_pages"]
@@ -721,8 +718,6 @@ class FixTablesWorkflow(BaseWorkflow):
             doc_path = Path(doc_path_str)
             if not doc_path.is_absolute():
                 doc_path = data_root / doc_path
-
-            pdf_extractor = PDFExtractionOrchestrator()
 
             print(f"\n[{i}/{total_documents}] Processing document: {doc_path.name}")
             print(f"  Pages with tables: {', '.join(map(str, table_pages))}")
@@ -734,15 +729,19 @@ class FixTablesWorkflow(BaseWorkflow):
 
             if proceed:
                 try:
-                    # Make sure PDF exists
-                    if not doc_path.exists():
-                        raise FileNotFoundError(f"PDF file not found at: {doc_path}")
+                    # Use shared function to process the document
+                    from apps.py.parliament_questions.document_processing import (
+                        process_single_document_for_llm_extraction,
+                    )
 
-                    # Call PDF extractor to process the pages
                     print("  Splitting PDF and processing pages with tables...")
-                    pdf_extractor.extract_and_save_content(str(doc_path), table_pages)
-
+                    process_single_document_for_llm_extraction(doc_path)
                     print("  ✓ Successfully processed pages with tables")
+
+                except FileNotFoundError as e:
+                    print(f"  ✗ Document/PDF not found: {str(e)}")
+                except ValueError as e:
+                    print(f"  ✗ Document not ready: {str(e)}")
                 except Exception as e:
                     print(f"  ✗ Error processing document: {str(e)}")
             else:

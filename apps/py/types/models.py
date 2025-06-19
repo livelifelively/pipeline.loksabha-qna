@@ -546,6 +546,10 @@ VALID_TRANSITIONS = [
     ),
     StateTransition(
         from_state=ProcessingState.LLM_EXTRACTION,
+        to_state=ProcessingState.LLM_EXTRACTION,
+    ),
+    StateTransition(
+        from_state=ProcessingState.LLM_EXTRACTION,
         to_state=ProcessingState.MANUAL_REVIEW,
         required_status=ProcessingStatus.SUCCESS,
     ),

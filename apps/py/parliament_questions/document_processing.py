@@ -434,3 +434,72 @@ def find_documents_with_potential_multi_page_tables(documents_with_tables: list)
             )
 
     return documents_with_potential_multi_page_tables
+
+
+def process_single_document_for_llm_extraction(document_path):
+    """
+    Process a single document for LLM extraction using the PDFExtractionOrchestrator.
+
+    This function consolidates the shared logic between CLI and API for:
+    - Validating document exists and is ready for LLM extraction
+    - Finding the PDF file
+    - Getting pages with tables
+    - Running the orchestrator
+    - Returning the LLM extraction state data
+
+    Args:
+        document_path: Path to the document directory
+
+    Returns:
+        StateData: The LLM extraction state data after successful processing
+
+    Raises:
+        FileNotFoundError: If document or PDF file not found
+        ValueError: If document is not ready for LLM extraction or validation fails
+        Exception: If orchestrator processing fails
+    """
+    from apps.py.documents.extractors.orchestrator import PDFExtractionOrchestrator
+    from apps.py.documents.utils.progress_handler import ProgressHandler
+
+    # Convert to Path object if string
+    document_path = Path(document_path)
+
+    # Check if document exists
+    if not document_path.exists():
+        raise FileNotFoundError(f"Document not found at path: {document_path}")
+
+    # Find the PDF file in the document directory
+    pdf_files = list(document_path.glob("*.pdf"))
+    if not pdf_files:
+        raise FileNotFoundError(f"No PDF file found in document directory: {document_path}")
+
+    pdf_path = str(pdf_files[0])  # Use first PDF found
+
+    # Use existing function to validate state and get table pages
+    docs = find_documents_ready_for_llm_extraction([document_path.parent])
+
+    # Find our document in the results
+    doc_info = None
+    for doc in docs:
+        if Path(doc["path"]).name == document_path.name:
+            doc_info = doc
+            break
+
+    if not doc_info:
+        raise ValueError("Document is not ready for LLM extraction")
+
+    table_pages = doc_info["table_pages"]
+    if not table_pages:
+        raise ValueError("No pages with tables found for LLM extraction")
+
+    # Use PDFExtractionOrchestrator (same as CLI and API)
+    pdf_extractor = PDFExtractionOrchestrator()
+    pdf_extractor.extract_and_save_content(pdf_path, table_pages)
+
+    # Get and return the updated state data after processing
+    handler = ProgressHandler(document_path)
+    llm_state_data = handler.get_llm_extraction_data()
+    if not llm_state_data:
+        raise Exception("LLM extraction completed but no state data found")
+
+    return llm_state_data
