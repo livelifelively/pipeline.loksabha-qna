@@ -19,6 +19,6 @@ async def process_questions(input_string: str) -> Any:
     activity.logger.info(f"Running Python activity with input: {input_string}")
 
     # Match TypeScript activity parameters
-    sansad_session_questions = await sansad_session_pipeline(sansad="17", session="iii")
+    sansad_session_questions = await sansad_session_pipeline(sansad="17", session="i")
 
     return sansad_session_questions

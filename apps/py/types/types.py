@@ -12,6 +12,16 @@ class QuestionType(Enum):
     UNSTARRED = "UNSTARRED"
 
 
+class FailedQuestionDownload(BaseModel):
+    """
+    Represents a failed question download with minimal required fields.
+    """
+
+    questions_file_path_web: str = Field(..., description="Web URL of question PDF")
+    question_number: int = Field(..., description="Unique identifier for the question")
+    type: QuestionType = Field(..., description="Type of question (STARRED/UNSTARRED)")
+
+
 class ParliamentQuestion(BaseModel):
     """
     Represents a question asked in the Parliament.
@@ -61,8 +71,8 @@ class ParliamentQuestionsPipelineState(BaseModel):
 
     sansad: str = Field(..., description="Parliament session number")
     session: str = Field(..., description="Parliament session number")
-    failed_sansad_session_question_download: List[str] = Field(
-        default_factory=list, description="List of URLs that failed to download"
+    failed_sansad_session_question_download: List[FailedQuestionDownload] = Field(
+        default_factory=list, description="List of FailedQuestionDownload objects that failed to download"
     )
     downloaded_sansad_session_questions: List[ParliamentQuestion] = Field(
         default_factory=list, description="List of successfully downloaded and processed questions"

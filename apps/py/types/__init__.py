@@ -44,6 +44,7 @@ from .models import (
     TableSummary,
 )
 from .types import (
+    FailedQuestionDownload,
     ParliamentQuestion,
     ParliamentQuestionsPipelineState,
     QuestionMetaAnalysis,
@@ -59,6 +60,7 @@ __all__ = [
     "QuestionMetaAnalysis",
     "ParliamentQuestionsPipelineState",
     "QuestionPipelineState",
+    "FailedQuestionDownload",
     # From models.py (Documents and Progress Tracking)
     "BaseProgressFileStructure",
     "MultiPageTableInfo",
