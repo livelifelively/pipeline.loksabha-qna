@@ -5,7 +5,7 @@ from operator import itemgetter
 from typing import Any, Dict
 
 from apps.py.documents.utils.progress_handler import DocumentProgressHandler
-from apps.py.types import ParliamentQuestion, QuestionType
+from apps.py.types import FailedQuestionDownload, ParliamentQuestion, QuestionType
 
 from ..pipeline.context import PipelineContext
 from ..utils.file_utils import filename_generator, kebab_case_names
@@ -116,7 +116,10 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
                 )
 
             except Exception as e:
-                failed_downloads.append(pdf_url)
+                failed_download = FailedQuestionDownload(
+                    questions_file_path_web=pdf_url, question_number=question["question_number"], type=question["type"]
+                )
+                failed_downloads.append(failed_download)
                 context.log_step(
                     "download_failed", question_number=question["question_number"], ministry=ministry, error=str(e)
                 )
@@ -127,7 +130,7 @@ async def fetch_and_categorize_questions_pdfs(outputs: Dict[str, Any], context: 
     )
 
     return {
-        "failed_sansad_session_question_download": failed_downloads,
+        "failed_sansad_session_question_download": [fd.model_dump() for fd in failed_downloads],
         "downloaded_sansad_session_questions": [
             {
                 **q.model_dump(),
