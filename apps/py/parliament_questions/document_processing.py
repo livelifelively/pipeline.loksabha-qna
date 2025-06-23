@@ -2,11 +2,237 @@ import json
 import logging
 from pathlib import Path
 
-from apps.py.documents.utils.progress_handler import DocumentProgressHandler
+from apps.py.documents.extractors.orchestrator import PDFExtractionOrchestrator
+from apps.py.documents.utils.progress_handler import DocumentProgressHandler, ProgressHandler
 from apps.py.types import ProcessingState, ProcessingStatus
 from apps.py.utils.project_root import get_loksabha_data_root
 
 logger = logging.getLogger(__name__)
+
+
+def get_status_from_state_data(state_data):
+    """
+    Extract status from state data, handling both dictionary and typed object formats.
+
+    Args:
+        state_data: State data object or dictionary
+
+    Returns:
+        str: Status value or None if not found
+    """
+    if not state_data:
+        return None
+
+    # Handle typed object with status attribute
+    if hasattr(state_data, "status"):
+        status = state_data.status
+        return status.value if hasattr(status, "value") else str(status)
+
+    # Handle dictionary with status key
+    elif isinstance(state_data, dict) and "status" in state_data:
+        return state_data["status"]
+
+    return None
+
+
+def validate_document_readiness(question_dir):
+    """
+    Validate that document is ready for LLM_EXTRACTION using progress handler.
+
+    Returns:
+        tuple: (handler, initialized_data, local_extraction_data) if valid, (None, None, None) if invalid
+    """
+
+    try:
+        handler = DocumentProgressHandler(question_dir)
+
+        # Check if document can transition to LLM_EXTRACTION
+        progress = handler.read_progress_file()
+        if not progress.can_transition_to(ProcessingState.LLM_EXTRACTION):
+            return None, None, None
+
+        # Get initialized data (could be typed object or dictionary)
+        initialized_state_data = handler.get_initialized_data()
+        initialized_status = get_status_from_state_data(initialized_state_data)
+        if not initialized_state_data or initialized_status != ProcessingStatus.SUCCESS.value:
+            return None, None, None
+
+        # Get local extraction data (could be typed object or dictionary)
+        local_extraction_state_data = handler.get_local_extraction_data()
+        local_extraction_status = get_status_from_state_data(local_extraction_state_data)
+        if not local_extraction_state_data or local_extraction_status != ProcessingStatus.SUCCESS.value:
+            return None, None, None
+
+        return handler, initialized_state_data, local_extraction_state_data
+
+    except Exception as e:
+        # Log the error with context about which document failed
+        logger.error(f"Error validating document readiness for {question_dir}: {str(e)}", exc_info=True)
+        return None, None, None
+
+
+def extract_table_information(local_extraction_data):
+    """
+    Extract table pages and summary information from local extraction data.
+    Handles both typed objects and dictionary formats.
+
+    Returns:
+        tuple: (table_pages, potential_ranges) or (None, None) if no tables
+    """
+    # Extract data from either typed object or dictionary
+    # Check for dictionary first to avoid hasattr() issues
+    if isinstance(local_extraction_data, dict):
+        if "data" in local_extraction_data:
+            # Dictionary format with nested "data" key
+            extraction_data = local_extraction_data["data"]
+        else:
+            # Dictionary format where the dict itself is the data
+            extraction_data = local_extraction_data
+    elif hasattr(local_extraction_data, "data"):
+        # Typed object with data attribute
+        extraction_data = local_extraction_data.data
+    else:
+        return None, None
+
+    has_tables = extraction_data.get("has_tables", False)
+    if not has_tables:
+        return None, None
+
+    # Get table information from pages
+    pages = extraction_data.get("pages", {})
+    table_pages = []
+    tables_summary = []
+
+    # Convert pages data to tables_summary format for potential ranges
+    for page_num, page_data in pages.items():
+        if page_data.get("has_tables", False):
+            page_num_int = int(page_num)
+            table_pages.append(page_num_int)
+            # Add to tables_summary for potential ranges calculation
+            tables_summary.append({"page": page_num_int})
+
+    # Find potential multi-page tables
+    potential_ranges = find_potential_continuous_table_pages(tables_summary)
+
+    return sorted(table_pages), potential_ranges
+
+
+def get_document_path_from_state(initialized_state_data):
+    """
+    Get and normalize the document path from initialized state data.
+    Handles both typed objects and dictionary formats.
+
+    Returns:
+        str: Relative path to document or None if not found
+    """
+    data_root = get_loksabha_data_root()
+
+    # Extract data from either typed object or dictionary
+    # Check for dictionary first to avoid hasattr() issues
+    if isinstance(initialized_state_data, dict):
+        if "data" in initialized_state_data:
+            # Dictionary format with nested "data" key
+            initialized_data = initialized_state_data["data"]
+        else:
+            # Dictionary format where the dict itself is the data
+            initialized_data = initialized_state_data
+    elif hasattr(initialized_state_data, "data"):
+        # Typed object with data attribute
+        initialized_data = initialized_state_data.data
+    else:
+        return None
+
+    doc_path = initialized_data.get("questions_file_path_local")
+
+    if not doc_path:
+        return None
+
+    # Convert to relative path if it's absolute
+    doc_path_obj = Path(doc_path)
+    if doc_path_obj.is_absolute():
+        try:
+            rel_path = doc_path_obj.relative_to(data_root)
+            return str(rel_path)
+        except ValueError:
+            pass
+
+    return doc_path
+
+
+def create_document_entry(doc_path, ministry_name, table_pages, total_tables, potential_ranges, has_tables):
+    """
+    Create a document entry for the results list.
+
+    Returns:
+        dict: Document information dictionary
+    """
+    return {
+        "path": doc_path,
+        "ministry": ministry_name,
+        "table_pages": table_pages,
+        "num_tables": total_tables,
+        "potential_multi_page_ranges": potential_ranges,
+        "has_tables": has_tables,
+        "total_tables": total_tables,
+    }
+
+
+def validate_single_document_for_llm_extraction(document_path):
+    """
+    Validate that a single document is ready for LLM extraction.
+    Efficient single-document validation without ministry-wide scanning.
+
+    Args:
+        document_path: Path to the document directory
+
+    Returns:
+        dict: Document information with table_pages in same format as find_documents_ready_for_llm_extraction
+
+    Raises:
+        ValueError: If document is not ready for LLM_EXTRACTION
+        FileNotFoundError: If document doesn't exist
+    """
+    data_root = get_loksabha_data_root()
+
+    # Convert to absolute path and validate existence
+    doc_path = data_root / document_path
+    if not doc_path.exists():
+        raise FileNotFoundError(f"Document not found at path: {document_path}")
+
+    # Extract ministry name from path
+    ministry_name = doc_path.parent.name
+
+    # Validate document readiness using shared helper
+    handler, initialized_state_data, local_extraction_state_data = validate_document_readiness(doc_path)
+    if not handler or not initialized_state_data or not local_extraction_state_data:
+        raise ValueError(f"Document not ready for LLM extraction: {document_path}")
+
+    # Extract table information using shared helper
+    table_pages, potential_ranges = extract_table_information(local_extraction_state_data)
+    if not table_pages:
+        raise ValueError(f"Document has no tables for LLM extraction: {document_path}")
+
+    # Get document path using shared helper
+    doc_path_str = get_document_path_from_state(initialized_state_data)
+    if not doc_path_str:
+        raise ValueError(f"Cannot determine document path from state: {document_path}")
+
+    # Extract additional info for document entry
+    if isinstance(local_extraction_state_data, dict):
+        if "data" in local_extraction_state_data:
+            extraction_data = local_extraction_state_data["data"]
+        else:
+            extraction_data = local_extraction_state_data
+    elif hasattr(local_extraction_state_data, "data"):
+        extraction_data = local_extraction_state_data.data
+    else:
+        extraction_data = {}
+
+    has_tables = extraction_data.get("has_tables", False)
+    total_tables = extraction_data.get("total_tables", 0)
+
+    # Create document entry using shared helper
+    return create_document_entry(doc_path_str, ministry_name, table_pages, total_tables, potential_ranges, has_tables)
 
 
 def find_documents_ready_for_llm_extraction(ministries):
@@ -21,165 +247,6 @@ def find_documents_ready_for_llm_extraction(ministries):
         List of dictionaries with document paths and table page information
     """
     data_root = get_loksabha_data_root()
-
-    def get_status_from_state_data(state_data):
-        """
-        Extract status from state data, handling both dictionary and typed object formats.
-
-        Args:
-            state_data: State data object or dictionary
-
-        Returns:
-            str: Status value or None if not found
-        """
-        if not state_data:
-            return None
-
-        # Handle typed object with status attribute
-        if hasattr(state_data, "status"):
-            status = state_data.status
-            return status.value if hasattr(status, "value") else str(status)
-
-        # Handle dictionary with status key
-        elif isinstance(state_data, dict) and "status" in state_data:
-            return state_data["status"]
-
-        return None
-
-    def validate_document_readiness(question_dir):
-        """
-        Validate that document is ready for LLM_EXTRACTION using progress handler.
-
-        Returns:
-            tuple: (handler, initialized_data, local_extraction_data) if valid, (None, None, None) if invalid
-        """
-        try:
-            handler = DocumentProgressHandler(question_dir)
-
-            # Check if document can transition to LLM_EXTRACTION
-            progress = handler.read_progress_file()
-            if not progress.can_transition_to(ProcessingState.LLM_EXTRACTION):
-                return None, None, None
-
-            # Get initialized data (could be typed object or dictionary)
-            initialized_state_data = handler.get_initialized_data()
-            initialized_status = get_status_from_state_data(initialized_state_data)
-            if not initialized_state_data or initialized_status != ProcessingStatus.SUCCESS.value:
-                return None, None, None
-
-            # Get local extraction data (could be typed object or dictionary)
-            local_extraction_state_data = handler.get_local_extraction_data()
-            local_extraction_status = get_status_from_state_data(local_extraction_state_data)
-            if not local_extraction_state_data or local_extraction_status != ProcessingStatus.SUCCESS.value:
-                return None, None, None
-
-            return handler, initialized_state_data, local_extraction_state_data
-
-        except Exception as e:
-            # Log the error with context about which document failed
-            logger.error(f"Error validating document readiness for {question_dir}: {str(e)}", exc_info=True)
-            return None, None, None
-
-    def extract_table_information(local_extraction_data):
-        """
-        Extract table pages and summary information from local extraction data.
-        Handles both typed objects and dictionary formats.
-
-        Returns:
-            tuple: (table_pages, potential_ranges) or (None, None) if no tables
-        """
-        # Extract data from either typed object or dictionary
-        # Check for dictionary first to avoid hasattr() issues
-        if isinstance(local_extraction_data, dict):
-            if "data" in local_extraction_data:
-                # Dictionary format with nested "data" key
-                extraction_data = local_extraction_data["data"]
-            else:
-                # Dictionary format where the dict itself is the data
-                extraction_data = local_extraction_data
-        elif hasattr(local_extraction_data, "data"):
-            # Typed object with data attribute
-            extraction_data = local_extraction_data.data
-        else:
-            return None, None
-
-        has_tables = extraction_data.get("has_tables", False)
-        if not has_tables:
-            return None, None
-
-        # Get table information from pages
-        pages = extraction_data.get("pages", {})
-        table_pages = []
-        tables_summary = []
-
-        # Convert pages data to tables_summary format for potential ranges
-        for page_num, page_data in pages.items():
-            if page_data.get("has_tables", False):
-                page_num_int = int(page_num)
-                table_pages.append(page_num_int)
-                # Add to tables_summary for potential ranges calculation
-                tables_summary.append({"page": page_num_int})
-
-        # Find potential multi-page tables
-        potential_ranges = find_potential_continuous_table_pages(tables_summary)
-
-        return sorted(table_pages), potential_ranges
-
-    def get_document_path(initialized_state_data):
-        """
-        Get and normalize the document path from initialized state data.
-        Handles both typed objects and dictionary formats.
-
-        Returns:
-            str: Relative path to document or None if not found
-        """
-        # Extract data from either typed object or dictionary
-        # Check for dictionary first to avoid hasattr() issues
-        if isinstance(initialized_state_data, dict):
-            if "data" in initialized_state_data:
-                # Dictionary format with nested "data" key
-                initialized_data = initialized_state_data["data"]
-            else:
-                # Dictionary format where the dict itself is the data
-                initialized_data = initialized_state_data
-        elif hasattr(initialized_state_data, "data"):
-            # Typed object with data attribute
-            initialized_data = initialized_state_data.data
-        else:
-            return None
-
-        doc_path = initialized_data.get("questions_file_path_local")
-
-        if not doc_path:
-            return None
-
-        # Convert to relative path if it's absolute
-        doc_path_obj = Path(doc_path)
-        if doc_path_obj.is_absolute():
-            try:
-                rel_path = doc_path_obj.relative_to(data_root)
-                return str(rel_path)
-            except ValueError:
-                pass
-
-        return doc_path
-
-    def create_document_entry(doc_path, ministry_name, table_pages, total_tables, potential_ranges, has_tables):
-        """
-        Create a document entry for the results list.
-
-        Returns:
-            dict: Document information dictionary
-        """
-        return {
-            "path": doc_path,
-            "ministry": ministry_name,
-            "table_pages": table_pages,
-            "num_tables": total_tables,
-            "potential_multi_page_ranges": potential_ranges,
-            "has_tables": has_tables,
-            "total_tables": total_tables,
-        }
 
     def process_question_directory(question_dir, ministry_name):
         """
@@ -199,7 +266,7 @@ def find_documents_ready_for_llm_extraction(ministries):
             return None
 
         # Get document path from typed data
-        doc_path = get_document_path(initialized_state_data)
+        doc_path = get_document_path_from_state(initialized_state_data)
         if not doc_path:
             return None
 
@@ -236,6 +303,9 @@ def find_documents_ready_for_llm_extraction(ministries):
 
         except Exception as e:
             print(f"Error processing ministry {ministry.name}: {str(e)}")
+
+    # Sort documents by filename for consistent ordering
+    documents_ready_for_llm_extraction.sort(key=lambda doc: Path(doc["path"]).name)
 
     return documents_ready_for_llm_extraction
 
@@ -436,68 +506,43 @@ def find_documents_with_potential_multi_page_tables(documents_with_tables: list)
     return documents_with_potential_multi_page_tables
 
 
-def process_single_document_for_llm_extraction(document_path):
+def process_single_document_for_llm_extraction(document_path, table_pages):
     """
     Process a single document for LLM extraction using the PDFExtractionOrchestrator.
 
-    This function consolidates the shared logic between CLI and API for:
-    - Validating document exists and is ready for LLM extraction
-    - Finding the PDF file
-    - Getting pages with tables
-    - Running the orchestrator
-    - Returning the LLM extraction state data
+    This function follows the same logic as process_documents_with_tables:
+    - Converts path to absolute
+    - Checks if document exists
+    - Calls orchestrator with table pages
+    - Returns LLM extraction state data
 
     Args:
-        document_path: Path to the document directory
+        document_path: Path to the document directory (relative or absolute)
+        table_pages: List of page numbers that have tables
 
     Returns:
         StateData: The LLM extraction state data after successful processing
 
     Raises:
-        FileNotFoundError: If document or PDF file not found
-        ValueError: If document is not ready for LLM extraction or validation fails
+        FileNotFoundError: If document not found
         Exception: If orchestrator processing fails
     """
-    from apps.py.documents.extractors.orchestrator import PDFExtractionOrchestrator
-    from apps.py.documents.utils.progress_handler import ProgressHandler
+    # Convert relative path to absolute path using data root (same as CLI)
+    data_root = get_loksabha_data_root()
+    doc_path = Path(document_path)
+    if not doc_path.is_absolute():
+        doc_path = data_root / doc_path
 
-    # Convert to Path object if string
-    document_path = Path(document_path)
+    # Make sure document exists (same as CLI)
+    if not doc_path.exists():
+        raise FileNotFoundError(f"Document not found at: {doc_path}")
 
-    # Check if document exists
-    if not document_path.exists():
-        raise FileNotFoundError(f"Document not found at path: {document_path}")
-
-    # Find the PDF file in the document directory
-    pdf_files = list(document_path.glob("*.pdf"))
-    if not pdf_files:
-        raise FileNotFoundError(f"No PDF file found in document directory: {document_path}")
-
-    pdf_path = str(pdf_files[0])  # Use first PDF found
-
-    # Use existing function to validate state and get table pages
-    docs = find_documents_ready_for_llm_extraction([document_path.parent])
-
-    # Find our document in the results
-    doc_info = None
-    for doc in docs:
-        if Path(doc["path"]).name == document_path.name:
-            doc_info = doc
-            break
-
-    if not doc_info:
-        raise ValueError("Document is not ready for LLM extraction")
-
-    table_pages = doc_info["table_pages"]
-    if not table_pages:
-        raise ValueError("No pages with tables found for LLM extraction")
-
-    # Use PDFExtractionOrchestrator (same as CLI and API)
+    # Call PDF extractor to process the pages (same as CLI)
     pdf_extractor = PDFExtractionOrchestrator()
-    pdf_extractor.extract_and_save_content(pdf_path, table_pages)
+    pdf_extractor.extract_and_save_content(str(doc_path), table_pages)
 
     # Get and return the updated state data after processing
-    handler = ProgressHandler(document_path)
+    handler = ProgressHandler(doc_path)
     llm_state_data = handler.get_llm_extraction_data()
     if not llm_state_data:
         raise Exception("LLM extraction completed but no state data found")

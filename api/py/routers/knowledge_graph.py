@@ -4,6 +4,10 @@ from fastapi import APIRouter, HTTPException
 
 from apps.py.documents.utils.progress_handler import ProgressHandler
 from apps.py.knowledge_graph.exceptions import InvalidMetadataError, QuestionNotFoundError
+from apps.py.parliament_questions.document_processing import (
+    process_single_document_for_llm_extraction,
+    validate_single_document_for_llm_extraction,
+)
 from apps.py.utils.project_root import get_loksabha_data_root
 
 from ..schemas.knowledge_graph import (
@@ -200,13 +204,15 @@ async def perform_llm_extraction(request: LlmExtractionRequest):
             - 500: If LLM extraction fails
     """
     try:
-        from apps.py.parliament_questions.document_processing import process_single_document_for_llm_extraction
-
         # Initialize document path
         document_path = get_loksabha_data_root() / request.document_path
 
-        # Use shared function to process the document and get state data
-        llm_state_data = process_single_document_for_llm_extraction(document_path)
+        # Validate single document and get table pages (efficient, no ministry scanning)
+        doc_info = validate_single_document_for_llm_extraction(document_path)
+        table_pages = doc_info["table_pages"]
+
+        # Use shared function with table pages (same as CLI)
+        llm_state_data = process_single_document_for_llm_extraction(document_path, table_pages)
 
         return LlmExtractionResponse(
             status="success",

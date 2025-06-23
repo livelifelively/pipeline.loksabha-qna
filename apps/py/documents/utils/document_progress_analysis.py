@@ -9,9 +9,16 @@ All functions are pure and reusable across different contexts.
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-from apps.py.types import ProcessingState, ProcessingStatus
+from apps.py.types import STATE_ORDER, ProcessingState, ProcessingStatus
 
 from .progress_handler import DocumentProgressHandler
+
+
+# Lazy import to avoid circular import issues
+def _get_find_document_paths():
+    from apps.py.parliament_questions.document_processing import find_document_paths
+
+    return find_document_paths
 
 
 def get_document_table_info(progress_handler: DocumentProgressHandler) -> Dict[str, Union[bool, str]]:
@@ -118,8 +125,6 @@ def is_document_processed_successfully(
             return False
 
         # Check if current state is at least the minimum required state
-        from apps.py.types import STATE_ORDER
-
         if current_state not in STATE_ORDER or min_state not in STATE_ORDER:
             return False
 
@@ -291,8 +296,7 @@ def analyze_ministry_breakdown(ministries: List[Path]) -> Dict:
     Returns:
         dict: Nested dictionary with structure {ministry_name: {state: {status: count}}}
     """
-    from apps.py.parliament_questions.document_processing import find_document_paths
-
+    find_document_paths = _get_find_document_paths()
     ministry_status_data = {}
 
     for ministry in ministries:
@@ -336,8 +340,7 @@ def analyze_document_details(ministry: Path) -> List[Dict]:
     Returns:
         list: List of dictionaries with detailed document information
     """
-    from apps.py.parliament_questions.document_processing import find_document_paths
-
+    find_document_paths = _get_find_document_paths()
     document_details = []
 
     # Find all documents in this ministry
@@ -444,8 +447,7 @@ def get_ministry_document_counts(ministries: List[Path]) -> Dict[str, int]:
     Returns:
         dict: Dictionary with ministry names as keys and document counts as values
     """
-    from apps.py.parliament_questions.document_processing import find_document_paths
-
+    find_document_paths = _get_find_document_paths()
     ministry_doc_counts = {}
 
     for ministry in ministries:

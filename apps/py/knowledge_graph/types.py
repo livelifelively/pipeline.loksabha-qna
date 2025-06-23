@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
@@ -18,19 +17,3 @@ class PageData(BaseModel):
     text: str
     # tables: Optional[List[TableData]] = Field(default_factory=list)
     tables: Optional[List[Any]] = None
-
-
-class CleanedDataMetadata(BaseModel):
-    """Metadata about the cleaned data"""
-
-    total_pages: int
-    pages_with_tables: int
-    total_tables: int
-    cleaning_timestamp: datetime
-
-
-class CleanedData(BaseModel):
-    """The complete cleaned data structure"""
-
-    pages: List[PageData]
-    metadata: CleanedDataMetadata

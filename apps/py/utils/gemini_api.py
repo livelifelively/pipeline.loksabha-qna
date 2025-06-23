@@ -4,6 +4,7 @@ from typing import Any, Dict
 import google.generativeai as genai
 from dotenv import load_dotenv
 
+from apps.py.llm_api_key import KeyManager
 from apps.py.llm_api_key.rate_limiter import RateLimiter
 from apps.py.llm_api_key.usage_tracker import UsageTracker
 from apps.py.types import MultiPageTableDetectionResult
@@ -18,7 +19,6 @@ _key_manager = None
 def init_gemini() -> Any:
     """Initialize Gemini API with API key from key manager."""
     global _key_manager
-    from apps.py.llm_api_key import KeyManager
 
     # Create key manager if it doesn't exist
     if _key_manager is None:

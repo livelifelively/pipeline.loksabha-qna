@@ -18,6 +18,7 @@ from apps.py.parliament_questions.document_processing import (
     find_all_document_paths,
     find_document_paths,
     find_documents_ready_for_llm_extraction,
+    process_single_document_for_llm_extraction,
     save_ministry_extraction_results,
 )
 from apps.py.utils.project_root import get_loksabha_data_root
@@ -560,7 +561,7 @@ class FixTablesWorkflow(BaseWorkflow):
 
     def find_documents_with_tables(self):
         """Find and process documents with tables."""
-        # Find documents with tables using the shared function
+        # Find documents with tables using the shared function (already sorted by filename)
         self.documents_with_tables = find_documents_ready_for_llm_extraction(self.selected_ministries)
 
         if not self.documents_with_tables:
@@ -697,7 +698,6 @@ class FixTablesWorkflow(BaseWorkflow):
             documents: List of document dictionaries with table information
         """
         total_documents = len(documents)
-        data_root = get_loksabha_data_root()
 
         print(f"\nProcessing {total_documents} documents with tables...")
 
@@ -714,12 +714,7 @@ class FixTablesWorkflow(BaseWorkflow):
             doc_path_str = doc["path"]
             table_pages = doc["table_pages"]
 
-            # Convert relative path to absolute path using data root
-            doc_path = Path(doc_path_str)
-            if not doc_path.is_absolute():
-                doc_path = data_root / doc_path
-
-            print(f"\n[{i}/{total_documents}] Processing document: {doc_path.name}")
+            print(f"\n[{i}/{total_documents}] Processing document: {Path(doc_path_str).name}")
             print(f"  Pages with tables: {', '.join(map(str, table_pages))}")
 
             # Only ask for confirmation if not in batch mode
@@ -729,19 +724,14 @@ class FixTablesWorkflow(BaseWorkflow):
 
             if proceed:
                 try:
-                    # Use shared function to process the document
-                    from apps.py.parliament_questions.document_processing import (
-                        process_single_document_for_llm_extraction,
-                    )
-
+                    # Use shared function to process the document - it handles path conversion internally
                     print("  Splitting PDF and processing pages with tables...")
-                    process_single_document_for_llm_extraction(doc_path)
+                    # Pass the relative path - the shared function will convert to absolute path
+                    process_single_document_for_llm_extraction(doc_path_str, table_pages)
                     print("  ✓ Successfully processed pages with tables")
 
                 except FileNotFoundError as e:
-                    print(f"  ✗ Document/PDF not found: {str(e)}")
-                except ValueError as e:
-                    print(f"  ✗ Document not ready: {str(e)}")
+                    print(f"  ✗ Document not found: {str(e)}")
                 except Exception as e:
                     print(f"  ✗ Error processing document: {str(e)}")
             else:

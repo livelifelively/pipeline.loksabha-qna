@@ -14,6 +14,8 @@ from apps.py.documents.utils import (
     analyze_ministry_breakdown,
     apply_document_filters,
 )
+from apps.py.parliament_questions.document_processing import find_all_document_paths
+from apps.py.types import ProcessingState
 from cli.py.extract_pdf.report_display import (
     display_document_details_table,
     display_ministry_breakdown_table,
@@ -41,15 +43,12 @@ class DocumentProcessingReports(BaseWorkflow):
     def run_overview_report(self):
         """Generate overview report across all selected ministries."""
         # Get selections using common workflow
-        from .menu import get_selection_workflow
+        from .menu import get_selection_workflow  # Import here to avoid circular import
 
         sansad, session, ministries = get_selection_workflow()
 
         if not sansad:  # Selection was cancelled
             return
-
-        # Import required functions
-        from apps.py.parliament_questions.document_processing import find_all_document_paths
 
         # Find all document paths in selected ministries
         all_document_paths = find_all_document_paths(ministries)
@@ -71,15 +70,12 @@ class DocumentProcessingReports(BaseWorkflow):
     def run_ministry_breakdown_report(self):
         """Generate ministry-wise breakdown report."""
         # Get selections using common workflow
-        from .menu import get_selection_workflow
+        from .menu import get_selection_workflow  # Import here to avoid circular import
 
         sansad, session, ministries = get_selection_workflow()
 
         if not sansad:  # Selection was cancelled
             return
-
-        # Import required functions
-        from apps.py.parliament_questions.document_processing import find_all_document_paths
 
         # Find all document paths in selected ministries
         all_document_paths = find_all_document_paths(ministries)
@@ -101,7 +97,7 @@ class DocumentProcessingReports(BaseWorkflow):
     def run_document_details_report(self):
         """Generate document-level detailed report."""
         # Get selections using common workflow
-        from .menu import get_selection_workflow
+        from .menu import get_selection_workflow  # Import here to avoid circular import
 
         sansad, session, ministries = get_selection_workflow()
 
@@ -122,8 +118,6 @@ class DocumentProcessingReports(BaseWorkflow):
         # Handle specific state filter
         selected_state = None
         if "specific_state" in filter_options:
-            from apps.py.types import ProcessingState
-
             state_choices = [Choice(value=state, name=state.value) for state in ProcessingState]
             state_choices.append(Choice(value="UNPROCESSED", name="UNPROCESSED"))
 

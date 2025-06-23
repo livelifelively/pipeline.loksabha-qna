@@ -7,6 +7,8 @@ from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
 
 from pydantic import BaseModel
 
+from .file_utils import safe_mkdir_with_conflict_detection
+
 # Configure structured logging for state manager
 logger = logging.getLogger(__name__)
 
@@ -64,7 +66,8 @@ class ProgressStateManager(Generic[StateEnum]):
             extra={"progress_file": str(self.progress_file)},
         )
 
-        self.progress_file.parent.mkdir(parents=True, exist_ok=True)
+        # Create directory structure safely
+        safe_mkdir_with_conflict_detection(self.progress_file.parent)
 
         # Create file with basic structure, set to initial state
         initial_progress = {

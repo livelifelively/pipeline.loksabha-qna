@@ -40,4 +40,24 @@ class CleanedDataUpdateResponse(BaseModel):
     """Response schema for cleaned data update"""
 
     status: str
-    data: Dict[str, Any]
+    data: Dict[str, Any]  # Contains: updated_pages, progress_status, timestamp
+
+
+class LlmExtractionRequest(BaseModel):
+    """Request schema for LLM extraction"""
+
+    document_path: str = Field(..., description="The path to the question document folder")
+
+    @field_validator("document_path")
+    def validate_document_path(cls, v: str) -> str:
+        """Validate that the document path is properly formatted"""
+        if not v or v.isspace():
+            raise ValueError("Document path cannot be empty")
+        return v
+
+
+class LlmExtractionResponse(BaseModel):
+    """Response schema for LLM extraction"""
+
+    status: str
+    data: Dict[str, Any]  # Full state data from question.progress.json
