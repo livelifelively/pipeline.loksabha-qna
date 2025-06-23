@@ -1,0 +1,60 @@
+{
+  "data": {
+    "failed_sansad_session_question_download": [
+      {
+        "questions_file_path_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AU4002_mV51EA.pdf?source=pqals",
+        "question_number": 4002,
+        "type": "UNSTARRED"
+      },
+      {
+        "questions_file_path_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AU2428_fKHtGm.pdf?source=pqals",
+        "question_number": 2428,
+        "type": "UNSTARRED"
+      },
+      {
+        "questions_file_path_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AU4002_mV51EA.pdf?source=pqals",
+        "question_number": 4002,
+        "type": "UNSTARRED"
+      },
+      {
+        "questions_file_path_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AU9999_failed.pdf?source=pqals",
+        "question_number": 9999,
+        "type": "STARRED"
+      }
+    ],
+    "downloaded_sansad_session_questions": [
+      {
+        "question_number": 4002,
+        "subjects": "Sample Question Subject",
+        "loksabha_number": "18",
+        "member": ["Member Name"],
+        "ministry": "Sample Ministry",
+        "type": "UNSTARRED",
+        "date": "2024-01-01",
+        "questions_file_path_local": "18/iv/ministries/sample-ministry/U-4002/question.pdf",
+        "questions_file_path_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AU4002_mV51EA.pdf?source=pqals",
+        "questions_file_path_hindi_local": null,
+        "questions_file_path_hindi_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AU4002_mV51EA_hindi.pdf?source=pqals",
+        "question_text": null,
+        "answer_text": null,
+        "session_number": "iv"
+      },
+      {
+        "question_number": 2428,
+        "subjects": "Another Question Subject",
+        "loksabha_number": "18",
+        "member": ["Another Member"],
+        "ministry": "Another Ministry",
+        "type": "UNSTARRED",
+        "date": "2024-01-02",
+        "questions_file_path_local": "18/iv/ministries/another-ministry/U-2428/question.pdf",
+        "questions_file_path_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AU2428_fKHtGm.pdf?source=pqals",
+        "questions_file_path_hindi_local": null,
+        "questions_file_path_hindi_web": "https://sansad.in/getFile/loksabhaquestions/annex/184/AU2428_fKHtGm_hindi.pdf?source=pqals",
+        "question_text": null,
+        "answer_text": null,
+        "session_number": "iv"
+      }
+    ]
+  }
+}
