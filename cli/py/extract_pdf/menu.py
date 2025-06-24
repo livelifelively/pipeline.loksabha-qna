@@ -17,6 +17,7 @@ from apps.py.parliament_questions.document_processing import (
     calculate_table_statistics,
     find_all_document_paths,
     find_document_paths,
+    find_documents_needing_extraction,
     find_documents_ready_for_llm_extraction,
     process_single_document_for_llm_extraction,
     save_ministry_extraction_results,
@@ -194,20 +195,37 @@ class ExtractPDFWorkflow(BaseWorkflow):
         print("=" * 50)
 
     def get_ministry_documents(self, ministry):
-        """Get document paths for a ministry.
+        """Get document paths for a ministry that need extraction.
+        Filters out documents that have already been successfully extracted.
 
         Args:
             ministry: Path object representing the ministry directory
 
         Returns:
-            list: List of document paths, or empty list if none found
+            list: List of document paths that need extraction, or empty list if none found
         """
-        document_paths = find_document_paths(ministry)
-        if not document_paths:
+        # Get all document paths first
+        all_document_paths = find_document_paths(ministry)
+        if not all_document_paths:
             print(f"No PDF documents found in ministry: {ministry.name}")
             return []
 
-        print(f"Found {len(document_paths)} document paths with PDF files in {ministry.name}.")
+        # Filter to only include documents that need extraction
+        document_paths = find_documents_needing_extraction(ministry)
+        
+        # Report on filtering results
+        already_extracted = len(all_document_paths) - len(document_paths)
+        if already_extracted > 0:
+            print(f"Found {len(all_document_paths)} total documents in {ministry.name}.")
+            print(f"Skipping {already_extracted} already extracted documents.")
+            print(f"{len(document_paths)} documents need extraction.")
+        else:
+            print(f"Found {len(document_paths)} document paths with PDF files in {ministry.name}.")
+        
+        if not document_paths:
+            print(f"No documents need extraction in ministry: {ministry.name}")
+            return []
+
         return document_paths
 
     def wait_for_potential_rejection(self, ministry, num_documents):

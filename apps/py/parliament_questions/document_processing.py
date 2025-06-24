@@ -379,6 +379,81 @@ def find_document_paths(ministry_path):
         return []
 
 
+def find_documents_needing_extraction(ministry_path):
+    """
+    Find document paths that need LOCAL_EXTRACTION processing.
+    Filters out documents that have already been successfully extracted.
+
+    Args:
+        ministry_path: Path to the ministry directory
+
+    Returns:
+        List of paths to directories containing PDF files that need extraction
+    """
+    try:
+        # First get all document directories with PDFs
+        all_document_dirs = find_document_paths(ministry_path)
+        
+        if not all_document_dirs:
+            return []
+
+        documents_needing_extraction = []
+        
+        for doc_dir in all_document_dirs:
+            if _document_needs_extraction(doc_dir):
+                documents_needing_extraction.append(doc_dir)
+        
+        return documents_needing_extraction
+        
+    except Exception as e:
+        print(f"Error finding documents needing extraction: {str(e)}")
+        return []
+
+
+def _document_needs_extraction(document_dir):
+    """
+    Check if a document needs LOCAL_EXTRACTION processing.
+    
+    Args:
+        document_dir: Path to the document directory
+        
+    Returns:
+        bool: True if document needs extraction, False if already processed successfully
+    """
+    try:
+        from apps.py.documents.utils.progress_handler import DocumentProgressHandler
+        
+        # Check if progress file exists
+        progress_file = document_dir / "question.progress.json"
+        if not progress_file.exists():
+            # No progress file means document hasn't been processed yet
+            return True
+        
+        # Use DocumentProgressHandler to check status
+        handler = DocumentProgressHandler(document_dir)
+        
+        # Get current state
+        current_state = handler.get_current_state()
+        
+        # If state is LOCAL_EXTRACTION, check if it was successful
+        if current_state == ProcessingState.LOCAL_EXTRACTION:
+            local_extraction_data = handler.get_local_extraction_data()
+            status = get_status_from_state_data(local_extraction_data)
+            
+            # If LOCAL_EXTRACTION was successful, skip this document
+            if status == ProcessingStatus.SUCCESS.value:
+                return False
+        
+        # For all other cases (no state, different state, or failed LOCAL_EXTRACTION), include document
+        return True
+        
+    except Exception as e:
+        # If there's any error reading the progress file, include the document for safety
+        # This ensures corrupted progress files don't prevent processing
+        print(f"Warning: Error checking extraction status for {document_dir.name}: {str(e)}")
+        return True
+
+
 def find_all_document_paths(ministries):
     """
     Find document paths across all selected ministries.
