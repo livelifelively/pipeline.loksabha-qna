@@ -1,5 +1,4 @@
 import logging
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
@@ -19,6 +18,7 @@ from apps.py.types import (
 )
 
 from ...utils.state_manager import ProgressStateManager
+from ...utils.timestamps import get_current_timestamp, get_current_timestamp_iso
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -204,7 +204,7 @@ class DocumentProgressHandler:
         """Convert document-specific state data to generic format."""
         return GenericStateData(
             status=state_data.status.value,  # Convert enum to string for generic format
-            timestamp=datetime.now(UTC),
+            timestamp=get_current_timestamp(),
             data=state_data.model_dump(exclude={"status"}),
             state=target_state.value,  # Use the actual target state
         )
@@ -334,10 +334,10 @@ class DocumentProgressHandler:
         for state_entry in reversed(progress["states"]):
             if isinstance(state_entry, dict) and state_entry.get("state") == state.value:
                 state_entry["status"] = status.value
-                state_entry["timestamp"] = datetime.now(UTC).isoformat()
+                state_entry["timestamp"] = get_current_timestamp_iso()
                 break
 
-        progress["updated_at"] = datetime.now(UTC)
+        progress["updated_at"] = get_current_timestamp()
 
         # Write back to file
         self._state_manager._write_validated_progress(progress)

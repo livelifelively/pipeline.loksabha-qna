@@ -9,7 +9,28 @@ import time
 from datetime import datetime, timedelta
 from typing import Awaitable, Callable, List, TypeVar
 
+from ..utils.timestamps import get_current_timestamp
+
 T = TypeVar("T")
+
+
+class RateLimiterConfig:
+    """Configuration constants for rate limiting."""
+
+    # Default rate limits
+    DEFAULT_REQUESTS_PER_MINUTE = 10
+    DEFAULT_REQUESTS_PER_DAY = 1000
+
+    # Time constants
+    MINUTE_WINDOW_SECONDS = 60
+    MIN_WAIT_SECONDS = 1
+
+    # Jitter configuration
+    JITTER_RANGE = 0.1  # ±10%
+
+    # Daily reset time
+    DAILY_RESET_HOUR = 0
+    DAILY_RESET_MINUTE = 0
 
 
 class RateLimiter:
@@ -17,7 +38,11 @@ class RateLimiter:
     Rate limiter for API calls to prevent hitting rate limits.
     """
 
-    def __init__(self, requests_per_minute: int = 10, requests_per_day: int = 1000):
+    def __init__(
+        self,
+        requests_per_minute: int = RateLimiterConfig.DEFAULT_REQUESTS_PER_MINUTE,
+        requests_per_day: int = RateLimiterConfig.DEFAULT_REQUESTS_PER_DAY,
+    ):
         """
         Initialize the rate limiter.
 
@@ -29,7 +54,12 @@ class RateLimiter:
         self.requests_per_day = requests_per_day
         self.request_timestamps: List[datetime] = []
         self.daily_count = 0
-        self.daily_reset_time = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        self.daily_reset_time = get_current_timestamp().replace(
+            hour=RateLimiterConfig.DAILY_RESET_HOUR,
+            minute=RateLimiterConfig.DAILY_RESET_MINUTE,
+            second=0,
+            microsecond=0,
+        ) + timedelta(days=1)
 
     def _cleanup_old_timestamps(self) -> None:
         """Remove timestamps older than 1 minute."""
@@ -39,7 +69,12 @@ class RateLimiter:
         # Reset daily count if we've passed the reset time
         if now >= self.daily_reset_time:
             self.daily_count = 0
-            self.daily_reset_time = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+            self.daily_reset_time = now.replace(
+                hour=RateLimiterConfig.DAILY_RESET_HOUR,
+                minute=RateLimiterConfig.DAILY_RESET_MINUTE,
+                second=0,
+                microsecond=0,
+            ) + timedelta(days=1)
 
     def should_limit(self) -> bool:
         """
@@ -86,16 +121,16 @@ class RateLimiter:
         if self.daily_count >= self.requests_per_day:
             # Need to wait until tomorrow
             wait_seconds = (self.daily_reset_time - datetime.now()).total_seconds()
-            wait_seconds = max(wait_seconds, 1)  # At least 1 second
+            wait_seconds = max(wait_seconds, RateLimiterConfig.MIN_WAIT_SECONDS)
         else:
             # Need to wait until oldest request falls out of the window
             oldest = min(self.request_timestamps)
-            wait_seconds = 60 - (datetime.now() - oldest).total_seconds()
-            wait_seconds = max(wait_seconds, 1)  # At least 1 second
+            wait_seconds = RateLimiterConfig.MINUTE_WINDOW_SECONDS - (datetime.now() - oldest).total_seconds()
+            wait_seconds = max(wait_seconds, RateLimiterConfig.MIN_WAIT_SECONDS)
 
         # Add jitter if requested (±10%)
         if jitter:
-            wait_seconds *= 1 + random.uniform(-0.1, 0.1)
+            wait_seconds *= 1 + random.uniform(-RateLimiterConfig.JITTER_RANGE, RateLimiterConfig.JITTER_RANGE)
 
         # Wait and then record
         time.sleep(wait_seconds)

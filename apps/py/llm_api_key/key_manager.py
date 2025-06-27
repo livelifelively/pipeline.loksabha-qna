@@ -4,13 +4,14 @@ Key Manager module for managing multiple API keys in a round-robin fashion.
 
 import json
 import os
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
 from dotenv import load_dotenv
 
 from ..utils.project_root import find_project_root
+from ..utils.timestamps import get_current_timestamp
 
 # Add at module level (top of file)
 _instance = None
@@ -121,7 +122,7 @@ class KeyManager:
 
             if key_data["enabled"]:
                 # Update usage data
-                now = datetime.now()
+                now = get_current_timestamp()
                 key_data["usage"]["last_used"] = now
                 key_data["usage"]["daily_count"] += 1
 
@@ -173,7 +174,11 @@ class KeyManager:
                 "last_used": key_data["usage"]["last_used"].isoformat() if key_data["usage"]["last_used"] else None,
                 "enabled": key_data["enabled"],
                 "requests_last_minute": len(
-                    [t for t in key_data["usage"]["minute_counts"] if (datetime.now() - t).total_seconds() < 60]
+                    [
+                        t
+                        for t in key_data["usage"]["minute_counts"]
+                        if (get_current_timestamp() - t).total_seconds() < 60
+                    ]
                 ),
             }
         return stats
@@ -211,7 +216,7 @@ class KeyManager:
             return False
 
         # Count requests in the last minute
-        now = datetime.now()
+        now = get_current_timestamp()
         minute_counts = self.keys[key_name]["usage"]["minute_counts"]
         recent_count = len([t for t in minute_counts if (now - t).total_seconds() < 60])
 

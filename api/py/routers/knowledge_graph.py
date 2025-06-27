@@ -1,5 +1,3 @@
-from datetime import UTC, datetime
-
 from fastapi import APIRouter, HTTPException
 
 from apps.py.documents.utils.progress_handler import ProgressHandler
@@ -9,6 +7,7 @@ from apps.py.parliament_questions.document_processing import (
     validate_single_document_for_llm_extraction,
 )
 from apps.py.utils.project_root import get_loksabha_data_root
+from apps.py.utils.timestamps import get_current_timestamp_iso
 
 from ..schemas.knowledge_graph import (
     CleanedDataUpdateRequest,
@@ -114,7 +113,7 @@ async def update_cleaned_data(request: CleanedDataUpdateRequest):
             data={
                 "updated_pages": result["updated_pages"],
                 "progress_status": result["progress_status"],
-                "timestamp": datetime.now(UTC).isoformat(),
+                "timestamp": get_current_timestamp_iso(),
             },
         )
     except QuestionNotFoundError as e:

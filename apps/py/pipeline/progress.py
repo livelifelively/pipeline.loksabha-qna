@@ -1,9 +1,9 @@
 import json
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from apps.py.utils.project_root import get_loksabha_data_root
+from apps.py.utils.timestamps import get_current_timestamp
 
 from .exceptions import FileOperationError, ProgressError
 from .types import ProgressData, ProgressIteration, ProgressStep, StepStatus
@@ -34,7 +34,7 @@ async def create_new_iteration(progress_file: Path) -> ProgressIteration:
     """
     try:
         progress_status = json.loads(progress_file.read_text())
-        return ProgressIteration(iteration=len(progress_status) + 1, timestamp=datetime.now(), steps=[])
+        return ProgressIteration(iteration=len(progress_status) + 1, timestamp=get_current_timestamp(), steps=[])
     except Exception as e:
         raise FileOperationError(str(e), str(progress_file), "read", {"error_type": "json_decode"}) from e
 

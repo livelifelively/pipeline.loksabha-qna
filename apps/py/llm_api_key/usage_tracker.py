@@ -3,11 +3,12 @@ Track API usage and generate reports.
 """
 
 import json
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..utils.project_root import find_project_root
+from ..utils.timestamps import get_current_timestamp_iso
 
 
 class UsageTracker:
@@ -75,7 +76,7 @@ class UsageTracker:
             self.today_usage[key_name]["total_cost"] += cost
 
         # Record timestamp
-        self.today_usage[key_name]["timestamps"].append(datetime.now().isoformat())
+        self.today_usage[key_name]["timestamps"].append(get_current_timestamp_iso())
 
         # Save updated data
         self._save_current_usage()

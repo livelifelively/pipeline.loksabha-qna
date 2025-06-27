@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from ..utils.timestamps import get_current_timestamp
 from .types import QuestionType
 
 
@@ -300,7 +301,7 @@ class IssueFlag(BaseModel):
     description: str
     severity: str  # "high", "medium", "low"
     flagged_by: str
-    flagged_at: datetime = Field(default_factory=datetime.now)
+    flagged_at: datetime = Field(default_factory=get_current_timestamp)
 
 
 class ProcessingMetadata(BaseModel):

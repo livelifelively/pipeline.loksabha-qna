@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from ..utils.logging import setup_logger
 from ..utils.run_context import RunContext
+from ..utils.timestamps import get_current_timestamp
 from .step_types import StepStatus
 
 
@@ -17,7 +18,7 @@ class StepMetadata(BaseModel):
     key: str = Field(..., description="Unique identifier for the step")
     is_recovered: bool = Field(default=False, description="Whether step data was recovered from previous run")
     status: Optional[StepStatus] = Field(None, description="Current status of the step")
-    start_time: datetime = Field(default_factory=datetime.now, description="When step execution began")
+    start_time: datetime = Field(default_factory=get_current_timestamp, description="When step execution began")
 
 
 class PipelineContext(BaseModel):

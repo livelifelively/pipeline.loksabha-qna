@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from ..utils.timestamps import get_current_timestamp
 from .context import PipelineContext
 from .step_types import StepStatus
 
@@ -58,7 +59,9 @@ class ProgressData(BaseModel):
     data: Dict[str, Any] = Field(default_factory=dict, description="Step output data")
     error: Dict[str, Any] = Field(default_factory=dict, description="Error information if any")
     key: str = Field(..., description="Unique key for the progress entry")
-    timestamp: Optional[datetime] = Field(default_factory=datetime.now, description="Timestamp of the progress entry")
+    timestamp: Optional[datetime] = Field(
+        default_factory=get_current_timestamp, description="Timestamp of the progress entry"
+    )
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat() if v else None}
@@ -77,7 +80,7 @@ class ProgressIteration(BaseModel):
     """Information about a pipeline iteration."""
 
     iteration: int = Field(..., description="Iteration number")
-    timestamp: datetime = Field(default_factory=datetime.now, description="Iteration timestamp")
+    timestamp: datetime = Field(default_factory=get_current_timestamp, description="Iteration timestamp")
     steps: List[ProgressStep] = Field(default_factory=list, description="Completed steps")
 
     class Config:
