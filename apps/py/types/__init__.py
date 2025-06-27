@@ -23,6 +23,7 @@ from .models import (
     LocalExtractionPageData,
     ManualReviewData,
     ManualReviewPageData,
+    ManualReviewTableData,
     MultiPageTableDetectionResult,
     MultiPageTableExtractionResults,
     MultiPageTableInfo,
@@ -45,6 +46,7 @@ from .models import (
     TableMetadata,
     TableResult,
     TableSummary,
+    TableType,
 )
 from .types import (
     FailedQuestionDownload,
@@ -103,4 +105,6 @@ __all__ = [
     "VALID_TRANSITIONS",
     "STATE_ORDER",
     "StateTransitionValidator",
+    "ManualReviewTableData",
+    "TableType",
 ]
