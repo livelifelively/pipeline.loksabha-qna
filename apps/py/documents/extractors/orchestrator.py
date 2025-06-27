@@ -15,8 +15,8 @@ from apps.py.types import (
     SinglePageTableResult,
     TableResult,
 )
+from apps.py.types.models import GenericStateData
 from apps.py.utils.project_root import get_loksabha_data_root
-from apps.py.utils.state_manager import StateData
 
 from ..utils.progress_handler import DocumentProgressHandler
 from .base import BaseExtractor
@@ -259,7 +259,7 @@ class PDFExtractionOrchestrator(BaseExtractor):
             if ExtractionConfig.TEMP_FILE_CLEANUP_ENABLED and temp_pdf and Path(temp_pdf).exists():
                 Path(temp_pdf).unlink()
 
-    def _get_local_extraction_reference(self) -> Optional[StateData]:
+    def _get_local_extraction_reference(self) -> Optional[GenericStateData]:
         """Get existing local extraction data for reference (but don't copy incompatible types)."""
         local_extraction_data = None
         try:
