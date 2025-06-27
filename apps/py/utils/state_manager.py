@@ -5,6 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
 
+from ..types import BaseProgressFileStructure
 from ..types.models import GenericStateData
 from .file_utils import safe_mkdir_with_conflict_detection
 
@@ -141,7 +142,7 @@ class ProgressStateManager(Generic[StateEnum]):
                 "Progress file not found",
                 extra={"progress_file": str(self.progress_file)},
             )
-            raise FileNotFoundError(f"Progress file not found: {self.progress_file}")
+            raise FileNotFoundError(f"Progress file not found: {self.progress_file}") from None
         except json.JSONDecodeError as e:
             logger.error(
                 "Progress file contains invalid JSON",
@@ -299,7 +300,6 @@ class ProgressStateManager(Generic[StateEnum]):
         # Validate the entire structure before writing
         try:
             # This will trigger all Pydantic validators
-            from ..types import BaseProgressFileStructure
 
             validated_progress = BaseProgressFileStructure(**progress)
         except Exception as e:
@@ -417,8 +417,6 @@ class ProgressStateManager(Generic[StateEnum]):
 
         # Validate and write
         try:
-            from ..types import BaseProgressFileStructure
-
             validated_progress = BaseProgressFileStructure(**progress)
         except Exception as e:
             logger.error(
@@ -438,3 +436,111 @@ class ProgressStateManager(Generic[StateEnum]):
                 "states_rolled_back": states_rolled_back,
             },
         )
+
+    def update_state_data(self, state: Union[StateEnum, str], partial_data: Dict[str, Any]) -> None:
+        """
+        Update the latest state entry with partial data (upsert approach).
+
+        This method finds the most recent entry for the specified state and merges
+        the partial_data into the existing data field, preserving audit trail
+        while allowing incremental updates within the same state.
+
+        Args:
+            state: The state to update (Enum or string)
+            partial_data: Partial data to merge into existing state data
+
+        Raises:
+            ValueError: If no existing state entry is found or merge fails
+            IOError: If file cannot be written
+        """
+        state_key = state.value if isinstance(state, Enum) else state
+
+        # Read current progress
+        progress = self.read_progress_file()
+
+        # Find the latest entry for this state (search from end)
+        target_entry_index = None
+        for i, state_entry in enumerate(reversed(progress["states"])):
+            if not isinstance(state_entry, dict):
+                continue
+
+            if state_entry.get("state") == state_key:
+                target_entry_index = len(progress["states"]) - 1 - i
+                break
+
+        if target_entry_index is None:
+            logger.error(
+                "Cannot update state - no existing entry found",
+                extra={
+                    "progress_file": str(self.progress_file),
+                    "target_state": state_key,
+                    "available_states": [s.get("state") for s in progress["states"] if isinstance(s, dict)],
+                },
+            )
+            raise ValueError(f"No existing entry found for state {state_key}")
+
+        # Get the target entry
+        target_entry = progress["states"][target_entry_index]
+
+        logger.info(
+            "Updating state data",
+            extra={
+                "progress_file": str(self.progress_file),
+                "target_state": state_key,
+                "entry_index": target_entry_index,
+                "partial_data_keys": list(partial_data.keys()),
+            },
+        )
+
+        # Deep merge partial_data into existing data field
+        existing_data = target_entry.get("data", {})
+        updated_data = self._deep_merge_dicts(existing_data, partial_data)
+
+        # Update the entry
+        target_entry["data"] = updated_data
+        target_entry["timestamp"] = datetime.now(UTC).isoformat()
+        progress["updated_at"] = datetime.now(UTC)
+
+        # Validate and write
+        try:
+            validated_progress = BaseProgressFileStructure(**progress)
+        except Exception as e:
+            logger.error(
+                "State update failed validation",
+                extra={"progress_file": str(self.progress_file), "target_state": state_key, "error": str(e)},
+            )
+            raise ValueError(f"State update failed validation: {e}") from e
+
+        self._write_validated_progress(validated_progress.model_dump())
+
+        logger.info(
+            "State data updated successfully",
+            extra={
+                "progress_file": str(self.progress_file),
+                "target_state": state_key,
+                "entry_index": target_entry_index,
+            },
+        )
+
+    def _deep_merge_dicts(self, base_dict: Dict[str, Any], update_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Deep merge two dictionaries, with update_dict taking precedence.
+
+        Args:
+            base_dict: Base dictionary to merge into
+            update_dict: Dictionary with updates to apply
+
+        Returns:
+            Merged dictionary
+        """
+        result = base_dict.copy()
+
+        for key, value in update_dict.items():
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                # Recursively merge nested dictionaries
+                result[key] = self._deep_merge_dicts(result[key], value)
+            else:
+                # Replace or add the value
+                result[key] = value
+
+        return result
