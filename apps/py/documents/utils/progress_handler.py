@@ -10,6 +10,7 @@ from apps.py.types import (
     LlmExtractionData,
     LocalExtractionData,
     ManualReviewData,
+    ManualReviewPageData,
     PageProcessingData,
     PrepareDataData,
     ProcessingState,
@@ -207,6 +208,139 @@ class DocumentProgressHandler:
             data=state_data.model_dump(exclude={"status"}),
             state=target_state.value,  # Use the actual target state
         )
+
+    def patch_manual_review_page(self, page_number: int, page_data: ManualReviewPageData) -> None:
+        """
+        Update a single page in the current MANUAL_REVIEW state.
+
+        This method updates the latest MANUAL_REVIEW state entry with new page data,
+        preserving existing pages and merging the new page data.
+
+        Args:
+            page_number: Page number to update
+            page_data: New page data for the specified page
+
+        Raises:
+            ValueError: If not currently in MANUAL_REVIEW state or state doesn't exist
+        """
+        # Verify we're in MANUAL_REVIEW state
+        current_state = self.get_current_state()
+        if current_state != ProcessingState.MANUAL_REVIEW:
+            raise ValueError(f"Cannot patch MANUAL_REVIEW - current state is {current_state}")
+
+        # Prepare partial data for the page update
+        partial_data = {"pages": {str(page_number): page_data.model_dump()}}
+
+        logger.info(
+            "Patching MANUAL_REVIEW page data",
+            extra={
+                "progress_file": str(self._state_manager.progress_file),
+                "page_number": page_number,
+                "has_tables": page_data.has_tables,
+                "passed_review": page_data.passed_review,
+                "text_edited": page_data.text_edited,
+                "tables_edited_count": len(page_data.tables_edited_ids),
+            },
+        )
+
+        # Update the state data
+        self._state_manager.update_state_data(ProcessingState.MANUAL_REVIEW, partial_data)
+
+    def patch_manual_review_status(
+        self, status: ProcessingStatus, processing_metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Update the status of the current MANUAL_REVIEW state.
+
+        This method updates only the status field (and optionally processing metadata)
+        of the latest MANUAL_REVIEW state entry without affecting page data.
+
+        Args:
+            status: New processing status
+            processing_metadata: Optional metadata updates (reviewer, processing_time, etc.)
+
+        Raises:
+            ValueError: If not currently in MANUAL_REVIEW state or state doesn't exist
+        """
+        # Verify we're in MANUAL_REVIEW state
+        current_state = self.get_current_state()
+        if current_state != ProcessingState.MANUAL_REVIEW:
+            raise ValueError(f"Cannot patch MANUAL_REVIEW status - current state is {current_state}")
+
+        # Prepare partial data for status update
+        partial_data = {}
+
+        # Update processing metadata if provided
+        if processing_metadata:
+            partial_data["processing_metadata"] = processing_metadata
+
+        logger.info(
+            "Patching MANUAL_REVIEW status",
+            extra={
+                "progress_file": str(self._state_manager.progress_file),
+                "new_status": status.value,
+                "metadata_updated": processing_metadata is not None,
+            },
+        )
+
+        # Update the state data
+        self._state_manager.update_state_data(ProcessingState.MANUAL_REVIEW, partial_data)
+
+        # Also update the status field at the GenericStateData level
+        # We need to handle this specially since status is not in the data field
+        self._patch_state_status(ProcessingState.MANUAL_REVIEW, status)
+
+    def patch_manual_review_bulk_pages(self, pages_data: Dict[int, ManualReviewPageData]) -> None:
+        """
+        Update multiple pages in the current MANUAL_REVIEW state in a single operation.
+
+        Args:
+            pages_data: Dictionary mapping page numbers to page data
+
+        Raises:
+            ValueError: If not currently in MANUAL_REVIEW state or state doesn't exist
+        """
+        # Verify we're in MANUAL_REVIEW state
+        current_state = self.get_current_state()
+        if current_state != ProcessingState.MANUAL_REVIEW:
+            raise ValueError(f"Cannot patch MANUAL_REVIEW - current state is {current_state}")
+
+        # Prepare partial data for bulk page update
+        partial_data = {"pages": {str(page_num): page_data.model_dump() for page_num, page_data in pages_data.items()}}
+
+        logger.info(
+            "Patching MANUAL_REVIEW bulk pages",
+            extra={
+                "progress_file": str(self._state_manager.progress_file),
+                "pages_count": len(pages_data),
+                "page_numbers": list(pages_data.keys()),
+            },
+        )
+
+        # Update the state data
+        self._state_manager.update_state_data(ProcessingState.MANUAL_REVIEW, partial_data)
+
+    def _patch_state_status(self, state: ProcessingState, status: ProcessingStatus) -> None:
+        """
+        Update the status field of a state entry (outside of the data field).
+
+        This is a helper method since status is stored at the GenericStateData level,
+        not within the data field.
+        """
+        # Read current progress
+        progress = self._state_manager.read_progress_file()
+
+        # Find the latest entry for this state
+        for state_entry in reversed(progress["states"]):
+            if isinstance(state_entry, dict) and state_entry.get("state") == state.value:
+                state_entry["status"] = status.value
+                state_entry["timestamp"] = datetime.now(UTC).isoformat()
+                break
+
+        progress["updated_at"] = datetime.now(UTC)
+
+        # Write back to file
+        self._state_manager._write_validated_progress(progress)
 
 
 # Legacy alias for backward compatibility
