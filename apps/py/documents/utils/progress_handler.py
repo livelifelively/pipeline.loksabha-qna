@@ -5,17 +5,19 @@ from typing import Any, Dict, Optional, Union
 
 from apps.py.types import (
     ChunkingData,
+    GenericStateData,
     InitializedData,
     LlmExtractionData,
     LocalExtractionData,
     ManualReviewData,
     PageProcessingData,
+    PrepareDataData,
     ProcessingState,
     ProcessingStatus,
     ProgressFileStructure,
 )
 
-from ...utils.state_manager import ProgressStateManager, StateData
+from ...utils.state_manager import ProgressStateManager
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -69,23 +71,27 @@ class DocumentProgressHandler:
     # STATE-SPECIFIC FUNCTIONS
     # ===============================
 
-    def get_initialized_data(self) -> Optional[StateData]:
+    def get_initialized_data(self) -> Optional[GenericStateData]:
         """Get INITIALIZED state data with exact typing."""
         return self._state_manager.get_state_data(ProcessingState.INITIALIZED)
 
-    def get_local_extraction_data(self) -> Optional[StateData]:
+    def get_local_extraction_data(self) -> Optional[GenericStateData]:
         """Get LOCAL_EXTRACTION state data with exact typing."""
         return self._state_manager.get_state_data(ProcessingState.LOCAL_EXTRACTION)
 
-    def get_llm_extraction_data(self) -> Optional[StateData]:
+    def get_llm_extraction_data(self) -> Optional[GenericStateData]:
         """Get LLM_EXTRACTION state data with exact typing."""
         return self._state_manager.get_state_data(ProcessingState.LLM_EXTRACTION)
 
-    def get_manual_review_data(self) -> Optional[StateData]:
+    def get_manual_review_data(self) -> Optional[GenericStateData]:
         """Get MANUAL_REVIEW state data with exact typing."""
         return self._state_manager.get_state_data(ProcessingState.MANUAL_REVIEW)
 
-    def get_chunking_data(self) -> Optional[StateData]:
+    def get_prepare_data_data(self) -> Optional[GenericStateData]:
+        """Get PREPARE_DATA state data with exact typing."""
+        return self._state_manager.get_state_data(ProcessingState.PREPARE_DATA)
+
+    def get_chunking_data(self) -> Optional[GenericStateData]:
         """Get CHUNKING state data with exact typing."""
         return self._state_manager.get_state_data(ProcessingState.CHUNKING)
 
@@ -133,6 +139,10 @@ class DocumentProgressHandler:
         """Transition to MANUAL_REVIEW state with type safety."""
         self._validate_and_transition(ProcessingState.MANUAL_REVIEW, state_data)
 
+    def transition_to_prepare_data(self, state_data: PrepareDataData) -> None:
+        """Transition to PREPARE_DATA state with type safety."""
+        self._validate_and_transition(ProcessingState.PREPARE_DATA, state_data)
+
     def transition_to_chunking(self, state_data: ChunkingData) -> None:
         """Transition to CHUNKING state with type safety."""
         self._validate_and_transition(ProcessingState.CHUNKING, state_data)
@@ -149,6 +159,8 @@ class DocumentProgressHandler:
             return self.get_llm_extraction_data()
         elif state == ProcessingState.MANUAL_REVIEW:
             return self.get_manual_review_data()
+        elif state == ProcessingState.PREPARE_DATA:
+            return self.get_prepare_data_data()
         elif state == ProcessingState.CHUNKING:
             return self.get_chunking_data()
         else:
@@ -182,16 +194,18 @@ class DocumentProgressHandler:
             raise ValueError(f"Invalid transition: {details['error']}")
 
         # Convert and delegate
-        generic_state_data = self._convert_to_generic_state_data(state_data)
+        generic_state_data = self._convert_to_generic_state_data(target_state, state_data)
         self._state_manager.transition_to_state(target_state, generic_state_data)
 
-    def _convert_to_generic_state_data(self, state_data: Union[PageProcessingData, ChunkingData]) -> StateData:
+    def _convert_to_generic_state_data(
+        self, target_state: ProcessingState, state_data: Union[PageProcessingData, ChunkingData]
+    ) -> GenericStateData:
         """Convert document-specific state data to generic format."""
-
-        return StateData(
-            status=state_data.status.value,
-            timestamp=datetime.now(UTC).isoformat(),
+        return GenericStateData(
+            status=state_data.status.value,  # Convert enum to string for generic format
+            timestamp=datetime.now(UTC),
             data=state_data.model_dump(exclude={"status"}),
+            state=target_state.value,  # Use the actual target state
         )
 
 
