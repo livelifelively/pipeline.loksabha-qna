@@ -279,7 +279,9 @@ app.get('/annotations/document', (req: Request, res: Response): void => {
       return;
     }
 
-    // Read progress file for text and metadata
+    // Read text from extracted_text.md (preserves page delimiters for proper chunking).
+    // Falls back to reconstructing from question.progress.json if file doesn't exist.
+    const extractedTextPath = path.join(docDir, 'extracted_text.md');
     const progressPath = path.join(docDir, 'question.progress.json');
     let text = '';
     let metadata: any = {};
@@ -292,14 +294,20 @@ app.get('/annotations/document', (req: Request, res: Response): void => {
       if (initState?.data) {
         metadata = initState.data;
       }
+    }
 
-      // Get text from LOCAL_EXTRACTION or LLM_EXTRACTION state
+    if (fs.existsSync(extractedTextPath)) {
+      // Use extracted_text.md directly — preserves page delimiters so the
+      // chunk-splitter can merge content that spans page boundaries.
+      text = fs.readFileSync(extractedTextPath, 'utf8').trim();
+    } else if (fs.existsSync(progressPath)) {
+      // Fallback: reconstruct from per-page data in progress file
+      const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
       const extractionState =
         progress.states?.find((s: any) => s.state === 'LLM_EXTRACTION' && s.status === 'SUCCESS') ||
         progress.states?.find((s: any) => s.state === 'LOCAL_EXTRACTION' && s.status === 'SUCCESS');
 
       if (extractionState?.data?.pages) {
-        // Combine page texts
         const pageNums = Object.keys(extractionState.data.pages).sort(
           (a, b) => parseInt(a) - parseInt(b)
         );
