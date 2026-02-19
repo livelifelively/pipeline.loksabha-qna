@@ -792,11 +792,13 @@ class StateTransitionValidator(BaseModel):
         return True
 
     @staticmethod
-    def _check_condition(state_data: PageProcessingData, condition: str) -> bool:
+    def _check_condition(state_data: PageProcessingData, condition: Union[TransitionCondition, str]) -> bool:
         """Check if a transition condition is met"""
-        if condition == "has_tables":
+        # Normalize to string value for comparison
+        condition_str = condition.value if isinstance(condition, TransitionCondition) else condition
+        if condition_str == "has_tables":
             return any(page.has_tables for page in state_data.pages.values())
-        elif condition == "no_tables":
+        elif condition_str == "no_tables":
             return not any(page.has_tables for page in state_data.pages.values())
         return False
 
