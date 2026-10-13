@@ -218,8 +218,9 @@ async def perform_llm_extraction(request: LlmExtractionRequest):
         doc_info = validate_single_document_for_llm_extraction(document_path)
         table_pages = doc_info["table_pages"]
 
-        # Use shared function with table pages (same as CLI)
-        llm_state_data = process_single_document_for_llm_extraction(document_path, table_pages)
+        # Use shared function with table pages (same as CLI). It expects the PDF
+        # file path from the document entry, not the document directory.
+        llm_state_data = process_single_document_for_llm_extraction(doc_info["path"], table_pages)
 
         return LlmExtractionResponse(
             status="success",

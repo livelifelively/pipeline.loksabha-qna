@@ -616,8 +616,10 @@ def process_single_document_for_llm_extraction(document_path, table_pages):
     pdf_extractor = PDFExtractionOrchestrator()
     pdf_extractor.extract_and_save_content(str(doc_path), table_pages)
 
-    # Get and return the updated state data after processing
-    handler = ProgressHandler(doc_path)
+    # Get and return the updated state data after processing. The state file
+    # lives in the document directory; doc_path is the PDF inside it.
+    document_dir = doc_path.parent if doc_path.is_file() else doc_path
+    handler = ProgressHandler(document_dir)
     llm_state_data = handler.get_llm_extraction_data()
     if not llm_state_data:
         raise Exception("LLM extraction completed but no state data found")
