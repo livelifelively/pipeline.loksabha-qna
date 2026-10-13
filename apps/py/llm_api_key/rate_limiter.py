@@ -63,7 +63,9 @@ class RateLimiter:
 
     def _cleanup_old_timestamps(self) -> None:
         """Remove timestamps older than 1 minute."""
-        now = datetime.now()
+        # Must be timezone-aware to compare with daily_reset_time (UTC-aware);
+        # a naive datetime.now() here raises TypeError on every call.
+        now = get_current_timestamp()
         self.request_timestamps = [ts for ts in self.request_timestamps if (now - ts) < timedelta(minutes=1)]
 
         # Reset daily count if we've passed the reset time
@@ -98,7 +100,7 @@ class RateLimiter:
     def record_request(self) -> None:
         """Record a new request."""
         self._cleanup_old_timestamps()
-        self.request_timestamps.append(datetime.now())
+        self.request_timestamps.append(get_current_timestamp())
         self.daily_count += 1
 
     def wait_if_needed(self, jitter: bool = True) -> float:
@@ -120,12 +122,12 @@ class RateLimiter:
         # Calculate wait time
         if self.daily_count >= self.requests_per_day:
             # Need to wait until tomorrow
-            wait_seconds = (self.daily_reset_time - datetime.now()).total_seconds()
+            wait_seconds = (self.daily_reset_time - get_current_timestamp()).total_seconds()
             wait_seconds = max(wait_seconds, RateLimiterConfig.MIN_WAIT_SECONDS)
         else:
             # Need to wait until oldest request falls out of the window
             oldest = min(self.request_timestamps)
-            wait_seconds = RateLimiterConfig.MINUTE_WINDOW_SECONDS - (datetime.now() - oldest).total_seconds()
+            wait_seconds = RateLimiterConfig.MINUTE_WINDOW_SECONDS - (get_current_timestamp() - oldest).total_seconds()
             wait_seconds = max(wait_seconds, RateLimiterConfig.MIN_WAIT_SECONDS)
 
         # Add jitter if requested (±10%)
