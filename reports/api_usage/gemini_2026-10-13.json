@@ -1,0 +1,26 @@
+{
+  "service": "gemini",
+  "date": "2026-10-13",
+  "keys": {
+    "gemini_2": {
+      "total_calls": 2,
+      "successful_calls": 2,
+      "failed_calls": 0,
+      "total_cost": 0.0,
+      "timestamps": [
+        "2026-10-13T08:20:26.197813+00:00",
+        "2026-10-13T08:22:53.690519+00:00"
+      ]
+    },
+    "default": {
+      "total_calls": 2,
+      "successful_calls": 2,
+      "failed_calls": 0,
+      "total_cost": 0.0,
+      "timestamps": [
+        "2026-10-13T08:22:24.880332+00:00",
+        "2026-10-13T08:22:50.428492+00:00"
+      ]
+    }
+  }
+}
