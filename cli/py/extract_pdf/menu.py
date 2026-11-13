@@ -11,8 +11,9 @@ from InquirerPy.base.control import Choice
 # Add parent directory to path to import from other modules
 sys.path.append(str(Path(__file__).parents[4]))
 
-# Import but don't call directly - we'll handle async separately
-from apps.py.documents.extractors.pdf_extraction import QuestionPDFExtractor
+# QuestionPDFExtractor pulls in Marker and torch; it is imported lazily inside
+# ExtractPDFWorkflow.extract_documents so that reports and LLM table fixing
+# work on machines without a torch build.
 from apps.py.parliament_questions.document_processing import (
     calculate_table_statistics,
     find_all_document_paths,
@@ -268,6 +269,9 @@ class ExtractPDFWorkflow(BaseWorkflow):
         """
         try:
             print(f"Starting extraction of {len(document_paths)} documents...")
+
+            # Lazy import: Marker and torch are only needed for local extraction
+            from apps.py.documents.extractors.pdf_extraction import QuestionPDFExtractor
 
             # Create PDFExtractor instance
             extractor = QuestionPDFExtractor(extractor_type=self.extractor_type)

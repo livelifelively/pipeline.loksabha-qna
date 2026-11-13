@@ -129,6 +129,7 @@ class PDFExtractionOrchestrator(BaseExtractor):
         """
         text_results: Dict[int, ExtractionResult] = {}
         for page_num in page_numbers:
+            temp_pdf = None
             try:
                 # Create temporary PDF for this page
                 temp_pdf = self.page_splitter.split_pages(pdf_path, [page_num], output_folder_path)
@@ -368,8 +369,13 @@ class PDFExtractionOrchestrator(BaseExtractor):
         # Process text content
         text, text_file_name, text_errors = self._process_text_content(text_result)
 
-        # Combine all errors
+        # Combine all errors. Failed single-page table results are not in
+        # combined_results.single_page_tables, so their message only exists in
+        # combined_results.errors; include it or the page shows FAILED with no reason.
         all_errors = table_errors + text_errors
+        page_error = combined_results.errors.get(page_num)
+        if page_error and page_error not in all_errors:
+            all_errors.append(page_error)
 
         # Get table count from the table result
         num_tables = table_result.tables_count or 0 if table_result else 0
@@ -632,6 +638,12 @@ class PDFExtractionOrchestrator(BaseExtractor):
         """
         # Start timing the extraction process
         start_time = time.time()
+
+        # Guard against being handed the document directory instead of the PDF:
+        # the progress handler would otherwise be created one level up and
+        # write a state file into the ministry folder.
+        if not Path(pdf_path).is_file():
+            raise ValueError(f"Expected a PDF file path, got: {pdf_path}")
 
         # Store pdf_path for use in helper methods
         self.pdf_path = pdf_path

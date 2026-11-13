@@ -99,7 +99,7 @@ Output per document:
 
 ### Stage 2: LLM Table Extraction (conditional, Gemini)
 
-Only processes documents where tables were detected in Stage 1. Uses Gemini 2.0 Flash vision API.
+Only processes documents where tables were detected in Stage 1. Uses the Gemini vision API; the model name comes from `GEMINI_MODEL` (default `gemini-3.1-flash-lite`, since earlier flash models have been retired or closed to new users).
 
 ```bash
 npm run start:cli

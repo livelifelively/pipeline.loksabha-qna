@@ -4,6 +4,7 @@ Key Manager module for managing multiple API keys in a round-robin fashion.
 
 import json
 import os
+import re
 from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Tuple
@@ -61,17 +62,18 @@ class KeyManager:
         if single_key:
             self.add_key("default", single_key)
 
-        # Also check for multiple keys with numeric suffixes
-        i = 1
-        while True:
-            key_env_name = f"{base_key_name}_{i}"
-            key_value = os.getenv(key_env_name)
+        # Also check for multiple keys with numeric suffixes. Scan the whole
+        # environment rather than counting up from 1, so a gap in the numbering
+        # (for example keys 2..15 with no key 1) does not silently drop keys.
+        suffix_pattern = re.compile(rf"^{re.escape(base_key_name)}_(\d+)$")
+        numbered = []
+        for env_name, key_value in os.environ.items():
+            match = suffix_pattern.match(env_name)
+            if match and key_value:
+                numbered.append((int(match.group(1)), key_value))
 
-            if not key_value:
-                break
-
+        for i, key_value in sorted(numbered):
             self.add_key(f"{self.service_name}_{i}", key_value)
-            i += 1
 
         # Concise but informative log
         print(f"[API Key Manager] Loaded {len(self.keys)} keys for {self.service_name}")

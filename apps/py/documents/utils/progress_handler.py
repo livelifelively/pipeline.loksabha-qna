@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from apps.py.types import (
     ChunkingData,
@@ -10,11 +10,14 @@ from apps.py.types import (
     LocalExtractionData,
     ManualReviewData,
     ManualReviewPageData,
+    ManualReviewTableData,
     PageProcessingData,
     PrepareDataData,
+    ProcessingMetadata,
     ProcessingState,
     ProcessingStatus,
     ProgressFileStructure,
+    TableType,
 )
 
 from ...utils.state_manager import ProgressStateManager
@@ -319,6 +322,184 @@ class DocumentProgressHandler:
 
         # Update the state data
         self._state_manager.update_state_data(ProcessingState.MANUAL_REVIEW, partial_data)
+
+    # ===============================
+    # CLEANED-DATA ADAPTER
+    # Used by the /cleaned-data endpoints, which the review UI saves through.
+    # This is the only code path that moves a document INTO MANUAL_REVIEW.
+    # ===============================
+
+    def save_cleaned_pages(self, pages_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Record reviewer edits for one or more pages.
+
+        On first use the document is moved from LOCAL_EXTRACTION or LLM_EXTRACTION
+        into MANUAL_REVIEW, with review pages seeded from the latest extraction.
+        The supplied text and tables are then merged into those pages and the
+        edits are tracked per page.
+
+        Args:
+            pages_data: List of dicts with "page_number" and optional "text" and "tables"
+
+        Returns:
+            Dict with "updated_pages" (sorted page numbers) and "progress_status"
+
+        Raises:
+            ValueError: If the document is in a state that cannot be reviewed, or a
+                page number does not exist in the review data
+        """
+        current_state = self.get_current_state()
+        if current_state in (ProcessingState.LOCAL_EXTRACTION, ProcessingState.LLM_EXTRACTION):
+            self.transition_to_manual_review(self._seed_manual_review_data())
+        elif current_state != ProcessingState.MANUAL_REVIEW:
+            raise ValueError(f"Cannot save cleaned pages - current state is {current_state.value}")
+
+        review_entry = self.get_manual_review_data()
+        existing_pages: Dict[str, Any] = (review_entry.data if review_entry else {}).get("pages", {}) or {}
+
+        updates: Dict[int, ManualReviewPageData] = {}
+        for page in pages_data:
+            page_number = int(page["page_number"])
+            base = existing_pages.get(str(page_number))
+            if base is None:
+                raise ValueError(f"Page {page_number} does not exist in the review data")
+            page_model = ManualReviewPageData(**base)
+
+            new_text = page.get("text")
+            if new_text is not None and new_text != page_model.text:
+                page_model.text = new_text
+                page_model.text_edited = True
+
+            new_tables = page.get("tables")
+            if new_tables is not None:
+                page_model.tables = [
+                    self._coerce_review_table(table, page_number, index) for index, table in enumerate(new_tables)
+                ]
+                page_model.tables_edited_ids = [table.id for table in page_model.tables]
+                page_model.has_tables = bool(page_model.tables)
+                page_model.num_tables = len(page_model.tables)
+                page_model.has_multiple_tables = len(page_model.tables) > 1
+
+            updates[page_number] = page_model
+
+        if updates:
+            self.patch_manual_review_bulk_pages(updates)
+
+        return {"updated_pages": sorted(updates), "progress_status": self._review_progress_status()}
+
+    def get_cleaning_progress(self) -> Dict[str, Any]:
+        """
+        Summarise review progress for the document.
+
+        Returns:
+            Dict with the current state, a progress status string, and page counts:
+            total, edited (text or tables changed), and reviewed (passed_review set)
+        """
+        current_state = self.get_current_state()
+        review_entry = self.get_manual_review_data()
+        pages: Dict[str, Any] = (review_entry.data.get("pages") if review_entry else None) or {}
+
+        return {
+            "current_state": current_state.value,
+            "progress_status": self._review_progress_status(),
+            "review_status": review_entry.status if review_entry else None,
+            "total_pages": len(pages),
+            "pages_edited": sum(1 for p in pages.values() if p.get("text_edited") or p.get("tables_edited_ids")),
+            "pages_reviewed": sum(1 for p in pages.values() if p.get("passed_review")),
+        }
+
+    def _review_progress_status(self) -> str:
+        """Progress label derived from the MANUAL_REVIEW entry, if any."""
+        if self.get_current_state() != ProcessingState.MANUAL_REVIEW:
+            return "not_in_review"
+        review_entry = self.get_manual_review_data()
+        if review_entry and review_entry.status == ProcessingStatus.SUCCESS.value:
+            return "manual_review_complete"
+        return "manual_review_in_progress"
+
+    def _seed_manual_review_data(self) -> ManualReviewData:
+        """
+        Build the initial MANUAL_REVIEW payload from the latest extraction entry.
+
+        Prefers a successful LLM_EXTRACTION entry (text plus extracted tables) and
+        falls back to LOCAL_EXTRACTION (text plus table flags). The review starts
+        with status PARTIAL; the status endpoint marks it SUCCESS when done.
+        """
+        llm_entry = self.get_llm_extraction_data()
+        local_entry = self.get_local_extraction_data()
+        source = llm_entry if llm_entry and llm_entry.status == ProcessingStatus.SUCCESS.value else local_entry
+        if source is None:
+            raise ValueError("No extraction data available to start manual review from")
+
+        source_pages: Dict[str, Any] = source.data.get("pages", {}) or {}
+        multi_page_files: Dict[str, Any] = source.data.get("multi_page_table_files") or {}
+
+        pages: Dict[int, ManualReviewPageData] = {}
+        for key, page in source_pages.items():
+            page_number = int(key)
+            tables: List[ManualReviewTableData] = []
+
+            # LLM extraction stores a page's single-page table rows as one flat list
+            rows = page.get("single_page_tables") or []
+            if rows:
+                tables.append(
+                    ManualReviewTableData(
+                        id=f"p{page_number}-t1", content={"rows": rows}, table_type=TableType.SINGLE_PAGE
+                    )
+                )
+
+            is_start = is_end = is_middle = False
+            multi_path = page.get("multi_page_table_file_path")
+            if multi_path:
+                multi_info = multi_page_files.get(multi_path) or {}
+                span = sorted(int(p) for p in (multi_info.get("pages") or [page_number]))
+                is_start = page_number == span[0]
+                is_end = page_number == span[-1]
+                is_middle = not is_start and not is_end
+                if is_start:
+                    table_type = TableType.MULTI_PAGE_START
+                elif is_end:
+                    table_type = TableType.MULTI_PAGE_END
+                else:
+                    table_type = TableType.MULTI_PAGE_MIDDLE
+                tables.append(
+                    ManualReviewTableData(
+                        id=f"mp-{span[0]}-{span[-1]}",
+                        content={"rows": multi_info.get("data") or [], "file": multi_path},
+                        table_type=table_type,
+                    )
+                )
+
+            pages[page_number] = ManualReviewPageData(
+                text=page.get("text") or "",
+                has_tables=bool(page.get("has_tables")) or bool(tables),
+                num_tables=int(page.get("num_tables") or len(tables)),
+                has_multiple_tables=bool(page.get("has_multiple_tables")) or len(tables) > 1,
+                is_multi_page_table_starting_page=is_start,
+                is_multi_page_table_ending_page=is_end,
+                is_multi_page_table_middle_page=is_middle,
+                has_multi_page_tables=bool(multi_path),
+                tables=tables,
+            )
+
+        metadata = ProcessingMetadata(
+            processing_time_seconds=0.0, pages_processed=len(pages), pages_failed=0, llm_model_used=None, reviewer=None
+        )
+        return ManualReviewData(
+            status=ProcessingStatus.PARTIAL, processing_metadata=metadata, pages=pages, error_message=None
+        )
+
+    @staticmethod
+    def _coerce_review_table(table: Any, page_number: int, index: int) -> ManualReviewTableData:
+        """Accept the loose table shapes the review UI sends and normalise them."""
+        if isinstance(table, dict) and "id" in table and "content" in table:
+            return ManualReviewTableData(**table)
+        default_id = f"p{page_number}-t{index + 1}"
+        if isinstance(table, dict):
+            return ManualReviewTableData(id=default_id, content=table)
+        if isinstance(table, list):
+            return ManualReviewTableData(id=default_id, content={"rows": table})
+        return ManualReviewTableData(id=default_id, content={"value": table})
 
     def _patch_state_status(self, state: ProcessingState, status: ProcessingStatus) -> None:
         """

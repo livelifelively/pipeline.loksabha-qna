@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Any, Dict
 
 import google.generativeai as genai
@@ -11,6 +12,14 @@ from apps.py.types import MultiPageTableDetectionResult
 
 # Load environment variables
 load_dotenv()
+
+# Vision model used for all extraction calls. Overridable through the
+# environment because Google retires model names: gemini-2.0-flash, the
+# original choice, now returns 404, and gemini-2.5-flash is closed to new
+# users. The lite tier answers reliably on the free quota; set GEMINI_MODEL
+# to a larger model such as gemini-3.8-flash when quality matters more.
+DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
 
 # Module-level instance
 _key_manager = None
@@ -27,7 +36,7 @@ def init_gemini() -> Any:
     key_name, api_key = _key_manager.get_next_key()
 
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel("gemini-2.0-flash"), key_name
+    return genai.GenerativeModel(GEMINI_MODEL), key_name
 
 
 def extract_text_from_pdf_page(pdf_page_path: str) -> Dict:
